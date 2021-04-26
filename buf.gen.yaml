@@ -1,0 +1,5 @@
+version: v1beta1
+plugins:
+  - name: go
+    out: proto
+    opt: paths=source_relative

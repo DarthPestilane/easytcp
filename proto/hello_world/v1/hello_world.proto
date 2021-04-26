@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package hello_world.v1;
+
+option go_package = "hello_world/v1";
+
+message DemoReq {
+  string key = 1;
+}
+
+message DemoAgent {
+  string proxy = 1;
+}
+
+message DemoResp {
+  string value = 1;
+}
