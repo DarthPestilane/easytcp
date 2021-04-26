@@ -1,8 +1,8 @@
 package tcp_demo
 
 import (
-	"bytes"
 	"demo/tcp_demo/codec"
+	"demo/tcp_demo/util/message"
 	"net"
 	"sync"
 	"time"
@@ -67,23 +67,21 @@ func (c *Context) Body() []byte {
 	return c.Value(CtxKeyBody).([]byte)
 }
 
-func (c *Context) Write(content []byte) (int, error) {
-	msg := bytes.TrimRight(content, "\n")
-	return c.Conn().Write(append(msg, '\n'))
+func (c *Context) Send(routePath string, b []byte) (int, error) {
+	msg := message.AddHead(routePath, b)
+	msg = append(msg, '\n')
+	return c.Conn().Write(msg)
 }
 
-func (c *Context) WriteIn(content []byte, duration time.Duration) (int, error) {
-	_ = c.Conn().SetWriteDeadline(time.Now().Add(duration))
-	defer c.Conn().SetWriteDeadline(time.Time{}) // zero time
-	return c.Write(content)
-}
+func (c *Context) SendIn(routePath string, b []byte, duration time.Duration) (int, error) {
+	msg := message.AddHead(routePath, b)
+	msg = append(msg, '\n')
 
-func (c *Context) WriteString(content string) (int, error) {
-	return c.Write([]byte(content))
-}
-
-func (c *Context) WriteStringIn(content string, duration time.Duration) (int, error) {
-	return c.WriteIn([]byte(content), duration)
+	if err := c.Conn().SetWriteDeadline(time.Now().Add(duration)); err != nil {
+		return 0, err
+	}
+	defer c.Conn().SetWriteDeadline(time.Time{})
+	return c.Conn().Write(msg)
 }
 
 func NewContext() *Context {

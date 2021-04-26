@@ -42,8 +42,21 @@ func (c *Client) AddRoute(routePath string, fn HandlerFunc) {
 	c.handler[routePath] = fn
 }
 
-func (c *Client) Write(b []byte) (int, error) {
-	return c.Conn.Write(b)
+func (c *Client) Send(routePath string, b []byte) (int, error) {
+	msg := message.AddHead(routePath, b)
+	msg = append(msg, '\n')
+	return c.Conn.Write(msg)
+}
+
+func (c *Client) SendIn(routePath string, b []byte, duration time.Duration) (int, error) {
+	msg := message.AddHead(routePath, b)
+	msg = append(msg, '\n')
+
+	if err := c.Conn.SetWriteDeadline(time.Now().Add(duration)); err != nil {
+		return 0, err
+	}
+	defer c.Conn.SetWriteDeadline(time.Time{})
+	return c.Conn.Write(msg)
 }
 
 func (c *Client) StartReading() {

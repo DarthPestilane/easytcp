@@ -4,7 +4,6 @@ import (
 	"demo/tcp_demo"
 	"demo/tcp_demo/codec"
 	v1 "demo/tcp_demo/proto/hello_world/v1"
-	"demo/tcp_demo/util/message"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -27,9 +26,7 @@ func main() {
 			logrus.Error(err)
 			return
 		}
-		msg := message.AddHead("backend->agent", b)
-		msg = append(msg, '\n')
-		n, err := ctx.WriteIn(msg, time.Second)
+		n, err := ctx.SendIn("backend->agent", b, time.Second)
 		if err != nil {
 			logrus.Errorf("write to agent failed: %s", err)
 			return

@@ -5,7 +5,6 @@ import (
 	"demo/tcp_demo/codec"
 	v1 "demo/tcp_demo/proto/hello_world/v1"
 	"demo/tcp_demo/util"
-	"demo/tcp_demo/util/message"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -40,9 +39,7 @@ func main() {
 			logrus.Error(err)
 			return
 		}
-		msg := message.AddHead("client->agent", b)
-		msg = append(msg, '\n')
-		n, err := client.Write(msg)
+		n, err := client.SendIn("client->agent", b, time.Second)
 		if err != nil {
 			if util.IsEOF(err) {
 				logrus.Errorf("agent disconnected!! %s", err)

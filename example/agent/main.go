@@ -4,7 +4,6 @@ import (
 	"demo/tcp_demo"
 	"demo/tcp_demo/codec"
 	v1 "demo/tcp_demo/proto/hello_world/v1"
-	"demo/tcp_demo/util/message"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -46,9 +45,7 @@ func main() {
 		reqToSendByte, _ := codec.DefaultProtobuf.Marshal(reqToSend)
 
 		// send to "agent->backend"
-		reqToSendMsg := message.AddHead("agent->backend", reqToSendByte)
-		reqToSendMsg = append(reqToSendMsg, '\n')
-		_, _ = clientToBackend.Write(reqToSendMsg)
+		_, _ = clientToBackend.SendIn("agent->backend", reqToSendByte, time.Second)
 
 		// wait for response
 		resp := <-agentChan
@@ -61,9 +58,7 @@ func main() {
 		}
 
 		// send back to client
-		msg := message.AddHead("agent->client", b)
-		msg = append(msg, '\n')
-		n, err := ctx.WriteIn(msg, time.Second)
+		n, err := ctx.SendIn("agent->client", b, time.Second)
 		if err != nil {
 			logrus.Errorf("write to client failed: %s", err)
 			return
