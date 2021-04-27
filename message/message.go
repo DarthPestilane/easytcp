@@ -1,6 +1,7 @@
 package message
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -15,7 +16,7 @@ type Head struct {
 
 func ExtractHead(head []byte) (*Head, error) {
 	if !headRegexp.Match(head) {
-		return nil, fmt.Errorf("invalid message head")
+		return nil, errors.New("invalid message head")
 	}
 	matches := headRegexp.FindStringSubmatch(string(head))
 	path := matches[1]

@@ -1,18 +1,18 @@
 package main
 
 import (
-	"demo/tcp_demo"
-	"demo/tcp_demo/codec"
-	v1 "demo/tcp_demo/example/proto/hello_world/v1"
+	"github.com/DarthPestilane/easytcp"
+	"github.com/DarthPestilane/easytcp/codec"
+	v1 "github.com/DarthPestilane/easytcp/example/proto/hello_world/v1"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
-	s := tcp_demo.NewServer("127.0.0.1", 7777)
+	s := easytcp.NewServer("127.0.0.1", 7777)
 
-	s.AddRoute("agent->backend", func(ctx *tcp_demo.Context) {
+	s.AddRoute("agent->backend", func(ctx *easytcp.Context) {
 		var req v1.DemoAgent
 		if err := ctx.Bind(codec.DefaultProtobuf, &req); err != nil {
 			logrus.Errorf("bind error: %s", err)
@@ -31,7 +31,7 @@ func main() {
 		}
 	})
 
-	s.AddRoute("text", func(ctx *tcp_demo.Context) {
+	s.AddRoute("text", func(ctx *easytcp.Context) {
 		logrus.Infof("recieved: %s", ctx.Body())
 		_ = ctx.Conn().Send("text", []byte("copy that"))
 	})

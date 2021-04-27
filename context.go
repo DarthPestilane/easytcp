@@ -1,7 +1,7 @@
-package tcp_demo
+package easytcp
 
 import (
-	"demo/tcp_demo/codec"
+	"github.com/DarthPestilane/easytcp/codec"
 	"sync"
 	"time"
 )

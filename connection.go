@@ -1,9 +1,9 @@
-package tcp_demo
+package easytcp
 
 import (
 	"bufio"
-	"demo/tcp_demo/message"
 	"errors"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
 	"sync"

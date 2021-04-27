@@ -1,4 +1,4 @@
-package tcp_demo
+package easytcp
 
 import (
 	"fmt"

@@ -1,6 +1,6 @@
-module demo/tcp_demo
+module github.com/DarthPestilane/easytcp
 
-go 1.14
+go 1.16
 
 require (
 	github.com/golang/protobuf v1.5.2

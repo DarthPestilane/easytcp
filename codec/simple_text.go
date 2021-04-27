@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -13,7 +14,7 @@ type SimpleText struct{}
 func (s SimpleText) Marshal(msg interface{}) ([]byte, error) {
 	str, ok := msg.(string)
 	if !ok {
-		return nil, fmt.Errorf("msg should be a Stringer")
+		return nil, errors.New("msg should be a Stringer")
 	}
 	return []byte(str), nil
 }
