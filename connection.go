@@ -11,12 +11,11 @@ import (
 
 type Connection struct {
 	net.Conn
+	Closed      chan struct{} // to close(Closed)
 	mu          sync.Mutex
 	server      *Server
 	msgBuffChan chan []byte
 	msgChan     chan []byte
-	isClosed    bool
-	closeChan   chan struct{} // to close(closeChan)
 }
 
 func NewConnection(conn net.Conn, server *Server) *Connection {
@@ -25,7 +24,7 @@ func NewConnection(conn net.Conn, server *Server) *Connection {
 		server:      server,
 		msgChan:     make(chan []byte),
 		msgBuffChan: make(chan []byte, 1024),
-		closeChan:   make(chan struct{}),
+		Closed:      make(chan struct{}),
 	}
 }
 
@@ -82,7 +81,7 @@ func (c *Connection) KeepReading() {
 func (c *Connection) KeepWriting() {
 	for {
 		select {
-		case <-c.closeChan:
+		case <-c.Closed:
 			return
 		case msg := <-c.msgChan:
 			n, err := c.Conn.Write(msg)
@@ -103,21 +102,18 @@ func (c *Connection) KeepWriting() {
 }
 
 func (c *Connection) Close() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.isClosed {
+	if c.alreadyClosed() {
 		return
 	}
-	if err := c.Conn.Close(); err != nil {
-		logrus.Errorf("close connection failed: %s", err)
-		return
-	}
-	c.isClosed = true
-	close(c.closeChan)
+	_ = c.Conn.Close()
+	close(c.Closed)
 }
 
 func (c *Connection) alreadyClosed() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.isClosed
+	select {
+	case <-c.Closed:
+		return true
+	default:
+		return false
+	}
 }

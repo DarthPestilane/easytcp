@@ -5,12 +5,22 @@ import (
 	"github.com/DarthPestilane/easytcp/codec"
 	v1 "github.com/DarthPestilane/easytcp/example/proto/hello_world/v1"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	s := easytcp.NewServer("127.0.0.1", 7777)
+
+	s.OnConnected(func(conn *easytcp.Connection) {
+		logrus.Infof("connected! hello %s", conn.RemoteAddr())
+		_ = conn.Send("", []byte("talk, now!"))
+	})
+
+	s.OnDisconnect(func(conn *easytcp.Connection) {
+		logrus.Warnf("disconnect! bye bye %s", conn.RemoteAddr())
+	})
 
 	s.AddRoute("agent->backend", func(ctx *easytcp.Context) {
 		var req v1.DemoAgent
@@ -38,6 +48,7 @@ func main() {
 
 	logrus.Infof("backend server on : %s:%d", s.Addr, s.Port)
 	if err := s.Serve(); err != nil {
-		panic(err)
+		logrus.Errorf("serve failed: %s", err)
+		os.Exit(1)
 	}
 }
