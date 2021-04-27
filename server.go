@@ -1,9 +1,6 @@
 package tcp_demo
 
 import (
-	"bufio"
-	"demo/tcp_demo/util"
-	"demo/tcp_demo/util/message"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -11,10 +8,11 @@ import (
 )
 
 type Server struct {
-	Addr    string
-	Port    int
-	mu      sync.Mutex
-	handler map[string]HandlerFunc
+	Addr     string
+	Port     int
+	mu       sync.Mutex
+	handler  map[string]HandlerFunc
+	listener net.Listener
 }
 
 type HandlerFunc func(ctx *Context)
@@ -32,7 +30,8 @@ func (s *Server) Serve() error {
 	if err != nil {
 		return fmt.Errorf("listen tcp failed: %w", err)
 	}
-	return s.accept(lis)
+	s.listener = lis
+	return s.accept()
 }
 
 func (s *Server) AddRoute(routePath string, fn HandlerFunc) {
@@ -41,45 +40,15 @@ func (s *Server) AddRoute(routePath string, fn HandlerFunc) {
 	s.handler[routePath] = fn
 }
 
-func (s *Server) handleMessage(conn net.Conn) {
+func (s *Server) accept() error {
 	for {
-		connReader := bufio.NewReader(conn)
-		head, err := connReader.ReadBytes('|')
-		if err != nil {
-			if util.IsEOF(err) {
-				logrus.Infof("disconnected!!! %s: %s", conn.RemoteAddr(), err)
-				return
-			}
-			logrus.Errorf("whoops...read conn %s head failed: %s", conn.RemoteAddr(), err)
-			continue
-		}
-		headStruct, err := message.ExtractHead(head)
-		if err != nil {
-			logrus.Error(err)
-			continue
-		}
-		body := make([]byte, headStruct.Length)
-		n, err := connReader.Read(body)
-		if err != nil {
-			if util.IsEOF(err) {
-				logrus.Infof("disconnected!!! %s: %s", conn.RemoteAddr(), err)
-				return
-			}
-			logrus.Errorf("whoops...read conn %s body failed: %s", conn.RemoteAddr(), err)
-			continue
-		}
-		ctx := NewContext()
-		ctx.setConn(conn).setBody(body[:n])
-		s.handler[headStruct.RoutePath](ctx)
-	}
-}
-
-func (s *Server) accept(lis net.Listener) error {
-	for {
-		conn, err := lis.Accept()
+		rawConn, err := s.listener.Accept()
 		if err != nil {
 			return err
 		}
-		go s.handleMessage(conn)
+		conn := NewConnection(rawConn, s)
+		logrus.Infof("connected!! %s", conn.RemoteAddr())
+		go conn.KeepReading()
+		go conn.KeepWriting()
 	}
 }

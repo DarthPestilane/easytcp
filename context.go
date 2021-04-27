@@ -2,21 +2,18 @@ package tcp_demo
 
 import (
 	"demo/tcp_demo/codec"
-	"demo/tcp_demo/util/message"
-	"net"
 	"sync"
 	"time"
 )
 
 type Context struct {
-	mu    sync.Mutex
-	store map[string]interface{}
+	mu        sync.Mutex
+	store     map[string]interface{}
+	conn      *Connection
+	body      []byte
+	length    int
+	routePath string
 }
-
-const (
-	CtxKeyConn = "conn"
-	CtxKeyBody = "body"
-)
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
 	return
@@ -45,13 +42,23 @@ func (c *Context) Set(key string, value interface{}) {
 	c.store[key] = value
 }
 
-func (c *Context) setConn(conn net.Conn) *Context {
-	c.Set(CtxKeyConn, conn)
+func (c *Context) setConn(conn *Connection) *Context {
+	c.conn = conn
 	return c
 }
 
 func (c *Context) setBody(body []byte) *Context {
-	c.Set(CtxKeyBody, body)
+	c.body = body
+	return c
+}
+
+func (c *Context) setLength(n int) *Context {
+	c.length = n
+	return c
+}
+
+func (c *Context) setRoutePath(path string) *Context {
+	c.routePath = path
 	return c
 }
 
@@ -59,29 +66,20 @@ func (c *Context) Bind(codec codec.Codec, data interface{}) error {
 	return codec.Unmarshal(c.Body(), data)
 }
 
-func (c *Context) Conn() net.Conn {
-	return c.Value(CtxKeyConn).(net.Conn)
+func (c *Context) Conn() *Connection {
+	return c.conn
 }
 
 func (c *Context) Body() []byte {
-	return c.Value(CtxKeyBody).([]byte)
+	return c.body
 }
 
-func (c *Context) Send(routePath string, b []byte) (int, error) {
-	msg := message.AddHead(routePath, b)
-	msg = append(msg, '\n')
-	return c.Conn().Write(msg)
+func (c *Context) Length() int {
+	return c.length
 }
 
-func (c *Context) SendIn(routePath string, b []byte, duration time.Duration) (int, error) {
-	msg := message.AddHead(routePath, b)
-	msg = append(msg, '\n')
-
-	if err := c.Conn().SetWriteDeadline(time.Now().Add(duration)); err != nil {
-		return 0, err
-	}
-	defer c.Conn().SetWriteDeadline(time.Time{})
-	return c.Conn().Write(msg)
+func (c *Context) RoutePath() string {
+	return c.routePath
 }
 
 func NewContext() *Context {

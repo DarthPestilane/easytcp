@@ -3,9 +3,8 @@ package main
 import (
 	"demo/tcp_demo"
 	"demo/tcp_demo/codec"
-	v1 "demo/tcp_demo/proto/hello_world/v1"
+	v1 "demo/tcp_demo/example/proto/hello_world/v1"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 func main() {
@@ -26,12 +25,15 @@ func main() {
 			logrus.Error(err)
 			return
 		}
-		n, err := ctx.SendIn("backend->agent", b, time.Second)
-		if err != nil {
+		if err := ctx.Conn().SendBuffer("backend->agent", b); err != nil {
 			logrus.Errorf("write to agent failed: %s", err)
 			return
 		}
-		logrus.Infof("write %d bytes to agent", n)
+	})
+
+	s.AddRoute("text", func(ctx *tcp_demo.Context) {
+		logrus.Infof("recieved: %s", ctx.Body())
+		_ = ctx.Conn().Send("text", []byte("copy that"))
 	})
 
 	logrus.Infof("backend server on : %s:%d", s.Addr, s.Port)

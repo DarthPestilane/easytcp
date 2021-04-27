@@ -2,7 +2,7 @@ package codec
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 var _ Codec = &Protobuf{}
