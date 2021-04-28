@@ -1,4 +1,4 @@
-package easytcp
+package core
 
 import (
 	"fmt"

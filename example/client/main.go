@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/codec"
+	"github.com/DarthPestilane/easytcp/core"
 	v1 "github.com/DarthPestilane/easytcp/example/proto/hello_world/v1"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 	logrus.Infof("client dial success")
-	conn := easytcp.NewConnection(netConn, easytcp.ConnectionOption{BufferSize: 512})
+	conn := core.NewConnection(netConn, core.ConnectionOption{BufferSize: 512})
 	go conn.KeepWriting()
 	for {
 		time.Sleep(time.Second)
