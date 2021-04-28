@@ -13,29 +13,31 @@ func main() {
 
 	s := easytcp.NewServer("127.0.0.1", 7777)
 
+	s.SetBufferSize(512)
+
 	s.OnConnected(func(conn *easytcp.Connection) {
 		logrus.Infof("connected! hello %s", conn.RemoteAddr())
-		_ = conn.Send("", []byte("talk, now!"))
+		// _ = conn.Send("", []byte("talk, now!"))
 	})
 
 	s.OnDisconnect(func(conn *easytcp.Connection) {
 		logrus.Warnf("disconnect! bye bye %s", conn.RemoteAddr())
 	})
 
-	s.AddRoute("agent->backend", func(ctx *easytcp.Context) {
+	s.AddRoute("protobuf", func(ctx *easytcp.Context) {
 		var req v1.DemoAgent
 		if err := ctx.Bind(codec.DefaultProtobuf, &req); err != nil {
 			logrus.Errorf("bind error: %s", err)
 			return
 		}
-		logrus.Infof("received from agent: %s", req.String())
+		logrus.Infof("received from client: %s", req.String())
 		resp := &v1.DemoResp{Value: "nice! " + req.Proxy}
 		b, err := codec.DefaultProtobuf.Marshal(resp)
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
-		if err := ctx.Conn().SendBuffer("backend->agent", b); err != nil {
+		if err := ctx.Conn().Send("protobuf->client", b); err != nil {
 			logrus.Errorf("write to agent failed: %s", err)
 			return
 		}

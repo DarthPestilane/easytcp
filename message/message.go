@@ -1,13 +1,12 @@
 package message
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 )
 
-var headRegexp = regexp.MustCompile(`^\[([0-9a-zA-Z\-_><.*?/()]+)\](\d+)\|$`)
+var headRegexp = regexp.MustCompile(`^\[([0-9a-zA-Z\-_><.*?/()]*)\](\d+)\|$`)
 
 type Head struct {
 	RoutePath string
@@ -16,7 +15,7 @@ type Head struct {
 
 func ExtractHead(head []byte) (*Head, error) {
 	if !headRegexp.Match(head) {
-		return nil, errors.New("invalid message head")
+		return nil, fmt.Errorf("invalid message head: %s", head)
 	}
 	matches := headRegexp.FindStringSubmatch(string(head))
 	path := matches[1]

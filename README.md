@@ -2,7 +2,8 @@
 
 todo:
 
-- [ ] 更多的setter 比如buffMsgChannel的大小: `server.SetBufferSize(n)`
+- [x] 更多的setter 比如buffMsgChannel的大小: `server.SetBufferSize(n)`
+    - `s.SetBufferSize(8)`
 - [x] accept 连接后和断开连接前的 hooks: `server.AfterConnected(fn)`, `server.BeforeDisconnect(fn)`
     - `s.OnDisconnect(fn)` `s.OnConnected(fn)`
 - [ ] 日志: 基于logrus, 设置 defaultLogger, 而不是直接 logrus.Debug 这样调用

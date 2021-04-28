@@ -23,6 +23,8 @@ type Server struct {
 	// hook functions
 	onConnectedFn  ConnectHookFunc
 	onDisconnectFn ConnectHookFunc
+
+	bufferSize int
 }
 
 type HandlerFunc func(ctx *Context)
@@ -30,9 +32,10 @@ type ConnectHookFunc func(conn *Connection)
 
 func NewServer(addr string, port int) *Server {
 	return &Server{
-		Addr:    addr,
-		Port:    port,
-		handler: make(map[string]HandlerFunc),
+		Addr:       addr,
+		Port:       port,
+		handler:    make(map[string]HandlerFunc),
+		bufferSize: 1024,
 	}
 }
 
@@ -43,6 +46,12 @@ func (s *Server) Serve() error {
 	}
 	s.listener = lis
 	return s.keepAccepting()
+}
+
+func (s *Server) SetBufferSize(n int) {
+	if n > 0 {
+		s.bufferSize = n
+	}
 }
 
 func (s *Server) OnConnected(fn ConnectHookFunc) {
@@ -65,19 +74,26 @@ func (s *Server) keepAccepting() error {
 		if err != nil {
 			return err
 		}
-		conn := NewConnection(rawConn, s)
 
-		go conn.KeepReading()
-		go conn.KeepWriting()
+		// 拿到连接后，放到goroutine里处理，然后接着拿下一个连接
+		go func() {
+			conn := NewConnection(rawConn, ConnectionOption{
+				BufferSize: s.bufferSize,
+				Handler:    s.handler,
+			})
 
-		if s.onConnectedFn != nil {
-			s.onConnectedFn(conn)
-		}
+			go conn.KeepReading()
+			go conn.KeepWriting()
 
-		<-conn.Closed
+			if s.onConnectedFn != nil {
+				s.onConnectedFn(conn)
+			}
 
-		if s.onDisconnectFn != nil {
-			s.onDisconnectFn(conn)
-		}
+			<-conn.Closed
+
+			if s.onDisconnectFn != nil {
+				s.onDisconnectFn(conn)
+			}
+		}()
 	}
 }
