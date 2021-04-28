@@ -3,8 +3,8 @@ package easytcp
 import (
 	"bufio"
 	"errors"
+	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/message"
-	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
 )
@@ -60,7 +60,7 @@ func (c *Connection) KeepReading() {
 	for {
 		head, body, err := c.ReadMessage()
 		if err != nil {
-			logrus.Errorf("read connection %s failed: %s", c.RemoteAddr(), err)
+			logger.Default.Errorf("read connection %s failed: %s", c.RemoteAddr(), err)
 			return
 		}
 		handlerCtx := NewContext()
@@ -77,7 +77,7 @@ func (c *Connection) ReadMessage() (head *message.Head, body []byte, err error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	logrus.Debugf("msg head: %s", headByte)
+	logger.Default.Debugf("msg head: %s", headByte)
 	head, err = message.ExtractHead(headByte)
 	if err != nil {
 		return nil, nil, err
@@ -98,17 +98,17 @@ func (c *Connection) KeepWriting() {
 		case msg := <-c.msgChan:
 			n, err := c.Conn.Write(msg)
 			if err != nil {
-				logrus.Errorf("send data failed: %s", err)
+				logger.Default.Errorf("send data failed: %s", err)
 				break
 			}
-			logrus.Debugf("send %d bytes data", n)
+			logger.Default.Debugf("send %d bytes data", n)
 		case msg := <-c.msgBuffChan:
 			n, err := c.Conn.Write(msg)
 			if err != nil {
-				logrus.Errorf("send bufferd data failed: %s", err)
+				logger.Default.Errorf("send bufferd data failed: %s", err)
 				break
 			}
-			logrus.Debugf("send %d bytes bufferd data", n)
+			logger.Default.Debugf("send %d bytes bufferd data", n)
 		}
 	}
 }

@@ -9,8 +9,6 @@ import (
 )
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
-
 	s := easytcp.NewServer("127.0.0.1", 7777)
 
 	s.SetBufferSize(512)
