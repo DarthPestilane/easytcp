@@ -18,12 +18,12 @@ func main() {
 	s.SetBufferSize(512)
 
 	s.OnConnected(func(conn *core.Connection) {
-		logrus.Infof("connected! hello %s", conn.RemoteAddr())
+		logrus.Infof("connected! hello %s", conn.NetConn().RemoteAddr())
 		// _ = conn.Send("", []byte("talk, now!"))
 	})
 
 	s.OnDisconnect(func(conn *core.Connection) {
-		logrus.Warnf("disconnect! bye bye %s", conn.RemoteAddr())
+		logrus.Warnf("disconnect! bye bye %s", conn.NetConn().RemoteAddr())
 	})
 
 	s.AddRoute("protobuf", func(ctx *core.Context) {

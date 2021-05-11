@@ -10,7 +10,7 @@ import (
 )
 
 type Connection struct {
-	net.Conn
+	conn        net.Conn
 	Closed      chan struct{} // to close(Closed)
 	once        sync.Once
 	handler     map[string]HandlerFunc
@@ -25,7 +25,7 @@ type ConnectionOption struct {
 
 func NewConnection(conn net.Conn, opt ConnectionOption) *Connection {
 	return &Connection{
-		Conn:        conn,
+		conn:        conn,
 		handler:     opt.Handler,
 		msgChan:     make(chan []byte),
 		msgBuffChan: make(chan []byte, opt.BufferSize),
@@ -34,7 +34,7 @@ func NewConnection(conn net.Conn, opt ConnectionOption) *Connection {
 }
 
 func (c *Connection) NetConn() net.Conn {
-	return c.Conn
+	return c.conn
 }
 
 func (c *Connection) Send(routePath string, data []byte) error {
@@ -60,7 +60,7 @@ func (c *Connection) KeepReading() {
 	for {
 		head, body, err := c.ReadMessage()
 		if err != nil {
-			logger.Default.Errorf("read connection %s failed: %s", c.RemoteAddr(), err)
+			logger.Default.Errorf("read connection %s failed: %s", c.conn.RemoteAddr(), err)
 			return
 		}
 		handlerCtx := NewContext()
@@ -72,7 +72,7 @@ func (c *Connection) KeepReading() {
 }
 
 func (c *Connection) ReadMessage() (head *message.Head, body []byte, err error) {
-	connReader := bufio.NewReader(c.Conn)
+	connReader := bufio.NewReader(c.conn)
 	headByte, err := connReader.ReadBytes('|')
 	if err != nil {
 		return nil, nil, err
@@ -96,14 +96,14 @@ func (c *Connection) KeepWriting() {
 		case <-c.Closed:
 			return
 		case msg := <-c.msgChan:
-			n, err := c.Conn.Write(msg)
+			n, err := c.conn.Write(msg)
 			if err != nil {
 				logger.Default.Errorf("send data failed: %s", err)
 				break
 			}
 			logger.Default.Debugf("send %d bytes data", n)
 		case msg := <-c.msgBuffChan:
-			n, err := c.Conn.Write(msg)
+			n, err := c.conn.Write(msg)
 			if err != nil {
 				logger.Default.Errorf("send bufferd data failed: %s", err)
 				break
@@ -115,7 +115,7 @@ func (c *Connection) KeepWriting() {
 
 func (c *Connection) Close() {
 	c.once.Do(func() {
-		_ = c.Conn.Close()
+		_ = c.conn.Close()
 		close(c.Closed)
 	})
 }
