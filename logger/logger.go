@@ -7,7 +7,7 @@ import (
 var Default *logrus.Logger
 
 func init() {
-	rawLog := *logrus.StandardLogger()
-	rawLog.SetLevel(logrus.TraceLevel)
-	Default = &rawLog
+	Default = logrus.New()
+	Default.SetLevel(logrus.TraceLevel)
+	Default.SetFormatter(NewTextFormatter())
 }

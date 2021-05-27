@@ -1,12 +1,12 @@
-.PHONY: all
+.PHONY: *
 
 ldflags = -ldflags="-s -w"
 
 build: # build
-	CGO_ENABLED=0 go build ${ldflags} -v
+	CGO_ENABLED=0 go build ${ldflags} -v ./...
 
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${ldflags} -v
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${ldflags} -v ./...
 
 install:
 	CGO_ENABLED=0 go get -v -insecure -t -d
