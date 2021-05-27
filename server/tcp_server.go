@@ -21,13 +21,13 @@ type TcpServer struct {
 	msgCodec       packet.Codec
 }
 
-type Option struct {
+type TcpOption struct {
 	RWBufferSize int
 	MsgPacker    packet.Packer
 	MsgCodec     packet.Codec
 }
 
-func NewTcp(opt Option) *TcpServer {
+func NewTcp(opt TcpOption) *TcpServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
@@ -37,7 +37,7 @@ func NewTcp(opt Option) *TcpServer {
 	return &TcpServer{
 		listener:       nil,
 		listenerClosed: make(chan struct{}),
-		log:            logger.Default.WithField("scope", "tcp_server"),
+		log:            logger.Default.WithField("scope", "server.TcpServer"),
 		rwBufferSize:   opt.RWBufferSize,
 		msgPacker:      opt.MsgPacker,
 		msgCodec:       opt.MsgCodec,

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
@@ -13,7 +14,7 @@ import (
 
 func main() {
 	// go printGoroutineNum()
-	s := server.NewTcp(server.Option{
+	s := easytcp.NewTcp(server.TcpOption{
 		RWBufferSize: 1024 * 1024,
 	})
 

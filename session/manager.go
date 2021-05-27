@@ -11,15 +11,18 @@ var (
 	manager     *Manager
 )
 
+// Manager 会话管理器，维护运行时产生的所有 Session
 type Manager struct {
+	// Sessions 所有 Session. key 是 Session.Id, value 是 *Session
 	Sessions sync.Map
 	log      *logrus.Entry
 }
 
+// Sessions 得到 Manager 实例
 func Sessions() *Manager {
 	managerOnce.Do(func() {
 		manager = &Manager{
-			log: logger.Default.WithField("scope", "session_manager"),
+			log: logger.Default.WithField("scope", "session.Manager"),
 		}
 	})
 	return manager

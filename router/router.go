@@ -23,7 +23,7 @@ type HandleFunc func(s *session.Session, req *packet.Request) *packet.Response
 func Inst() *Router {
 	once.Do(func() {
 		rt = &Router{
-			log: logger.Default.WithField("scope", "router"),
+			log: logger.Default.WithField("scope", "router.Router"),
 		}
 	})
 	return rt

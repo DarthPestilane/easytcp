@@ -10,11 +10,12 @@ import (
 	"time"
 )
 
+// Session 会话，负责读写和关闭连接
 type Session struct {
-	Id        string
-	CreatedAt time.Time
-	ClosedAt  time.Time
-	Conn      net.Conn
+	Id        string    // 会话的ID，uuid形式
+	CreatedAt time.Time // 创建时间
+	ClosedAt  time.Time // 关闭时间
+	Conn      net.Conn  // 网络连接
 
 	log *logrus.Entry
 
@@ -24,17 +25,18 @@ type Session struct {
 	reqQueue chan *packet.Request
 	ackQueue chan []byte
 
-	MsgPacker packet.Packer // 解包和封包
+	MsgPacker packet.Packer // 拆包和封包
 	MsgCodec  packet.Codec  // encode/decode 包里的data
 }
 
+// New 创建一个会话
 func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *Session {
 	return &Session{
 		Id:         uuid.NewString(),
 		CreatedAt:  time.Now(),
 		Conn:       conn,
 		connClosed: make(chan struct{}),
-		log:        logger.Default.WithField("scope", "session"),
+		log:        logger.Default.WithField("scope", "session.Session"),
 		reqQueue:   make(chan *packet.Request, 1024),
 		ackQueue:   make(chan []byte, 1024),
 		MsgPacker:  packer,
@@ -42,11 +44,13 @@ func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *Session {
 	}
 }
 
+// WaitToClose 等待会话关闭，关闭底层连接
 func (s *Session) WaitToClose() error {
 	<-s.connClosed
 	return s.Conn.Close()
 }
 
+// Close 关闭会话，通过 close(ch) 方式
 func (s *Session) Close() {
 	s.connCloseOnce.Do(func() {
 		close(s.connClosed)
@@ -65,6 +69,9 @@ func (s *Session) isClosed() bool {
 	}
 }
 
+// ReadLoop 阻塞式读消息，读到消息后，
+// 通过 MsgPacker 和 MsgCodec 对原始消息进行处理
+// 发送到对应的 channel 中，等待消费
 func (s *Session) ReadLoop() {
 	defer func() {
 		s.Close()
@@ -92,6 +99,7 @@ func (s *Session) ReadLoop() {
 	}
 }
 
+// RecvReq 接收请求
 func (s *Session) RecvReq() *packet.Request {
 	if s.isClosed() {
 		return nil
@@ -99,6 +107,8 @@ func (s *Session) RecvReq() *packet.Request {
 	return <-s.reqQueue
 }
 
+// SendResp 发送响应，
+// resp 会经过 MsgCodec 和 MsgPacker 处理得到待写入的消息
 func (s *Session) SendResp(resp *packet.Response) error {
 	if s.isClosed() {
 		return nil
@@ -115,6 +125,7 @@ func (s *Session) SendResp(resp *packet.Response) error {
 	return nil
 }
 
+// WriteLoop 持续写入
 func (s *Session) WriteLoop() {
 	defer func() {
 		s.Close()
