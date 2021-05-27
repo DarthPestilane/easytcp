@@ -2,6 +2,7 @@ package session
 
 import (
 	"github.com/DarthPestilane/easytcp/logger"
+	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -20,21 +21,24 @@ type Session struct {
 	connCloseOnce sync.Once
 	connClosed    chan struct{}
 
-	reqQueue chan []byte
+	reqQueue chan *packet.Request
 	ackQueue chan []byte
+
+	MsgPacker packet.Packer // 解包和封包
+	MsgCodec  packet.Codec  // encode/decode 包里的data
 }
 
-func New(conn net.Conn) *Session {
+func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *Session {
 	return &Session{
 		Id:         uuid.NewString(),
 		CreatedAt:  time.Now(),
 		Conn:       conn,
 		connClosed: make(chan struct{}),
-
-		log: logger.Default.WithField("scope", "session"),
-
-		reqQueue: make(chan []byte, 1024),
-		ackQueue: make(chan []byte, 1024),
+		log:        logger.Default.WithField("scope", "session"),
+		reqQueue:   make(chan *packet.Request, 1024),
+		ackQueue:   make(chan []byte, 1024),
+		MsgPacker:  packer,
+		MsgCodec:   codec,
 	}
 }
 
@@ -70,17 +74,25 @@ func (s *Session) ReadLoop() {
 		if s.isClosed() {
 			return
 		}
-		msg := make([]byte, 1024)
-		n, err := s.Conn.Read(msg)
+		msg, err := s.MsgPacker.Unpack(s.Conn)
 		if err != nil {
-			s.log.Errorf("conn read err: %s", err)
-			return
+			s.log.Errorf("unpack msg err:%s", err)
+			continue
 		}
-		s.reqQueue <- msg[:n]
+		data, err := s.MsgCodec.Decode(msg.GetData())
+		if err != nil {
+			s.log.Errorf("decode msg data err: %s", err)
+			continue
+		}
+		req := &packet.Request{
+			Id:   msg.GetId(),
+			Data: data,
+		}
+		s.reqQueue <- req
 	}
 }
 
-func (s *Session) Recv() []byte {
+func (s *Session) RecvReq() *packet.Request {
 	if s.isClosed() {
 		return nil
 	}

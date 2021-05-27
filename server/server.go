@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/DarthPestilane/easytcp/logger"
+	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
@@ -16,18 +17,30 @@ type TcpServer struct {
 	listener       *net.TCPListener
 	listenerClosed chan struct{}
 	log            *logrus.Entry
+	msgPacker      packet.Packer
+	msgCodec       packet.Codec
 }
 
 type Option struct {
 	RWBufferSize int
+	MsgPacker    packet.Packer
+	MsgCodec     packet.Codec
 }
 
 func NewTcp(opt Option) *TcpServer {
+	if opt.MsgPacker == nil {
+		opt.MsgPacker = &packet.DefaultPacker{}
+	}
+	if opt.MsgCodec == nil {
+		opt.MsgCodec = &packet.DefaultCodec{}
+	}
 	return &TcpServer{
-		rwBufferSize:   opt.RWBufferSize,
 		listener:       nil,
 		listenerClosed: make(chan struct{}),
 		log:            logger.Default.WithField("scope", "tcp_server"),
+		rwBufferSize:   opt.RWBufferSize,
+		msgPacker:      opt.MsgPacker,
+		msgCodec:       opt.MsgCodec,
 	}
 }
 
@@ -53,7 +66,6 @@ func (t *TcpServer) acceptLoop() error {
 		default:
 		}
 		conn, err := t.listener.AcceptTCP()
-		t.log.Debugf("err type: %T", err)
 		if err != nil {
 			t.log.Errorf("accept err: %s", err)
 			return err
@@ -83,7 +95,7 @@ func (t *TcpServer) acceptLoop() error {
 // remove session from memory
 func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	// create a new session
-	sess := session.New(conn)
+	sess := session.New(conn, t.msgPacker, t.msgCodec)
 	session.Sessions().Add(sess)
 
 	// read loop

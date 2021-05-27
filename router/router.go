@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/DarthPestilane/easytcp/logger"
+	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -17,7 +18,7 @@ type Router struct {
 	log    *logrus.Entry
 }
 
-type HandleFunc func(s *session.Session, msg []byte)
+type HandleFunc func(s *session.Session, msg *packet.Request)
 
 func Inst() *Router {
 	once.Do(func() {
@@ -30,18 +31,18 @@ func Inst() *Router {
 
 func (r *Router) Loop(s *session.Session) {
 	for {
-		msg := s.Recv()
-		if msg == nil {
+		req := s.RecvReq()
+		if req == nil {
 			// session closed
 			r.log.Warnf("loop finished")
 			return
 		}
-		r.log.Debugf("msg: %s", msg)
+		r.log.Debugf("req: %+v", req)
 
 		if v, has := r.mapper.Load(uint32(1)); has {
 			if handler, ok := v.(HandleFunc); ok {
 				r.log.Debugf("found handler")
-				go handler(s, msg)
+				go handler(s, req)
 			}
 		}
 	}
