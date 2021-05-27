@@ -1,8 +1,8 @@
 package packet
 
-// RawMessage 原始消息对象
+// Message 对原始消息的抽象
 // 通常由 Packer.Unpack() 拆包得到
-type RawMessage interface {
+type Message interface {
 	GetId() uint32
 	GetLen() uint32
 

@@ -117,6 +117,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	session.Sessions().Remove(sess.Id)
 }
 
+// Stop 让 server 停止，关闭 router, session 和 listener
 func (t *TcpServer) Stop() error {
 	session.Sessions().Range(func(id string, sess *session.Session) (next bool) {
 		sess.Close()
@@ -127,10 +128,11 @@ func (t *TcpServer) Stop() error {
 	return t.listener.Close()
 }
 
+// GracefulStop 优雅停止，监听 syscall.Signal, 触发 Stop()
 func (t *TcpServer) GracefulStop() error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	sig := <-sigCh
-	t.log.Warnf("stop by signal: %s", sig)
+	t.log.Warnf("receive signal: %s", sig)
 	return t.Stop()
 }

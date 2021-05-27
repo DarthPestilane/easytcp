@@ -9,7 +9,7 @@ type Codec interface {
 	Encode(data interface{}) ([]byte, error) // 编码
 
 	// Decode 解码
-	// data 为需要解码的数据, 可能是 RawMessage.GetData() 返回的数据
+	// data 为需要解码的数据, 可能是 Message.GetData() 返回的数据
 	// 解码后得到 interface{}, 通常是需要手动断言处理的
 	Decode(data []byte) (interface{}, error) // 解码
 }

@@ -100,11 +100,12 @@ func (s *Session) ReadLoop() {
 }
 
 // RecvReq 接收请求
-func (s *Session) RecvReq() *packet.Request {
+func (s *Session) RecvReq() (*packet.Request, bool) {
 	if s.isClosed() {
-		return nil
+		return nil, false
 	}
-	return <-s.reqQueue
+	req, ok := <-s.reqQueue
+	return req, ok
 }
 
 // SendResp 发送响应，
@@ -135,8 +136,11 @@ func (s *Session) WriteLoop() {
 		if s.isClosed() {
 			return
 		}
-		b := <-s.ackQueue
-		if _, err := s.Conn.Write(b); err != nil {
+		msg, ok := <-s.ackQueue
+		if !ok {
+			return
+		}
+		if _, err := s.Conn.Write(msg); err != nil {
 			s.log.Errorf("conn write err: %s", err)
 			return
 		}

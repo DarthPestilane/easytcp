@@ -19,7 +19,7 @@ func main() {
 		// write loop
 		for {
 			time.Sleep(time.Second)
-			data, err := codec.Encode("ping,ping,ping")
+			data, err := codec.Encode("ping, ping, ping")
 			if err != nil {
 				panic(err)
 			}

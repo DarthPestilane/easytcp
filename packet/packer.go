@@ -12,10 +12,10 @@ import (
 // 2. 对消息进行拆包，得到消息元数据
 type Packer interface {
 	Pack(id uint32, data []byte) ([]byte, error) // 打包
-	Unpack(reader io.Reader) (RawMessage, error) // 拆包
+	Unpack(reader io.Reader) (Message, error)    // 拆包
 }
 
-// DefaultPacker 默认的packer
+// DefaultPacker 默认的 Packer
 // 包格式为:
 //   size[4]id[4]data[n]
 type DefaultPacker struct {
@@ -40,7 +40,7 @@ func (d *DefaultPacker) Pack(id uint32, data []byte) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (d *DefaultPacker) Unpack(reader io.Reader) (RawMessage, error) {
+func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
 	sizeBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
@@ -57,7 +57,6 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (RawMessage, error) {
 	data := make([]byte, size)
 	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
-
 	}
 
 	msg := &DefaultRawMsg{
