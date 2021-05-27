@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
@@ -13,18 +14,18 @@ import (
 )
 
 type TcpServer struct {
-	rwBufferSize   int
-	listener       *net.TCPListener
-	listenerClosed chan struct{}
-	log            *logrus.Entry
-	msgPacker      packet.Packer
-	msgCodec       packet.Codec
+	rwBufferSize int
+	listener     *net.TCPListener
+	stopped      chan struct{} // to close()
+	log          *logrus.Entry
+	msgPacker    packet.Packer
+	msgCodec     packet.Codec
 }
 
 type TcpOption struct {
-	RWBufferSize int
-	MsgPacker    packet.Packer
-	MsgCodec     packet.Codec
+	RWBufferSize int           // socket 读写 buffer
+	MsgPacker    packet.Packer // 消息封包/拆包器
+	MsgCodec     packet.Codec  // 消息编码/解码器
 }
 
 func NewTcp(opt TcpOption) *TcpServer {
@@ -35,12 +36,12 @@ func NewTcp(opt TcpOption) *TcpServer {
 		opt.MsgCodec = &packet.DefaultCodec{}
 	}
 	return &TcpServer{
-		listener:       nil,
-		listenerClosed: make(chan struct{}),
-		log:            logger.Default.WithField("scope", "server.TcpServer"),
-		rwBufferSize:   opt.RWBufferSize,
-		msgPacker:      opt.MsgPacker,
-		msgCodec:       opt.MsgCodec,
+		listener:     nil,
+		stopped:      make(chan struct{}),
+		log:          logger.Default.WithField("scope", "server.TcpServer"),
+		rwBufferSize: opt.RWBufferSize,
+		msgPacker:    opt.MsgPacker,
+		msgCodec:     opt.MsgCodec,
 	}
 }
 
@@ -61,23 +62,23 @@ func (t *TcpServer) Serve(addr string) error {
 func (t *TcpServer) acceptLoop() error {
 	for {
 		select {
-		case <-t.listenerClosed:
+		case <-t.stopped:
 			return nil // graceful shutdown
 		default:
 		}
 		conn, err := t.listener.AcceptTCP()
 		if err != nil {
 			t.log.Errorf("accept err: %s", err)
-			return err
+			return fmt.Errorf("accept err: %s", err)
 		}
 		if t.rwBufferSize > 0 {
 			if err := conn.SetReadBuffer(t.rwBufferSize); err != nil {
 				t.log.Errorf("set read buffer err: %s", err)
-				return err
+				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
 			if err := conn.SetWriteBuffer(t.rwBufferSize); err != nil {
 				t.log.Errorf("set write buffer err: %s", err)
-				return err
+				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
 
@@ -123,7 +124,7 @@ func (t *TcpServer) Stop() error {
 		sess.Close()
 		return true
 	})
-	close(t.listenerClosed)
+	close(t.stopped)
 	t.log.Warnf("stopped")
 	return t.listener.Close()
 }

@@ -19,8 +19,8 @@ type Session struct {
 
 	log *logrus.Entry
 
-	connCloseOnce sync.Once
-	connClosed    chan struct{}
+	closeOnce sync.Once
+	closed    chan struct{} // to close()
 
 	reqQueue chan *packet.Request
 	ackQueue chan []byte
@@ -32,37 +32,40 @@ type Session struct {
 // New 创建一个会话
 func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *Session {
 	return &Session{
-		Id:         uuid.NewString(),
-		CreatedAt:  time.Now(),
-		Conn:       conn,
-		connClosed: make(chan struct{}),
-		log:        logger.Default.WithField("scope", "session.Session"),
-		reqQueue:   make(chan *packet.Request, 1024),
-		ackQueue:   make(chan []byte, 1024),
-		MsgPacker:  packer,
-		MsgCodec:   codec,
+		Id:        uuid.NewString(),
+		CreatedAt: time.Now(),
+		Conn:      conn,
+		closed:    make(chan struct{}),
+		log:       logger.Default.WithField("scope", "session.Session"),
+		reqQueue:  make(chan *packet.Request, 1024),
+		ackQueue:  make(chan []byte, 1024),
+		MsgPacker: packer,
+		MsgCodec:  codec,
 	}
 }
 
 // WaitToClose 等待会话关闭，关闭底层连接
 func (s *Session) WaitToClose() error {
-	<-s.connClosed
+	<-s.closed
 	return s.Conn.Close()
 }
 
 // Close 关闭会话，通过 close(ch) 方式
 func (s *Session) Close() {
-	s.connCloseOnce.Do(func() {
-		close(s.connClosed)
+	s.closeOnce.Do(func() {
+		close(s.closed)
+
+		// and close other channels
 		close(s.reqQueue)
 		close(s.ackQueue)
+
 		s.ClosedAt = time.Now()
 	})
 }
 
 func (s *Session) isClosed() bool {
 	select {
-	case <-s.connClosed:
+	case <-s.closed:
 		return true
 	default:
 		return false
@@ -95,7 +98,7 @@ func (s *Session) ReadLoop() {
 			Id:   msg.GetId(),
 			Data: data,
 		}
-		s.reqQueue <- req
+		s.safelyPushReq(req)
 	}
 }
 
@@ -122,7 +125,7 @@ func (s *Session) SendResp(resp *packet.Response) error {
 	if err != nil {
 		return err
 	}
-	s.ackQueue <- msg
+	s.safelyPushAck(msg)
 	return nil
 }
 
@@ -145,4 +148,22 @@ func (s *Session) WriteLoop() {
 			return
 		}
 	}
+}
+
+func (s *Session) safelyPushReq(req *packet.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.log.Errorf("push reqQueue panics: %s", r)
+		}
+	}()
+	s.reqQueue <- req
+}
+
+func (s *Session) safelyPushAck(msg []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.log.Errorf("push ackQueue panics: %s", r)
+		}
+	}()
+	s.ackQueue <- msg
 }
