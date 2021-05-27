@@ -18,16 +18,16 @@ func main() {
 		RWBufferSize: 1024 * 1024,
 	})
 
-	router.Inst().Register(fixture.MsgIdPing, func(s *session.Session, req *packet.Request) *packet.Response {
-		fmt.Println("request: ", req.Data)
+	router.Inst().Register(fixture.MsgIdPingReq, func(s *session.Session, req *packet.Request) *packet.Response {
+		fmt.Printf("request ==> id:(%d) data: %s\n", req.Id, req.Data)
 		return &packet.Response{
-			Id:   req.Id,
+			Id:   fixture.MsgIdPingAck,
 			Data: "pong,pong,pong",
 		}
 	})
 
 	go func() {
-		if err := s.Serve("127.0.0.1:8888"); err != nil {
+		if err := s.Serve(fixture.ServerAddr); err != nil {
 			panic(err)
 		}
 	}()

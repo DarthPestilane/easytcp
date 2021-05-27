@@ -37,11 +37,9 @@ func (r *Router) Loop(s *session.Session) {
 			r.log.Warnf("loop finished")
 			return
 		}
-		r.log.Debugf("req: %+v", req)
 
-		if v, has := r.mapper.Load(uint32(1)); has {
+		if v, has := r.mapper.Load(req.Id); has {
 			if handler, ok := v.(HandleFunc); ok {
-				r.log.Debugf("found handler")
 				go func() {
 					resp := handler(s, req)
 					if err := s.SendResp(resp); err != nil {

@@ -9,20 +9,21 @@ import (
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "127.0.0.1:8888")
+	conn, err := net.Dial("tcp", fixture.ServerAddr)
 	if err != nil {
 		panic(err)
 	}
 	codec := &packet.DefaultCodec{}
 	packer := &packet.DefaultPacker{}
 	go func() {
+		// write loop
 		for {
 			time.Sleep(time.Second)
 			data, err := codec.Encode("ping,ping,ping")
 			if err != nil {
 				panic(err)
 			}
-			msg, err := packer.Pack(fixture.MsgIdPing, data)
+			msg, err := packer.Pack(fixture.MsgIdPingReq, data)
 			if err != nil {
 				panic(err)
 			}
@@ -32,6 +33,7 @@ func main() {
 		}
 	}()
 	go func() {
+		// read loop
 		for {
 			msg, err := packer.Unpack(conn)
 			if err != nil {
