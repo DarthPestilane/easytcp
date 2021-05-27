@@ -77,12 +77,12 @@ func (s *Session) ReadLoop() {
 		msg, err := s.MsgPacker.Unpack(s.Conn)
 		if err != nil {
 			s.log.Errorf("unpack msg err:%s", err)
-			continue
+			return
 		}
 		data, err := s.MsgCodec.Decode(msg.GetData())
 		if err != nil {
 			s.log.Errorf("decode msg data err: %s", err)
-			continue
+			return
 		}
 		req := &packet.Request{
 			Id:   msg.GetId(),
@@ -99,11 +99,20 @@ func (s *Session) RecvReq() *packet.Request {
 	return <-s.reqQueue
 }
 
-func (s *Session) Send(msg []byte) {
+func (s *Session) SendResp(resp *packet.Response) error {
 	if s.isClosed() {
-		return
+		return nil
+	}
+	data, err := s.MsgCodec.Encode(resp.Data)
+	if err != nil {
+		return err
+	}
+	msg, err := s.MsgPacker.Pack(resp.Id, data)
+	if err != nil {
+		return err
 	}
 	s.ackQueue <- msg
+	return nil
 }
 
 func (s *Session) WriteLoop() {

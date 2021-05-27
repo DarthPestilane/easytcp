@@ -1,8 +1,13 @@
 package packet
 
+// RawMessage 原始消息对象
+// 通常由 Packer.Unpack() 拆包得到
 type RawMessage interface {
 	GetId() uint32
 	GetLen() uint32
+
+	// GetData 返回原始消息中的 data 部分
+	// 通常将经过 Codec.Decode() 处理
 	GetData() []byte
 }
 

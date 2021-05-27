@@ -6,24 +6,23 @@ import (
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/tests/fixture"
 	"runtime"
 	"time"
 )
 
-const (
-	_ uint32 = iota
-	MsgIdPing
-)
-
 func main() {
-	go printGoroutineNum()
+	// go printGoroutineNum()
 	s := server.NewTcp(server.Option{
 		RWBufferSize: 1024 * 1024,
 	})
 
-	router.Inst().Register(MsgIdPing, func(s *session.Session, msg *packet.Request) {
-		fmt.Println("final msg: ", msg.Data.(string))
-		s.Send([]byte("copy that"))
+	router.Inst().Register(fixture.MsgIdPing, func(s *session.Session, req *packet.Request) *packet.Response {
+		fmt.Println("request: ", req.Data)
+		return &packet.Response{
+			Id:   req.Id,
+			Data: "pong,pong,pong",
+		}
 	})
 
 	go func() {
@@ -39,6 +38,7 @@ func main() {
 	time.Sleep(time.Second * 3)
 }
 
+// nolint: deadcode, unused
 func printGoroutineNum() {
 	for {
 		fmt.Println("goroutine num: ", runtime.NumGoroutine())

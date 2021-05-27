@@ -18,7 +18,7 @@ type Router struct {
 	log    *logrus.Entry
 }
 
-type HandleFunc func(s *session.Session, msg *packet.Request)
+type HandleFunc func(s *session.Session, req *packet.Request) *packet.Response
 
 func Inst() *Router {
 	once.Do(func() {
@@ -42,7 +42,12 @@ func (r *Router) Loop(s *session.Session) {
 		if v, has := r.mapper.Load(uint32(1)); has {
 			if handler, ok := v.(HandleFunc); ok {
 				r.log.Debugf("found handler")
-				go handler(s, req)
+				go func() {
+					resp := handler(s, req)
+					if err := s.SendResp(resp); err != nil {
+						r.log.Errorf("session send resp err: %s", err)
+					}
+				}()
 			}
 		}
 	}

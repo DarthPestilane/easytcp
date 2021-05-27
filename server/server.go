@@ -129,7 +129,7 @@ func (t *TcpServer) Stop() error {
 
 func (t *TcpServer) GracefulStop() error {
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	sig := <-sigCh
 	t.log.Warnf("stop by signal: %s", sig)
 	return t.Stop()

@@ -1,18 +1,23 @@
 package packet
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
 )
 
+// Packer 打包/拆包
+// 1. 对数据进行打包，得到消息
+// 2. 对消息进行拆包，得到消息元数据
 type Packer interface {
-	Pack()
-	Unpack(reader io.Reader) (RawMessage, error) // 解包
+	Pack(id uint32, data []byte) ([]byte, error) // 打包
+	Unpack(reader io.Reader) (RawMessage, error) // 拆包
 }
 
-// size|id|data
-// 4|4|n
+// DefaultPacker 默认的packer
+// 包格式为:
+//   size[4]id[4]data[n]
 type DefaultPacker struct {
 }
 
@@ -20,8 +25,19 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.LittleEndian
 }
 
-func (d *DefaultPacker) Pack() {
-	panic("implement me")
+func (d *DefaultPacker) Pack(id uint32, data []byte) ([]byte, error) {
+	buff := bytes.NewBuffer([]byte{})
+	size := uint32(len(data))
+	if err := binary.Write(buff, d.bytesOrder(), size); err != nil {
+		return nil, fmt.Errorf("write size err: %s", err)
+	}
+	if err := binary.Write(buff, d.bytesOrder(), id); err != nil {
+		return nil, fmt.Errorf("write id err: %s", err)
+	}
+	if err := binary.Write(buff, d.bytesOrder(), data); err != nil {
+		return nil, fmt.Errorf("write data err: %s", err)
+	}
+	return buff.Bytes(), nil
 }
 
 func (d *DefaultPacker) Unpack(reader io.Reader) (RawMessage, error) {
@@ -30,7 +46,6 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (RawMessage, error) {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
 	size := d.bytesOrder().Uint32(sizeBuff)
-	fmt.Println("size: ", size)
 
 	idBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, idBuff); err != nil {
