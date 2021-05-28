@@ -68,16 +68,13 @@ func (t *TcpServer) acceptLoop() error {
 		}
 		conn, err := t.listener.AcceptTCP()
 		if err != nil {
-			t.log.Errorf("accept err: %s", err)
 			return fmt.Errorf("accept err: %s", err)
 		}
 		if t.rwBufferSize > 0 {
 			if err := conn.SetReadBuffer(t.rwBufferSize); err != nil {
-				t.log.Errorf("set read buffer err: %s", err)
 				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
 			if err := conn.SetWriteBuffer(t.rwBufferSize); err != nil {
-				t.log.Errorf("set write buffer err: %s", err)
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
@@ -112,7 +109,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	if err := sess.WaitToClose(); err != nil {
 		t.log.Errorf("session close err: %s", err)
 	}
-	t.log.Warnf("session closed")
+	t.log.Trace("session closed")
 
 	// sess.Conn has been closed, remove current session
 	session.Sessions().Remove(sess.Id)
@@ -120,12 +117,15 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 
 // Stop 让 server 停止，关闭 router, session 和 listener
 func (t *TcpServer) Stop() error {
+	closedNum := 0
 	session.Sessions().Range(func(id string, sess *session.Session) (next bool) {
 		sess.Close()
+		closedNum++
 		return true
 	})
+	t.log.Warnf("%d session(s) closed", closedNum)
 	close(t.stopped)
-	t.log.Warnf("stopped")
+	defer func() { t.log.Warnf("listener is stopped") }()
 	return t.listener.Close()
 }
 
@@ -134,6 +134,6 @@ func (t *TcpServer) GracefulStop() error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	sig := <-sigCh
-	t.log.Warnf("receive signal: %s", sig)
+	t.log.Warnf("receive signal: %s | graceful shutdown now", sig)
 	return t.Stop()
 }

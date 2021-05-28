@@ -23,7 +23,7 @@ func main() {
 	})
 
 	easytcp.RegisterRoute(fixture.MsgIdJson01Req, func(s *session.Session, req *packet.Request) *packet.Response {
-		log.Debugf("request ==> id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, req.Data)
+		// log.Debugf("request ==> id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, req.Data)
 
 		resp := map[string]interface{}{
 			"success": true,

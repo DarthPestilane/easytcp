@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/tests/fixture"
 	"net"
@@ -13,6 +13,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	log := logger.Default
 	codec := &packet.DefaultCodec{}
 	packer := &packet.DefaultPacker{}
 	go func() {
@@ -43,7 +44,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("recv ==> id:(%d) len:(%d) data: %s\n", msg.GetId(), msg.GetSize(), data)
+			log.Infof("ack received | id:(%d) size:(%d) data: %s", msg.GetId(), msg.GetSize(), data)
 		}
 	}()
 	select {}

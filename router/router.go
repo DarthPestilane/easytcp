@@ -15,8 +15,7 @@ var (
 
 // Router 路由器，负责对消息的路由
 type Router struct {
-	// mapper msgId -> HandleFunc 的映射
-	mapper sync.Map
+	mapper sync.Map // msgId : HandleFunc 的映射
 	log    *logrus.Entry
 }
 
@@ -38,7 +37,7 @@ func (r *Router) Loop(s *session.Session) {
 	for {
 		req, ok := s.RecvReq()
 		if !ok {
-			r.log.Warnf("session closed. loop finished")
+			r.log.Trace("loop stopped since session's closed")
 			return
 		}
 		if req != nil {

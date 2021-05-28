@@ -4,12 +4,12 @@ package packet
 // 对原始消息的 data 进行编码和解码处理
 type Codec interface {
 	// Encode 编码
-	// data 为需要编码的数据, 可能是 Response 的 Data
+	// data 为需要编码的数据, 通常是 Response 的 Data
 	// 编码后的结果，通常应当经过 Packer.Pack() 打包成待发送的消息
 	Encode(data interface{}) ([]byte, error) // 编码
 
 	// Decode 解码
-	// data 为需要解码的数据, 可能是 Message.GetData() 返回的数据
+	// data 为需要解码的数据, 通常是 Message.GetData() 返回的数据
 	// 解码后得到 interface{}, 通常是需要手动断言处理的
 	Decode(data []byte) (interface{}, error) // 解码
 }

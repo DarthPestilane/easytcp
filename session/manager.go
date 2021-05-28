@@ -1,8 +1,6 @@
 package session
 
 import (
-	"github.com/DarthPestilane/easytcp/logger"
-	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -15,15 +13,12 @@ var (
 type Manager struct {
 	// Sessions 所有 Session. key 是 Session.Id, value 是 *Session
 	Sessions sync.Map
-	log      *logrus.Entry
 }
 
 // Sessions 得到 Manager 实例
 func Sessions() *Manager {
 	managerOnce.Do(func() {
-		manager = &Manager{
-			log: logger.Default.WithField("scope", "session.Manager"),
-		}
+		manager = &Manager{}
 	})
 	return manager
 }

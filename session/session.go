@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/google/uuid"
@@ -78,7 +79,7 @@ func (s *Session) isClosed() bool {
 func (s *Session) ReadLoop() {
 	defer func() {
 		s.Close()
-		s.log.Warnf("read loop finished")
+		s.log.Trace("read loop finished")
 	}()
 	for {
 		if s.isClosed() {
@@ -86,14 +87,15 @@ func (s *Session) ReadLoop() {
 		}
 		msg, err := s.MsgPacker.Unpack(s.Conn)
 		if err != nil {
-			s.log.Errorf("unpack msg err:%s", err)
+			s.log.Errorf("unpack incoming message err:%s", err)
 			return
 		}
 		decodedData, err := s.MsgCodec.Decode(msg.GetData())
 		if err != nil {
-			s.log.Errorf("decode msg data err: %s", err)
+			s.log.Errorf("decode incoming message data err: %s", err)
 			return
 		}
+		s.log.Debugf("message received | id:(%d) size:(%d) data: %+v", msg.GetId(), msg.GetSize(), decodedData)
 		req := &packet.Request{
 			Id:      msg.GetId(),
 			RawSize: msg.GetSize(),
@@ -121,11 +123,11 @@ func (s *Session) SendResp(resp *packet.Response) error {
 	}
 	data, err := s.MsgCodec.Encode(resp.Data)
 	if err != nil {
-		return err
+		return fmt.Errorf("encode response data err: %s", err)
 	}
 	msg, err := s.MsgPacker.Pack(resp.Id, data)
 	if err != nil {
-		return err
+		return fmt.Errorf("pack response data err: %s", err)
 	}
 	s.safelyPushAckQueue(msg)
 	return nil
@@ -135,7 +137,7 @@ func (s *Session) SendResp(resp *packet.Response) error {
 func (s *Session) WriteLoop() {
 	defer func() {
 		s.Close()
-		s.log.Warnf("write loop finished")
+		s.log.Trace("write loop finished")
 	}()
 	for {
 		if s.isClosed() {
@@ -155,7 +157,7 @@ func (s *Session) WriteLoop() {
 func (s *Session) safelyPushReqQueue(req *packet.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Errorf("push reqQueue panics: %s", r)
+			s.log.Warnf("push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- req
@@ -164,7 +166,7 @@ func (s *Session) safelyPushReqQueue(req *packet.Request) {
 func (s *Session) safelyPushAckQueue(msg []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Errorf("push ackQueue panics: %s", r)
+			s.log.Warnf("push ackQueue panics: %+v", r)
 		}
 	}()
 	s.ackQueue <- msg
