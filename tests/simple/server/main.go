@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
+	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
@@ -14,12 +15,17 @@ import (
 
 func main() {
 	// go printGoroutineNum()
+
+	log := logger.Default
+	log.SetLevel(logrus.DebugLevel)
+	// easytcp.SetLogger(log)
+
 	s := easytcp.NewTcp(server.TcpOption{
 		RWBufferSize: 1024 * 1024,
 	})
 
 	easytcp.RegisterRoute(fixture.MsgIdPingReq, func(s *session.Session, req *packet.Request) *packet.Response {
-		fmt.Printf("request ==> id:(%d) data: %s\n", req.Id, req.Data)
+		log.Debugf("request ==> id:(%d) data: %s", req.Id, req.Data)
 		return &packet.Response{
 			Id:   fixture.MsgIdPingAck,
 			Data: "pong, pong, pong",
@@ -28,7 +34,7 @@ func main() {
 
 	go func() {
 		if err := s.Serve(fixture.ServerAddr); err != nil {
-			logrus.Errorf("serve err: %s", err)
+			log.Errorf("serve err: %s", err)
 		}
 	}()
 

@@ -50,7 +50,7 @@ linters:
     - typecheck
     - goconst
     - gofmt
-    - scopelint
+    #- scopelint deprecated
     - nakedret
     - unconvert
     - unparam
