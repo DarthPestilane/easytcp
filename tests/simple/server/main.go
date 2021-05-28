@@ -25,7 +25,7 @@ func main() {
 	})
 
 	easytcp.RegisterRoute(fixture.MsgIdPingReq, func(s *session.Session, req *packet.Request) *packet.Response {
-		log.Debugf("request ==> id:(%d) data: %s", req.Id, req.Data)
+		log.Debugf("request ==> id:(%d) size:(%d) data: %s", req.Id, req.RawSize, req.Data)
 		return &packet.Response{
 			Id:   fixture.MsgIdPingAck,
 			Data: "pong, pong, pong",

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/zhuangsirui/binpacker"
 	"io"
 )
 
@@ -16,8 +17,8 @@ type Packer interface {
 }
 
 // DefaultPacker 默认的 Packer
-// 包格式为:
-//   size[4]id[4]data[n]
+// 封包格式:
+//   size[4]id[4]data
 type DefaultPacker struct {
 }
 
@@ -26,39 +27,34 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 }
 
 func (d *DefaultPacker) Pack(id uint, data []byte) ([]byte, error) {
-	buff := bytes.NewBuffer([]byte{})
-	size := len(data)
-	if err := binary.Write(buff, d.bytesOrder(), uint32(size)); err != nil {
+	buff := bytes.NewBuffer(make([]byte, 0, len(data)+4+4))
+	p := binpacker.NewPacker(d.bytesOrder(), buff)
+	if err := p.PushUint32(uint32(len(data))).Error(); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := binary.Write(buff, d.bytesOrder(), uint32(id)); err != nil {
+	if err := p.PushUint32(uint32(id)).Error(); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
-	if err := binary.Write(buff, d.bytesOrder(), data); err != nil {
+	if err := p.PushBytes(data).Error(); err != nil {
 		return nil, fmt.Errorf("write data err: %s", err)
 	}
 	return buff.Bytes(), nil
 }
 
 func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
-	sizeBuff := make([]byte, 4)
-	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
+	p := binpacker.NewUnpacker(d.bytesOrder(), reader)
+	size, err := p.ShiftUint32()
+	if err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
-	size := d.bytesOrder().Uint32(sizeBuff)
-
-	idBuff := make([]byte, 4)
-	if _, err := io.ReadFull(reader, idBuff); err != nil {
+	id, err := p.ShiftUint32()
+	if err != nil {
 		return nil, fmt.Errorf("read id err: %s", err)
-
 	}
-	id := d.bytesOrder().Uint32(idBuff)
-
-	data := make([]byte, size)
-	if _, err := io.ReadFull(reader, data); err != nil {
+	data, err := p.ShiftBytes(uint64(size))
+	if err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
-
 	msg := &DefaultMsg{
 		Id:   id,
 		Size: size,

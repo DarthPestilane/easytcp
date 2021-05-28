@@ -36,7 +36,7 @@ func (p *Packer16bit) bytesOrder() binary.ByteOrder {
 }
 
 func (p *Packer16bit) Pack(id uint, data []byte) ([]byte, error) {
-	buff := bytes.NewBuffer([]byte{})
+	buff := bytes.NewBuffer(make([]byte, 0, len(data)+2+2))
 	if err := binary.Write(buff, p.bytesOrder(), uint16(len(data))); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
@@ -54,13 +54,13 @@ func (p *Packer16bit) Unpack(reader io.Reader) (packet.Message, error) {
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
-	size := binary.BigEndian.Uint16(sizeBuff)
+	size := p.bytesOrder().Uint16(sizeBuff)
 
 	idBuff := make([]byte, 2)
 	if _, err := io.ReadFull(reader, idBuff); err != nil {
 		return nil, fmt.Errorf("read id err: %s", err)
 	}
-	id := binary.BigEndian.Uint16(idBuff)
+	id := p.bytesOrder().Uint16(idBuff)
 
 	data := make([]byte, size)
 	if _, err := io.ReadFull(reader, data); err != nil {

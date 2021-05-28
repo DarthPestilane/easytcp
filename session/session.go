@@ -100,7 +100,7 @@ func (s *Session) ReadLoop() {
 			Data:    decodedData,
 			RawData: msg.GetData(),
 		}
-		s.safelyPushReq(req)
+		s.safelyPushReqQueue(req)
 	}
 }
 
@@ -127,11 +127,11 @@ func (s *Session) SendResp(resp *packet.Response) error {
 	if err != nil {
 		return err
 	}
-	s.safelyPushAck(msg)
+	s.safelyPushAckQueue(msg)
 	return nil
 }
 
-// WriteLoop 持续写入
+// WriteLoop 消费 ackQueue, 并写入连接
 func (s *Session) WriteLoop() {
 	defer func() {
 		s.Close()
@@ -152,7 +152,7 @@ func (s *Session) WriteLoop() {
 	}
 }
 
-func (s *Session) safelyPushReq(req *packet.Request) {
+func (s *Session) safelyPushReqQueue(req *packet.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Errorf("push reqQueue panics: %s", r)
@@ -161,7 +161,7 @@ func (s *Session) safelyPushReq(req *packet.Request) {
 	s.reqQueue <- req
 }
 
-func (s *Session) safelyPushAck(msg []byte) {
+func (s *Session) safelyPushAckQueue(msg []byte) {
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Errorf("push ackQueue panics: %s", r)

@@ -38,7 +38,7 @@ func (r *Router) Loop(s *session.Session) {
 	for {
 		req, ok := s.RecvReq()
 		if !ok {
-			r.log.Warnf("loop finished")
+			r.log.Warnf("session closed. loop finished")
 			return
 		}
 		if req != nil {
