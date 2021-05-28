@@ -48,6 +48,7 @@ func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *Session {
 // WaitToClose 等待会话关闭，关闭底层连接
 func (s *Session) WaitToClose() error {
 	<-s.closed
+	defer func() { s.log.Trace("connection closed") }()
 	return s.Conn.Close()
 }
 

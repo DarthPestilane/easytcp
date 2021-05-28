@@ -87,37 +87,27 @@ func (t *TcpServer) acceptLoop() error {
 
 // handleConn
 // create a new session and save it to memory
-// read loop
+// read/write loop
 // route incoming message to handler
-// write loop
 // wait for session to close
 // remove session from memory
 func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	// create a new session
 	sess := session.New(conn, t.msgPacker, t.msgCodec)
 	session.Sessions().Add(sess)
-
-	// read loop
 	go sess.ReadLoop()
-
-	// route incoming message to handler
+	go sess.WriteLoop()
 	go func() {
+		// route incoming message to handler
 		if err := router.Inst().Loop(context.Background(), sess); err != nil {
 			t.log.Errorf("router loop stopped: %s", err)
 		}
 	}()
-
-	// write loop
-	go sess.WriteLoop()
-
-	// wait to close
 	if err := sess.WaitToClose(); err != nil {
 		t.log.Errorf("session close err: %s", err)
 	}
-	t.log.Trace("session closed")
-
-	// sess.Conn has been closed, remove current session
-	session.Sessions().Remove(sess.Id)
+	t.log.Tracef("session (%s) closed", sess.Id)
+	session.Sessions().Remove(sess.Id) // session has been closed, remove it
 }
 
 // Stop 让 server 停止，关闭 router, session 和 listener
