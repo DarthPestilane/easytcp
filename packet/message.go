@@ -8,6 +8,8 @@ type Message interface {
 	GetData() []byte // 返回消息的 data 数据部分, 通常将经过 Codec.Decode() 处理
 }
 
+var _ Message = &DefaultMsg{}
+
 type DefaultMsg struct {
 	Id   uint32
 	Size uint32

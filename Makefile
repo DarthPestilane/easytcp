@@ -17,10 +17,10 @@ lint: # 代码风格检查
 lint-fix:
 	CGO_ENABLED=0 golangci-lint run --concurrency=2 --fix
 
-#test: # 用ginkgo运行单元测试
-#	APP_ENV=test CGO_ENABLED=0 GOFLAGS='' ginkgo -r --randomizeSuites --failOnPending --failFast --progress -vet=off --compilers=2
+test:
+	CGO_ENABLED=0 go test ./...
 
-#spec: lint test # 语法检查+单元测试
+spec: lint test # 语法检查+单元测试
 
 tidy:
 	go mod tidy

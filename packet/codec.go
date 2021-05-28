@@ -14,6 +14,8 @@ type Codec interface {
 	Decode(data []byte) (interface{}, error) // 解码
 }
 
+var _ Codec = &DefaultCodec{}
+
 type DefaultCodec struct {
 }
 
