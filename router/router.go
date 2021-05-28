@@ -1,6 +1,8 @@
 package router
 
 import (
+	"context"
+	"fmt"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
@@ -33,28 +35,41 @@ func Inst() *Router {
 
 // Loop 阻塞式消费 session.Session 中的 reqQueue channel
 // 通过消息ID找到对应的 HandleFunc 并调用
-func (r *Router) Loop(s *session.Session) {
+func (r *Router) Loop(ctx context.Context, s *session.Session) error {
 	for {
-		req, ok := s.RecvReq()
-		if !ok {
-			r.log.Trace("loop stopped since session's closed")
-			return
-		}
-		if req != nil {
-			go r.handleReq(s, req)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context done: %s", ctx.Err())
+		case req, ok := <-s.RecvReq():
+			if !ok {
+				r.log.Trace("loop stopped since session's closed")
+				return fmt.Errorf("receive request err: channel closed")
+			}
+			if req != nil {
+				go func() {
+					if err := r.handleReq(s, req); err != nil {
+						r.log.Errorf("handle request err: %s", err)
+					}
+				}()
+			}
 		}
 	}
 }
 
-func (r *Router) handleReq(s *session.Session, req *packet.Request) {
+func (r *Router) handleReq(s *session.Session, req *packet.Request) error {
 	if v, has := r.mapper.Load(req.Id); has {
 		if handler, ok := v.(HandleFunc); ok {
 			resp := handler(s, req)
-			if err := s.SendResp(resp); err != nil {
-				r.log.Errorf("session send resp err: %s", err)
+			if resp == nil {
+				return nil
 			}
+			if err := s.SendResp(resp); err != nil {
+				return fmt.Errorf("session send response err: %s", err)
+			}
+			return nil
 		}
 	}
+	return fmt.Errorf("handler not found")
 }
 
 // Register 注册路由

@@ -107,19 +107,18 @@ func (s *Session) ReadLoop() {
 }
 
 // RecvReq 接收请求
-func (s *Session) RecvReq() (*packet.Request, bool) {
-	if s.isClosed() {
-		return nil, false
-	}
-	req, ok := <-s.reqQueue
-	return req, ok
+func (s *Session) RecvReq() <-chan *packet.Request {
+	return s.reqQueue
 }
 
 // SendResp 发送响应，
 // resp 会经过 MsgCodec 和 MsgPacker 处理得到待写入的消息
 func (s *Session) SendResp(resp *packet.Response) error {
 	if s.isClosed() {
-		return nil
+		return fmt.Errorf("session closed")
+	}
+	if resp == nil {
+		return fmt.Errorf("nil response")
 	}
 	data, err := s.MsgCodec.Encode(resp.Data)
 	if err != nil {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
@@ -100,7 +101,11 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	go sess.ReadLoop()
 
 	// route incoming message to handler
-	go router.Inst().Loop(sess)
+	go func() {
+		if err := router.Inst().Loop(context.Background(), sess); err != nil {
+			t.log.Errorf("router loop stopped: %s", err)
+		}
+	}()
 
 	// write loop
 	go sess.WriteLoop()
