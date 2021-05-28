@@ -15,7 +15,8 @@ func TestDefaultCodec_Encode(t *testing.T) {
 func TestDefaultCodec_Decode(t *testing.T) {
 	c := &DefaultCodec{}
 	data := []byte("hello")
-	v, err := c.Decode(data)
+	var v string
+	err := c.Decode(data, &v)
 	assert.NoError(t, err)
 	assert.Equal(t, string(data), v)
 }

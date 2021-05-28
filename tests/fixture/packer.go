@@ -82,7 +82,6 @@ func (c *JsonCodec) Encode(data interface{}) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (c *JsonCodec) Decode(data []byte) (v interface{}, err error) {
-	err = json.Unmarshal(data, &v)
-	return
+func (c *JsonCodec) Decode(data []byte, v interface{}) error {
+	return json.Unmarshal(data, &v)
 }

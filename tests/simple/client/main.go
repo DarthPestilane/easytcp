@@ -40,11 +40,11 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			data, err := codec.Decode(msg.GetData())
-			if err != nil {
+			var data string
+			if err := codec.Decode(msg.GetData(), &data); err != nil {
 				panic(err)
 			}
-			log.Infof("ack received | id:(%d) size:(%d) data: %s", msg.GetId(), msg.GetSize(), data)
+			log.Infof("ack | id:(%d) size:(%d) data: %s", msg.GetId(), msg.GetSize(), data)
 		}
 	}()
 	select {}
