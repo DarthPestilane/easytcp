@@ -59,6 +59,6 @@ func (r *Router) handleReq(s *session.Session, req *packet.Request) {
 }
 
 // Register 注册路由
-func (r *Router) Register(id uint32, fn HandleFunc) {
+func (r *Router) Register(id uint, fn HandleFunc) {
 	r.mapper.Store(id, fn)
 }

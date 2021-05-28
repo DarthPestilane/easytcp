@@ -89,14 +89,16 @@ func (s *Session) ReadLoop() {
 			s.log.Errorf("unpack msg err:%s", err)
 			return
 		}
-		data, err := s.MsgCodec.Decode(msg.GetData())
+		decodedData, err := s.MsgCodec.Decode(msg.GetData())
 		if err != nil {
 			s.log.Errorf("decode msg data err: %s", err)
 			return
 		}
 		req := &packet.Request{
-			Id:   msg.GetId(),
-			Data: data,
+			Id:      msg.GetId(),
+			RawSize: msg.GetSize(),
+			Data:    decodedData,
+			RawData: msg.GetData(),
 		}
 		s.safelyPushReq(req)
 	}

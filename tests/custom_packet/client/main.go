@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/tests/fixture"
 	"net"
 	"time"
@@ -13,17 +12,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	codec := &packet.DefaultCodec{}
-	packer := &packet.DefaultPacker{}
+	codec := &fixture.JsonCodec{}
+	packer := &fixture.Packer16bit{}
 	go func() {
 		// write loop
 		for {
 			time.Sleep(time.Second)
-			data, err := codec.Encode("ping, ping, ping")
+			req := map[string]interface{}{
+				"bool":   true,
+				"string": "string",
+				"number": 123,
+			}
+			data, err := codec.Encode(req)
 			if err != nil {
 				panic(err)
 			}
-			msg, err := packer.Pack(fixture.MsgIdPingReq, data)
+			msg, err := packer.Pack(fixture.MsgIdJson01Req, data)
 			if err != nil {
 				panic(err)
 			}
@@ -43,7 +47,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("recv ==> id:(%d) len:(%d) data: %s\n", msg.GetId(), msg.GetSize(), data)
+			fmt.Printf("recv ==> id:(%d) len:(%d) data: %+v\n", msg.GetId(), msg.GetSize(), data)
 		}
 	}()
 	select {}
