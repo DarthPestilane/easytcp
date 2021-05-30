@@ -20,15 +20,12 @@ func TestRouter_Loop(t *testing.T) {
 		r, w := net.Pipe()
 		s := session.New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		go s.ReadLoop()
-		go func() {
-			_, _ = w.Write(msg)
-			_ = w.Close()
-		}()
+		go func() { _, _ = w.Write(msg) }()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 		defer cancel()
 		err := rt.Loop(ctx, s) // loop before session closed
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ctx.Err().Error())
+		assert.Contains(t, err.Error(), "context done")
 		s.Close()
 		assert.NoError(t, s.WaitToClose())
 	})
@@ -36,10 +33,7 @@ func TestRouter_Loop(t *testing.T) {
 		r, w := net.Pipe()
 		s := session.New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		go s.ReadLoop()
-		go func() {
-			_, _ = w.Write(msg)
-			_ = w.Close()
-		}()
+		go func() { _, _ = w.Write(msg) }()
 		s.Close()
 		assert.NoError(t, s.WaitToClose())
 		err := rt.Loop(context.Background(), s) // loop after session closed
