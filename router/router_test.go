@@ -79,7 +79,7 @@ func TestRouter_handleReq(t *testing.T) {
 			}
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
-		req := &packet.Request{Id: 1, Data: "hello"}
+		req := &packet.Request{Id: 1, RawData: []byte("hello")}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
 	})

@@ -4,10 +4,9 @@ package packet
 // 当 session.Session 读取到消息后，经过 Packer.Unpack() 和 Codec.Decode() 后
 // 构建出 Request，发送到 channel 中，等待 router.Router 消费
 type Request struct {
-	Id      uint        // 消息ID
-	RawSize uint        // 原始消息的长度
-	Data    interface{} // 从原始消息中，拆包、解码后得到的数据，通常需要手动断言处理
-	RawData []byte      // 原始消息中的数据段
+	Id      uint   // 消息ID
+	RawSize uint   // 原始消息的长度
+	RawData []byte // 原始消息中的数据段
 }
 
 // Response 响应

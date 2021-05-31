@@ -18,7 +18,7 @@ lint-fix:
 	CGO_ENABLED=0 golangci-lint run --concurrency=2 --fix
 
 test:
-	CGO_ENABLED=0 go test ./...
+	CGO_ENABLED=0 go test -count=1 ./...
 
 spec: lint test # 语法检查+单元测试
 
