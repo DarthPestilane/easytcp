@@ -18,6 +18,6 @@ func NewTcp(opt server.TcpOption) *server.TcpServer {
 }
 
 // RegisterRoute 注册消息路由
-func RegisterRoute(msgId uint, handler router.HandleFunc) {
-	router.Inst().Register(msgId, handler)
+func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
+	router.Inst().Register(msgId, handler, middleware...)
 }

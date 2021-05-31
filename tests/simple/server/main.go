@@ -5,31 +5,29 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/DarthPestilane/easytcp/tests/fixture"
+	"github.com/sirupsen/logrus"
 	"runtime"
 	"time"
 )
 
+var log *logrus.Logger
+
+func init() {
+	log = logger.Default
+}
+
 func main() {
 	// go printGoroutineNum()
-
-	log := logger.Default
 
 	s := easytcp.NewTcp(server.TcpOption{
 		RWBufferSize: 1024 * 1024,
 	})
 
-	easytcp.RegisterRoute(fixture.MsgIdPingReq, func(s *session.Session, req *packet.Request) *packet.Response {
-		var data string
-		_ = s.MsgCodec.Decode(req.RawData, &data)
-		log.Debugf("request | id:(%d) size:(%d) data: %s", req.Id, req.RawSize, data)
-		return &packet.Response{
-			Id:   fixture.MsgIdPingAck,
-			Data: "pong, pong, pong",
-		}
-	})
+	easytcp.RegisterRoute(fixture.MsgIdPingReq, handler, recoverMiddleware, logMiddleware)
 
 	go func() {
 		if err := s.Serve(fixture.ServerAddr); err != nil {
@@ -42,6 +40,47 @@ func main() {
 	}
 
 	time.Sleep(time.Second * 3)
+}
+
+func handler(s *session.Session, req *packet.Request) (*packet.Response, error) {
+	var data string
+	_ = s.MsgCodec.Decode(req.RawData, &data)
+
+	panicMaker := map[bool]struct{}{
+		true:  {},
+		false: {},
+	}
+	for k := range panicMaker {
+		if !k {
+			panic("random panic here")
+		}
+		break
+	}
+
+	return &packet.Response{
+		Id:   fixture.MsgIdPingAck,
+		Data: data + "||pong, pong, pong",
+	}, nil
+}
+
+func recoverMiddleware(next router.HandlerFunc) router.HandlerFunc {
+	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("PANIC | %+v", r)
+			}
+		}()
+		return next(s, req)
+	}
+}
+
+func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
+	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		var data string
+		_ = s.MsgCodec.Decode(req.RawData, &data)
+		log.Infof("recv req | id:(%d) size:(%d) data: %s", req.Id, req.RawSize, data)
+		return next(s, req)
+	}
 }
 
 // nolint: deadcode, unused

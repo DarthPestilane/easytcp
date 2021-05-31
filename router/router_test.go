@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
@@ -44,16 +45,15 @@ func TestRouter_Loop(t *testing.T) {
 
 func TestRouter_handleReq(t *testing.T) {
 	rt := Inst()
-	t.Run("it should return error when handler not found", func(t *testing.T) {
+	t.Run("it should be ok when handler not found", func(t *testing.T) {
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "handler not found")
+		assert.NoError(t, err)
 	})
 	t.Run("it should return error when session's closed", func(t *testing.T) {
-		rt.Register(123, func(s *session.Session, req *packet.Request) *packet.Response {
-			return &packet.Response{}
+		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			return &packet.Response{}, nil
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		s.Close()
@@ -63,24 +63,81 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.Contains(t, err.Error(), "session send response err")
 	})
 	t.Run("it should be ok when handler returns nil response", func(t *testing.T) {
-		rt.Register(123, func(s *session.Session, req *packet.Request) *packet.Response {
-			return nil
+		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			return nil, nil
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
 	})
+	t.Run("it should return error when handler returns error", func(t *testing.T) {
+		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			return nil, fmt.Errorf("some error")
+		})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		req := &packet.Request{Id: 123}
+		err := rt.handleReq(s, req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "handler err")
+	})
 	t.Run("it should be ok when everything's fine", func(t *testing.T) {
-		rt.Register(1, func(s *session.Session, req *packet.Request) *packet.Response {
+		rt.Register(1, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 			return &packet.Response{
 				Id:   2,
 				Data: "world",
-			}
+			}, nil
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
 		req := &packet.Request{Id: 1, RawData: []byte("hello")}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
+	})
+}
+
+func TestRouter_wrapHandlers(t *testing.T) {
+	rt := Inst()
+	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
+		wrap := rt.wrapHandlers(nil, nil)
+		resp, err := wrap(nil, nil)
+		assert.NoError(t, err)
+		assert.Nil(t, resp)
+	})
+	t.Run("it should invoke handlers in the right order", func(t *testing.T) {
+		result := make([]string, 0)
+
+		middles := []MiddlewareFunc{
+			func(next HandlerFunc) HandlerFunc {
+				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+					result = append(result, "m1-before")
+					return next(s, req)
+				}
+			},
+			func(next HandlerFunc) HandlerFunc {
+				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+					result = append(result, "m2-before")
+					resp, err := next(s, req)
+					result = append(result, "m2-after")
+					return resp, err
+				}
+			},
+			func(next HandlerFunc) HandlerFunc {
+				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+					resp, err := next(s, req)
+					result = append(result, "m3-after")
+					return resp, err
+				}
+			},
+		}
+		var handler HandlerFunc = func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			result = append(result, "done")
+			return &packet.Response{Data: "done"}, nil
+		}
+
+		wrap := rt.wrapHandlers(handler, middles)
+		resp, err := wrap(nil, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, resp.Data, "done")
+		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }
