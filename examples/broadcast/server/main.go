@@ -21,7 +21,7 @@ func init() {
 func main() {
 	s := easytcp.NewTcp(server.TcpOption{})
 
-	easytcp.RegisterMiddleware(logMiddleware)
+	easytcp.RegisterMiddleware(fixture.RecoverMiddleware(log), logMiddleware)
 
 	easytcp.RegisterRoute(fixture.MsgIdBroadCastReq, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 		var reqData string

@@ -27,7 +27,7 @@ func main() {
 		RWBufferSize: 1024 * 1024,
 	})
 
-	easytcp.RegisterRoute(fixture.MsgIdPingReq, handler, recoverMiddleware, logMiddleware)
+	easytcp.RegisterRoute(fixture.MsgIdPingReq, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
 		if err := s.Serve(fixture.ServerAddr); err != nil {
@@ -61,17 +61,6 @@ func handler(s *session.Session, req *packet.Request) (*packet.Response, error) 
 		Id:   fixture.MsgIdPingAck,
 		Data: data + "||pong, pong, pong",
 	}, nil
-}
-
-func recoverMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("PANIC | %+v", r)
-			}
-		}()
-		return next(s, req)
-	}
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {

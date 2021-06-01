@@ -10,7 +10,6 @@ import (
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var log *logrus.Logger
@@ -29,9 +28,10 @@ func main() {
 		MsgPacker: &fixture.Packer16bit{},
 	})
 
-	easytcp.RegisterRoute(fixture.MsgIdJson01Req, handler, recoverMiddleware, logMiddleware)
+	easytcp.RegisterRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
+		log.Infof("serve at %s", fixture.ServerAddr)
 		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
@@ -40,8 +40,6 @@ func main() {
 	if err := s.GracefulStop(); err != nil {
 		panic(err)
 	}
-
-	time.Sleep(time.Second * 3)
 }
 
 func handler(s *session.Session, req *packet.Request) (*packet.Response, error) {
@@ -68,22 +66,22 @@ func handler(s *session.Session, req *packet.Request) (*packet.Response, error) 
 	}, nil
 }
 
-func recoverMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("PANIC | %+v", r)
-			}
-		}()
-		return next(s, req)
-	}
-}
-
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+	return func(s *session.Session, req *packet.Request) (resp *packet.Response, err error) {
 		var data fixture.Json01Req
 		_ = s.MsgCodec.Decode(req.RawData, &data)
-		log.Infof("recv req | id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, data)
+		log.Infof("recv request | id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, data)
+
+		defer func() {
+			if err == nil {
+				size := 0
+				if resp != nil {
+					msgData, _ := s.MsgCodec.Encode(resp.Data)
+					size = len(msgData)
+				}
+				log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.Id, size, resp.Data)
+			}
+		}()
 		return next(s, req)
 	}
 }
