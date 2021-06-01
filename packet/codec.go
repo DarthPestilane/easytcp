@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 )
@@ -18,20 +19,31 @@ type Codec interface {
 	Decode(data []byte, v interface{}) error // 解码
 }
 
-var _ Codec = &DefaultCodec{}
+var _ Codec = &StringCodec{}
 
-type DefaultCodec struct {
-}
+// StringCodec 对 string 编码成 []byte, 对 []byte 解码成 string
+type StringCodec struct{}
 
-func (d *DefaultCodec) Encode(data interface{}) ([]byte, error) {
+func (c *StringCodec) Encode(data interface{}) ([]byte, error) {
 	return []byte(data.(string)), nil
 }
 
-func (d *DefaultCodec) Decode(data []byte, v interface{}) error {
+func (c *StringCodec) Decode(data []byte, v interface{}) error {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.String {
 		return fmt.Errorf("v must be a string pointer")
 	}
 	vv.Elem().SetString(string(data))
 	return nil
+}
+
+// JsonCodec 使用json进行编码和解码
+type JsonCodec struct{}
+
+func (c *JsonCodec) Encode(data interface{}) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+func (c *JsonCodec) Decode(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
 }

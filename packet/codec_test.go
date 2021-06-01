@@ -6,14 +6,14 @@ import (
 )
 
 func TestDefaultCodec_Encode(t *testing.T) {
-	c := &DefaultCodec{}
+	c := &StringCodec{}
 	b, err := c.Encode("hello")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("hello"), b)
 }
 
 func TestDefaultCodec_Decode(t *testing.T) {
-	c := &DefaultCodec{}
+	c := &StringCodec{}
 	data := []byte("hello")
 	var v string
 	err := c.Decode(data, &v)

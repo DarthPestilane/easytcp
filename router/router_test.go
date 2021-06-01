@@ -21,7 +21,7 @@ func TestRouter_Loop(t *testing.T) {
 
 	t.Run("usually router can receive the request from session", func(t *testing.T) {
 		r, w := net.Pipe()
-		s := session.New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
@@ -34,7 +34,7 @@ func TestRouter_Loop(t *testing.T) {
 	})
 	t.Run("it should return error if session is closed", func(t *testing.T) {
 		r, w := net.Pipe()
-		s := session.New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
 		s.Close()
@@ -48,7 +48,7 @@ func TestRouter_Loop(t *testing.T) {
 func TestRouter_handleReq(t *testing.T) {
 	rt := Inst()
 	t.Run("it should be ok when handler not found", func(t *testing.T) {
-		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestRouter_handleReq(t *testing.T) {
 		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 			return &packet.Response{}, nil
 		})
-		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		s.Close()
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
@@ -68,7 +68,7 @@ func TestRouter_handleReq(t *testing.T) {
 		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, nil
 		})
-		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
@@ -77,7 +77,7 @@ func TestRouter_handleReq(t *testing.T) {
 		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, fmt.Errorf("some error")
 		})
-		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		req := &packet.Request{Id: 123}
 		err := rt.handleReq(s, req)
 		assert.Error(t, err)
@@ -90,7 +90,7 @@ func TestRouter_handleReq(t *testing.T) {
 				Data: "world",
 			}, nil
 		})
-		s := session.New(nil, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		req := &packet.Request{Id: 1, RawData: []byte("hello")}
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)

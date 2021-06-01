@@ -14,7 +14,7 @@ func main() {
 		panic(err)
 	}
 	log := logger.Default
-	codec := &packet.DefaultCodec{}
+	codec := &packet.StringCodec{}
 	packer := &packet.DefaultPacker{}
 	go func() {
 		// write loop

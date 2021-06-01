@@ -34,7 +34,7 @@ func NewTcp(opt TcpOption) *TcpServer {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
 	if opt.MsgCodec == nil {
-		opt.MsgCodec = &packet.DefaultCodec{}
+		opt.MsgCodec = &packet.StringCodec{}
 	}
 	return &TcpServer{
 		listener:     nil,

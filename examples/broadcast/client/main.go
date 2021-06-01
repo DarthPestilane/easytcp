@@ -16,7 +16,7 @@ var packer packet.Packer
 
 func init() {
 	log = logger.Default
-	codec = &packet.DefaultCodec{}
+	codec = &packet.StringCodec{}
 	packer = &packet.DefaultPacker{}
 }
 

@@ -10,7 +10,7 @@ import (
 
 func TestSession_WaitToClose(t *testing.T) {
 	r, _ := net.Pipe()
-	sess := New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+	sess := New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 	go func() {
 		<-time.After(time.Microsecond * 10)
 		sess.Close()
@@ -21,7 +21,7 @@ func TestSession_WaitToClose(t *testing.T) {
 
 func TestSession_Close(t *testing.T) {
 	r, _ := net.Pipe()
-	sess := New(r, &packet.DefaultPacker{}, &packet.DefaultCodec{})
+	sess := New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 	for i := 0; i < 10; i++ {
 		assert.NotPanics(t, func() {
 			sess.Close() // goroutine safe
@@ -37,7 +37,7 @@ func TestSession_Close(t *testing.T) {
 
 func TestSession_ReadLoop(t *testing.T) {
 	packer := &packet.DefaultPacker{}
-	codec := &packet.DefaultCodec{}
+	codec := &packet.StringCodec{}
 
 	data, err := codec.Encode("hello")
 	assert.NoError(t, err)
@@ -64,7 +64,7 @@ func TestSession_ReadLoop(t *testing.T) {
 func TestSession_WriteLoop(t *testing.T) {
 	r, w := net.Pipe()
 	packer := &packet.DefaultPacker{}
-	codec := &packet.DefaultCodec{}
+	codec := &packet.StringCodec{}
 	sess := New(w, packer, codec)
 
 	go sess.WriteLoop()
