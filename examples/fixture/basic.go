@@ -16,6 +16,13 @@ const (
 	MsgIdJson01Ack
 )
 
+// broadcast messages
+const (
+	_ uint = iota + 200
+	MsgIdBroadCastReq
+	MsgIdBroadCastAck
+)
+
 type Json01Req struct {
 	Key1 string `json:"key_1"`
 	Key2 int    `json:"key_2"`
