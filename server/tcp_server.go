@@ -91,7 +91,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	go sess.WriteLoop()
 	go func() {
 		// route incoming message to handler
-		if err := router.Inst().Loop(sess); err != nil {
+		if err := router.Instance().Loop(sess); err != nil {
 			t.log.Errorf("router loop stopped: %s", err)
 		}
 	}()

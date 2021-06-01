@@ -19,10 +19,10 @@ func NewTcp(opt server.TcpOption) *server.TcpServer {
 
 // RegisterRoute 注册消息路由
 func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
-	router.Inst().Register(msgId, handler, middleware...)
+	router.Instance().Register(msgId, handler, middleware...)
 }
 
 // RegisterMiddleware 注册全局中间件
 func RegisterMiddleware(m ...router.MiddlewareFunc) {
-	router.Inst().RegisterMiddleware(m...)
+	router.Instance().RegisterMiddleware(m...)
 }

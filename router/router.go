@@ -29,8 +29,8 @@ var defaultHandler HandlerFunc = func(s *session.Session, req *packet.Request) (
 	return nil, nil
 }
 
-// Inst 单例模式，获取 *Router 实例(instance)
-func Inst() *Router {
+// Instance 单例模式，获取 *Router 实例(instance)
+func Instance() *Router {
 	once.Do(func() {
 		rt = &Router{
 			log: logger.Default.WithField("scope", "router.Router"),

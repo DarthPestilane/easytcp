@@ -13,7 +13,7 @@ import (
 )
 
 func TestRouter_Loop(t *testing.T) {
-	rt := Inst()
+	rt := Instance()
 
 	msg, err := (&packet.DefaultPacker{}).Pack(1, []byte("hello"))
 	assert.NoError(t, err)
@@ -46,7 +46,7 @@ func TestRouter_Loop(t *testing.T) {
 }
 
 func TestRouter_handleReq(t *testing.T) {
-	rt := Inst()
+	rt := Instance()
 	t.Run("it should be ok when handler not found", func(t *testing.T) {
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
 		req := &packet.Request{Id: 123}
@@ -98,7 +98,7 @@ func TestRouter_handleReq(t *testing.T) {
 }
 
 func TestRouter_wrapHandlers(t *testing.T) {
-	rt := Inst()
+	rt := Instance()
 	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
 		wrap := rt.wrapHandlers(nil, nil)
 		resp, err := wrap(nil, nil)
@@ -145,7 +145,7 @@ func TestRouter_wrapHandlers(t *testing.T) {
 }
 
 func TestRouter_RegisterMiddleware(t *testing.T) {
-	rt := Inst()
+	rt := Instance()
 
 	var middle01 MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
 		return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
