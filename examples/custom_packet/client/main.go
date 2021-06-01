@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/logger"
 	"net"
 	"time"
 )

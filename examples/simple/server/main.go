@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
+	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
-	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"time"

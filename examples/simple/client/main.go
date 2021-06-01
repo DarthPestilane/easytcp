@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"net"
 	"time"
 )
