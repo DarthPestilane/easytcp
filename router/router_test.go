@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
@@ -24,11 +23,12 @@ func TestRouter_Loop(t *testing.T) {
 		s := session.New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
-		defer cancel()
-		err := rt.Loop(ctx, s) // loop before session closed
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "context done")
+		go func() {
+			err := rt.Loop(s)
+			assert.Error(t, err) // loop before session close
+			assert.Contains(t, err.Error(), "channel closed")
+		}()
+		time.After(time.Millisecond * 10)
 		s.Close()
 		assert.NoError(t, s.WaitToClose())
 	})
@@ -39,7 +39,7 @@ func TestRouter_Loop(t *testing.T) {
 		go func() { _, _ = w.Write(msg) }()
 		s.Close()
 		assert.NoError(t, s.WaitToClose())
-		err := rt.Loop(context.Background(), s) // loop after session closed
+		err := rt.Loop(s) // loop after session closed
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "receive request err: channel closed")
 	})

@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
@@ -42,23 +41,19 @@ func Inst() *Router {
 
 // Loop 阻塞式消费 session.Session 中的 reqQueue channel
 // 通过消息ID找到对应的 HandleFunc 并调用
-func (r *Router) Loop(ctx context.Context, s *session.Session) error {
+func (r *Router) Loop(s *session.Session) error {
 	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context done: %s", ctx.Err())
-		case req, ok := <-s.RecvReq():
-			if !ok {
-				r.log.Trace("loop stopped since session's closed")
-				return fmt.Errorf("receive request err: channel closed")
-			}
-			if req != nil {
-				go func() {
-					if err := r.handleReq(s, req); err != nil {
-						r.log.Errorf("handle request err: %s", err)
-					}
-				}()
-			}
+		req, ok := <-s.RecvReq()
+		if !ok {
+			r.log.Trace("loop stopped since session's closed")
+			return fmt.Errorf("receive request err: channel closed")
+		}
+		if req != nil {
+			go func() {
+				if err := r.handleReq(s, req); err != nil {
+					r.log.Errorf("handle request err: %s", err)
+				}
+			}()
 		}
 	}
 }
