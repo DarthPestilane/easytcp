@@ -16,7 +16,6 @@ import (
 type TcpServer struct {
 	rwBufferSize int
 	listener     *net.TCPListener
-	stopped      chan struct{} // to close()
 	log          *logrus.Entry
 	msgPacker    packet.Packer
 	msgCodec     packet.Codec
@@ -37,7 +36,6 @@ func NewTcp(opt TcpOption) *TcpServer {
 	}
 	return &TcpServer{
 		listener:     nil,
-		stopped:      make(chan struct{}),
 		log:          logger.Default.WithField("scope", "server.TcpServer"),
 		rwBufferSize: opt.RWBufferSize,
 		msgPacker:    opt.MsgPacker,
@@ -61,11 +59,6 @@ func (t *TcpServer) Serve(addr string) error {
 
 func (t *TcpServer) acceptLoop() error {
 	for {
-		select {
-		case <-t.stopped:
-			return nil // graceful shutdown
-		default:
-		}
 		conn, err := t.listener.AcceptTCP()
 		if err != nil {
 			return fmt.Errorf("accept err: %s", err)
@@ -118,7 +111,7 @@ func (t *TcpServer) Stop() error {
 		return true
 	})
 	t.log.Warnf("%d session(s) closed", closedNum)
-	close(t.stopped)
+
 	defer func() { t.log.Warnf("listener is stopped") }()
 	return t.listener.Close()
 }
