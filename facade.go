@@ -21,3 +21,8 @@ func NewTcp(opt server.TcpOption) *server.TcpServer {
 func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
 	router.Inst().Register(msgId, handler, middleware...)
 }
+
+// RegisterMiddleware 注册全局中间件
+func RegisterMiddleware(m ...router.MiddlewareFunc) {
+	router.Inst().RegisterMiddleware(m...)
+}

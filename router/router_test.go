@@ -7,6 +7,8 @@ import (
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
+	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -140,4 +142,35 @@ func TestRouter_wrapHandlers(t *testing.T) {
 		assert.Equal(t, resp.Data, "done")
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
+}
+
+func TestRouter_RegisterMiddleware(t *testing.T) {
+	rt := Inst()
+
+	var middle01 MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
+		return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			return nil, nil
+		}
+	}
+	var middle02 MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
+		return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+			return nil, nil
+		}
+	}
+
+	rt.RegisterMiddleware()
+	assert.Len(t, rt.globalMiddlewares, 0)
+
+	rt.RegisterMiddleware(middle01)
+	assert.Len(t, rt.globalMiddlewares, 1)
+
+	rt.RegisterMiddleware(middle01, middle02)
+	assert.Len(t, rt.globalMiddlewares, 3)
+
+	expects := []MiddlewareFunc{middle01, middle01, middle02}
+	for i, v := range rt.globalMiddlewares {
+		expect := runtime.FuncForPC(reflect.ValueOf(expects[i]).Pointer()).Name()
+		actual := runtime.FuncForPC(reflect.ValueOf(v).Pointer()).Name()
+		assert.Equal(t, expect, actual)
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
@@ -19,10 +20,12 @@ func init() {
 
 func main() {
 	s := easytcp.NewTcp(server.TcpOption{})
+
+	easytcp.RegisterMiddleware(logMiddleware)
+
 	easytcp.RegisterRoute(fixture.MsgIdBroadCastReq, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
 		var reqData string
 		_ = s.MsgCodec.Decode(req.RawData, &reqData)
-		log.Debugf("recv request | %s", reqData)
 		session.Sessions().Range(func(id string, sess *session.Session) (next bool) {
 			if s.Id == id {
 				return true // next iteration
@@ -48,5 +51,12 @@ func main() {
 
 	if err := s.GracefulStop(); err != nil {
 		log.Error(err)
+	}
+}
+
+func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
+	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		log.Infof("recv request | %s", req.RawData)
+		return next(s, req)
 	}
 }
