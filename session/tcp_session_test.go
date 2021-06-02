@@ -10,21 +10,21 @@ import (
 
 func TestSession_WaitToClose(t *testing.T) {
 	r, _ := net.Pipe()
-	sess := New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
+	sess := NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 	go func() {
 		<-time.After(time.Microsecond * 10)
-		sess.Close()
+		err := sess.Close()
+		assert.NoError(t, err)
 	}()
-	err := sess.WaitToClose()
-	assert.NoError(t, err)
+	sess.WaitUntilClosed()
 }
 
 func TestSession_Close(t *testing.T) {
 	r, _ := net.Pipe()
-	sess := New(r, &packet.DefaultPacker{}, &packet.StringCodec{})
+	sess := NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 	for i := 0; i < 10; i++ {
 		assert.NotPanics(t, func() {
-			sess.Close() // goroutine safe
+			assert.NoError(t, sess.Close()) // goroutine safe
 		})
 	}
 	_, ok := <-sess.closed
@@ -45,7 +45,7 @@ func TestSession_ReadLoop(t *testing.T) {
 	assert.NoError(t, err)
 
 	r, w := net.Pipe()
-	sess := New(r, packer, codec)
+	sess := NewTcp(r, packer, codec)
 	go func() {
 		_, _ = w.Write(msg) // send msg
 	}()
@@ -56,8 +56,7 @@ func TestSession_ReadLoop(t *testing.T) {
 	assert.EqualValues(t, req.Id, 1)
 	assert.Equal(t, req.RawData, []byte("hello"))
 
-	sess.Close()
-	err = sess.WaitToClose()
+	err = sess.Close()
 	assert.NoError(t, err)
 }
 
@@ -65,7 +64,7 @@ func TestSession_WriteLoop(t *testing.T) {
 	r, w := net.Pipe()
 	packer := &packet.DefaultPacker{}
 	codec := &packet.StringCodec{}
-	sess := New(w, packer, codec)
+	sess := NewTcp(w, packer, codec)
 
 	go sess.WriteLoop()
 
@@ -79,7 +78,6 @@ func TestSession_WriteLoop(t *testing.T) {
 	assert.EqualValues(t, msg.GetId(), 1)
 	assert.Equal(t, msg.GetData(), []byte("hello"))
 
-	sess.Close()
-	err = sess.WaitToClose()
+	err = sess.Close()
 	assert.NoError(t, err)
 }

@@ -8,34 +8,26 @@ import (
 	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
-	"time"
 )
 
 // TcpSession 会话，负责读写和关闭连接
 type TcpSession struct {
-	id        string    // 会话的ID，uuid形式
-	CreatedAt time.Time // 创建时间
-	ClosedAt  time.Time // 关闭时间
-	Conn      net.Conn  // 网络连接
-
-	log *logrus.Entry
-
+	id        string   // 会话的ID，uuid形式
+	conn      net.Conn // 网络连接
+	log       *logrus.Entry
 	closeOnce sync.Once
 	closed    chan struct{} // to close()
-
-	reqQueue chan *packet.Request
-	ackQueue chan []byte
-
+	reqQueue  chan *packet.Request
+	ackQueue  chan []byte
 	msgPacker packet.Packer // 拆包和封包
 	msgCodec  packet.Codec  // encode/decode 包里的data
 }
 
-// New 创建一个会话
-func New(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
+// NewTcp 创建一个会话
+func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
 	return &TcpSession{
 		id:        uuid.NewString(),
-		CreatedAt: time.Now(),
-		Conn:      conn,
+		conn:      conn,
 		closed:    make(chan struct{}),
 		log:       logger.Default.WithField("scope", "session.TcpSession"),
 		reqQueue:  make(chan *packet.Request, 1024),
@@ -57,24 +49,21 @@ func (s *TcpSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
-// WaitToClose 等待会话关闭，关闭底层连接
-func (s *TcpSession) WaitToClose() error {
+func (s *TcpSession) WaitUntilClosed() {
 	<-s.closed
-	defer func() { s.log.Trace("connection closed") }()
-	return s.Conn.Close()
 }
 
-// Close 关闭会话，通过 close(ch) 方式
-func (s *TcpSession) Close() {
+func (s *TcpSession) Close() error {
+	var err error
 	s.closeOnce.Do(func() {
 		close(s.closed)
-
-		// and close other channels
 		close(s.reqQueue)
 		close(s.ackQueue)
-
-		s.ClosedAt = time.Now()
+		if s.conn != nil {
+			err = s.conn.Close()
+		}
 	})
+	return err
 }
 
 func (s *TcpSession) isClosed() bool {
@@ -91,14 +80,16 @@ func (s *TcpSession) isClosed() bool {
 // 发送到对应的 channel 中，等待消费
 func (s *TcpSession) ReadLoop() {
 	defer func() {
-		s.Close()
+		if err := s.Close(); err != nil {
+			s.log.Errorf("conn close err: %s", err)
+		}
 		s.log.Trace("read loop finished")
 	}()
 	for {
 		if s.isClosed() {
 			return
 		}
-		msg, err := s.msgPacker.Unpack(s.Conn)
+		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
 			s.log.Errorf("unpack incoming message err:%s", err)
 			return
@@ -141,7 +132,9 @@ func (s *TcpSession) SendResp(resp *packet.Response) error {
 // WriteLoop 消费 ackQueue, 并写入连接
 func (s *TcpSession) WriteLoop() {
 	defer func() {
-		s.Close()
+		if err := s.Close(); err != nil {
+			s.log.Errorf("conn close err: %s", err)
+		}
 		s.log.Trace("write loop finished")
 	}()
 	for {
@@ -152,7 +145,7 @@ func (s *TcpSession) WriteLoop() {
 		if !ok {
 			return
 		}
-		if _, err := s.Conn.Write(msg); err != nil {
+		if _, err := s.conn.Write(msg); err != nil {
 			s.log.Errorf("conn write err: %s", err)
 			return
 		}

@@ -85,7 +85,7 @@ func (t *TcpServer) acceptLoop() error {
 // remove session from memory
 func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	// create a new session
-	sess := session.New(conn, t.msgPacker, t.msgCodec)
+	sess := session.NewTcp(conn, t.msgPacker, t.msgCodec)
 	session.Sessions().Add(sess)
 	go sess.ReadLoop()
 	go sess.WriteLoop()
@@ -95,9 +95,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 			t.log.Errorf("router loop stopped: %s", err)
 		}
 	}()
-	if err := sess.WaitToClose(); err != nil {
-		t.log.Errorf("session close err: %s", err)
-	}
+	sess.WaitUntilClosed()
 	t.log.Tracef("session (%s) closed", sess.ID())
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
 }
@@ -106,7 +104,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 func (t *TcpServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-		sess.Close()
+		_ = sess.Close()
 		closedNum++
 		return true
 	})
