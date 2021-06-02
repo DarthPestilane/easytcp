@@ -23,16 +23,16 @@ func main() {
 
 	easytcp.RegisterMiddleware(fixture.RecoverMiddleware(log), logMiddleware)
 
-	easytcp.RegisterRoute(fixture.MsgIdBroadCastReq, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+	easytcp.RegisterRoute(fixture.MsgIdBroadCastReq, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		var reqData string
-		_ = s.MsgCodec.Decode(req.RawData, &reqData)
-		session.Sessions().Range(func(id string, sess *session.Session) (next bool) {
-			if s.Id == id {
+		_ = s.MsgCodec().Decode(req.RawData, &reqData)
+		session.Sessions().Range(func(id string, sess session.Session) (next bool) {
+			if s.ID() == id {
 				return true // next iteration
 			}
 			err := sess.SendResp(&packet.Response{
 				Id:   fixture.MsgIdBroadCastAck,
-				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.Id),
+				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.ID()),
 			})
 			if err != nil {
 				log.Errorf("broadcast err: %s", err)
@@ -55,7 +55,7 @@ func main() {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+	return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		log.Infof("recv request | %s", req.RawData)
 		return next(s, req)
 	}

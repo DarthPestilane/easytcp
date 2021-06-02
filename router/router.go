@@ -22,10 +22,10 @@ type Router struct {
 	globalMiddlewares []MiddlewareFunc
 }
 
-type HandlerFunc func(s *session.Session, req *packet.Request) (*packet.Response, error)
+type HandlerFunc func(s session.Session, req *packet.Request) (*packet.Response, error)
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var defaultHandler HandlerFunc = func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
 	return nil, nil
 }
 
@@ -41,7 +41,7 @@ func Instance() *Router {
 
 // Loop 阻塞式消费 session.Session 中的 reqQueue channel
 // 通过消息ID找到对应的 HandleFunc 并调用
-func (r *Router) Loop(s *session.Session) error {
+func (r *Router) Loop(s session.Session) error {
 	for {
 		req, ok := <-s.RecvReq()
 		if !ok {
@@ -58,7 +58,7 @@ func (r *Router) Loop(s *session.Session) error {
 	}
 }
 
-func (r *Router) handleReq(s *session.Session, req *packet.Request) error {
+func (r *Router) handleReq(s session.Session, req *packet.Request) error {
 	var handler HandlerFunc
 	if v, has := r.handlerMapper.Load(req.Id); has {
 		handler = v.(HandlerFunc)

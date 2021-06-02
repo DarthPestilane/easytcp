@@ -54,7 +54,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	t.Run("it should return error when session's closed", func(t *testing.T) {
-		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		rt.Register(123, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return &packet.Response{}, nil
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
@@ -65,7 +65,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.Contains(t, err.Error(), "session send response err")
 	})
 	t.Run("it should be ok when handler returns nil response", func(t *testing.T) {
-		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		rt.Register(123, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, nil
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
@@ -74,7 +74,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	t.Run("it should return error when handler returns error", func(t *testing.T) {
-		rt.Register(123, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		rt.Register(123, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, fmt.Errorf("some error")
 		})
 		s := session.New(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
@@ -84,7 +84,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.Contains(t, err.Error(), "handler err")
 	})
 	t.Run("it should be ok when everything's fine", func(t *testing.T) {
-		rt.Register(1, func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		rt.Register(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return &packet.Response{
 				Id:   2,
 				Data: "world",
@@ -110,13 +110,13 @@ func TestRouter_wrapHandlers(t *testing.T) {
 
 		middles := []MiddlewareFunc{
 			func(next HandlerFunc) HandlerFunc {
-				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 					result = append(result, "m1-before")
 					return next(s, req)
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 					result = append(result, "m2-before")
 					resp, err := next(s, req)
 					result = append(result, "m2-after")
@@ -124,14 +124,14 @@ func TestRouter_wrapHandlers(t *testing.T) {
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 					resp, err := next(s, req)
 					result = append(result, "m3-after")
 					return resp, err
 				}
 			},
 		}
-		var handler HandlerFunc = func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		var handler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			result = append(result, "done")
 			return &packet.Response{Data: "done"}, nil
 		}
@@ -148,12 +148,12 @@ func TestRouter_RegisterMiddleware(t *testing.T) {
 	rt := Instance()
 
 	var middle01 MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-		return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, nil
 		}
 	}
 	var middle02 MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-		return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, nil
 		}
 	}

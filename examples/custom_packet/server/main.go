@@ -42,9 +42,9 @@ func main() {
 	}
 }
 
-func handler(s *session.Session, req *packet.Request) (*packet.Response, error) {
+func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 	var data fixture.Json01Req
-	_ = s.MsgCodec.Decode(req.RawData, &data)
+	_ = s.MsgCodec().Decode(req.RawData, &data)
 
 	panicMaker := map[bool]struct{}{
 		true:  {},
@@ -67,16 +67,16 @@ func handler(s *session.Session, req *packet.Request) (*packet.Response, error) 
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (resp *packet.Response, err error) {
+	return func(s session.Session, req *packet.Request) (resp *packet.Response, err error) {
 		var data fixture.Json01Req
-		_ = s.MsgCodec.Decode(req.RawData, &data)
+		_ = s.MsgCodec().Decode(req.RawData, &data)
 		log.Infof("recv request | id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, data)
 
 		defer func() {
 			if err == nil {
 				size := 0
 				if resp != nil {
-					msgData, _ := s.MsgCodec.Encode(resp.Data)
+					msgData, _ := s.MsgCodec().Encode(resp.Data)
 					size = len(msgData)
 				}
 				log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.Id, size, resp.Data)

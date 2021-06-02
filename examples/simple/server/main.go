@@ -42,9 +42,9 @@ func main() {
 	time.Sleep(time.Second * 3)
 }
 
-func handler(s *session.Session, req *packet.Request) (*packet.Response, error) {
+func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 	var data string
-	_ = s.MsgCodec.Decode(req.RawData, &data)
+	_ = s.MsgCodec().Decode(req.RawData, &data)
 
 	panicMaker := map[bool]struct{}{
 		true:  {},
@@ -64,9 +64,9 @@ func handler(s *session.Session, req *packet.Request) (*packet.Response, error) 
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s *session.Session, req *packet.Request) (*packet.Response, error) {
+	return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		var data string
-		_ = s.MsgCodec.Decode(req.RawData, &data)
+		_ = s.MsgCodec().Decode(req.RawData, &data)
 		log.Infof("recv req | id:(%d) size:(%d) data: %s", req.Id, req.RawSize, data)
 		return next(s, req)
 	}
