@@ -83,7 +83,7 @@ func (t *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess.ReadIncomingMsg(msg)
 	sess.Write()
 	sess.Close()
-	t.log.Tracef("session (%s) closed", sess.ID())
+	t.log.WithField("sid", sess.ID()).Tracef("session closed")
 }
 
 func (t *UdpServer) Stop() error {

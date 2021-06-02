@@ -25,11 +25,12 @@ type TcpSession struct {
 
 // NewTcp 创建一个会话
 func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
+	id := uuid.NewString()
 	return &TcpSession{
-		id:        uuid.NewString(),
+		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		log:       logger.Default.WithField("scope", "session.TcpSession"),
+		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TcpSession"),
 		reqQueue:  make(chan *packet.Request, 1024),
 		ackQueue:  make(chan []byte, 1024),
 		msgPacker: packer,

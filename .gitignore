@@ -2,3 +2,4 @@
 vender
 
 *.exe
+.testCoverage.txt

@@ -45,13 +45,13 @@ func (r *Router) Loop(s session.Session) {
 	for {
 		req, ok := <-s.RecvReq()
 		if !ok {
-			r.log.Trace("loop stopped since session's closed")
+			r.log.WithField("sid", s.ID()).Tracef("loop stopped since session is closed")
 			return
 		}
 		if req != nil {
 			go func() {
 				if err := r.handleReq(s, req); err != nil {
-					r.log.Tracef("handle request err: %s", err)
+					r.log.WithField("sid", s.ID()).Tracef("handle request err: %s", err)
 				}
 			}()
 		}

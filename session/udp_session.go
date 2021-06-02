@@ -30,7 +30,7 @@ func NewUdp(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec pa
 		id:         id,
 		conn:       conn,
 		closed:     make(chan struct{}),
-		log:        logger.Default.WithField("scope", fmt.Sprintf("session.Udp[%s]", id)),
+		log:        logger.Default.WithField("sid", id).WithField("scope", "session.UdpSession"),
 		reqQueue:   make(chan *packet.Request),
 		ackQueue:   make(chan []byte),
 		msgPacker:  packer,

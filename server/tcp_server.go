@@ -90,7 +90,7 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	go sess.WriteLoop()
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
-	t.log.Tracef("session (%s) closed", sess.ID())
+	t.log.WithField("sid", sess.ID()).Tracef("session closed")
 }
 
 // Stop 让 server 停止，关闭 router, session 和 listener

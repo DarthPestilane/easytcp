@@ -43,10 +43,14 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	// format level
 	msg += f.formatLevel(entry.Level)
 	// format timestamp
-	msg += fmt.Sprintf(" [%s]", entry.Time.Format(f.TimeFormat))
+	msg += fmt.Sprintf(" %s |", entry.Time.Format(f.TimeFormat))
+	// format session id
+	if sid, _ := entry.Data["sid"].(string); sid != "" {
+		msg += fmt.Sprintf(" %s |", sid)
+	}
 	// format scope
 	if scope, _ := entry.Data["scope"].(string); scope != "" {
-		msg += fmt.Sprintf(" [%s]", scope)
+		msg += fmt.Sprintf(" %s |", scope)
 	}
 	// append message
 	if entry.Message != "" {
@@ -58,5 +62,4 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	// end the message with \n
 	msg += "\n"
 	return []byte(msg), nil
-
 }
