@@ -20,6 +20,9 @@ lint-fix:
 test:
 	CGO_ENABLED=0 go test -count=1 -cover -coverprofile=.testCoverage.txt `go list ./... | grep -v /examples/`
 
+coverage:
+	CGO_ENABLED=0 go tool cover -html .testCoverage.txt
+
 spec: lint test
 
 tidy:

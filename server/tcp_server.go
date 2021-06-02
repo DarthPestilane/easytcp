@@ -32,7 +32,6 @@ func NewTcp(opt TcpOption) *TcpServer {
 		opt.MsgCodec = &packet.StringCodec{}
 	}
 	return &TcpServer{
-		listener:     nil,
 		log:          logger.Default.WithField("scope", "server.TcpServer"),
 		rwBufferSize: opt.RWBufferSize,
 		msgPacker:    opt.MsgPacker,
