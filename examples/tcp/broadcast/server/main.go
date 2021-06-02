@@ -10,6 +10,9 @@ import (
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var log *logrus.Logger
@@ -49,8 +52,11 @@ func main() {
 		}
 	}()
 
-	if err := s.GracefulStop(); err != nil {
-		log.Error(err)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	<-sigCh
+	if err := s.Stop(); err != nil {
+		log.Errorf("server stopped err: %s", err)
 	}
 }
 

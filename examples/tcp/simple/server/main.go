@@ -10,7 +10,10 @@ import (
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -35,8 +38,11 @@ func main() {
 		}
 	}()
 
-	if err := s.GracefulStop(); err != nil {
-		panic(err)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+	<-sigCh
+	if err := s.Stop(); err != nil {
+		log.Errorf("server stopped err: %s", err)
 	}
 
 	time.Sleep(time.Second * 3)

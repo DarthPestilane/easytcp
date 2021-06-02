@@ -23,24 +23,18 @@ func TestRouter_Loop(t *testing.T) {
 		s := session.NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
-		go func() {
-			err := rt.Loop(s)
-			assert.Error(t, err) // loop before session close
-			assert.Contains(t, err.Error(), "channel closed")
-		}()
+		go rt.Loop(s)
 		time.After(time.Millisecond * 10)
 
 		assert.NoError(t, s.Close())
 	})
-	t.Run("it should return error if session is closed", func(t *testing.T) {
+	t.Run("it should break the loop when session is closed", func(t *testing.T) {
 		r, w := net.Pipe()
 		s := session.NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
 		assert.NoError(t, s.Close())
-		err := rt.Loop(s) // loop after session closed
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "receive request err: channel closed")
+		rt.Loop(s) // loop after session closed
 	})
 }
 

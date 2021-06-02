@@ -81,9 +81,8 @@ func (s *TcpSession) isClosed() bool {
 func (s *TcpSession) ReadLoop() {
 	defer func() {
 		if err := s.Close(); err != nil {
-			s.log.Errorf("conn close err: %s", err)
+			s.log.Tracef("conn close err: %s", err)
 		}
-		s.log.Trace("read loop finished")
 	}()
 	for {
 		if s.isClosed() {
@@ -91,7 +90,7 @@ func (s *TcpSession) ReadLoop() {
 		}
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
-			s.log.Errorf("unpack incoming message err:%s", err)
+			s.log.Tracef("unpack incoming message err:%s", err)
 			return
 		}
 		req := &packet.Request{
@@ -133,9 +132,8 @@ func (s *TcpSession) SendResp(resp *packet.Response) error {
 func (s *TcpSession) WriteLoop() {
 	defer func() {
 		if err := s.Close(); err != nil {
-			s.log.Errorf("conn close err: %s", err)
+			s.log.Tracef("conn close err: %s", err)
 		}
-		s.log.Trace("write loop finished")
 	}()
 	for {
 		if s.isClosed() {
@@ -146,7 +144,7 @@ func (s *TcpSession) WriteLoop() {
 			return
 		}
 		if _, err := s.conn.Write(msg); err != nil {
-			s.log.Errorf("conn write err: %s", err)
+			s.log.Tracef("conn write err: %s", err)
 			return
 		}
 	}
@@ -155,7 +153,7 @@ func (s *TcpSession) WriteLoop() {
 func (s *TcpSession) safelyPushReqQueue(req *packet.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Warnf("push reqQueue panics: %+v", r)
+			s.log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- req
@@ -164,7 +162,7 @@ func (s *TcpSession) safelyPushReqQueue(req *packet.Request) {
 func (s *TcpSession) safelyPushAckQueue(msg []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Warnf("push ackQueue panics: %+v", r)
+			s.log.Tracef("push ackQueue panics: %+v", r)
 		}
 	}()
 	s.ackQueue <- msg

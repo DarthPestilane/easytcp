@@ -17,6 +17,10 @@ func NewTcp(opt server.TcpOption) *server.TcpServer {
 	return server.NewTcp(opt)
 }
 
+func NewUdp(opt server.UdpOption) *server.UdpServer {
+	return server.NewUdp(opt)
+}
+
 // RegisterRoute 注册消息路由
 func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
 	router.Instance().Register(msgId, handler, middleware...)

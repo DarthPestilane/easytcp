@@ -8,9 +8,6 @@ import (
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 type TcpServer struct {
@@ -87,38 +84,25 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	// create a new session
 	sess := session.NewTcp(conn, t.msgPacker, t.msgCodec)
 	session.Sessions().Add(sess)
+	// route incoming message to handler
+	go router.Instance().Loop(sess)
 	go sess.ReadLoop()
 	go sess.WriteLoop()
-	go func() {
-		// route incoming message to handler
-		if err := router.Instance().Loop(sess); err != nil {
-			t.log.Errorf("router loop stopped: %s", err)
-		}
-	}()
 	sess.WaitUntilClosed()
-	t.log.Tracef("session (%s) closed", sess.ID())
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
+	t.log.Tracef("session (%s) closed", sess.ID())
 }
 
 // Stop 让 server 停止，关闭 router, session 和 listener
 func (t *TcpServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-		_ = sess.Close()
-		closedNum++
+		if tcpSess, ok := sess.(*session.TcpSession); ok {
+			_ = tcpSess.Close()
+			closedNum++
+		}
 		return true
 	})
-	t.log.Warnf("%d session(s) closed", closedNum)
-
-	defer func() { t.log.Warnf("listener is stopped") }()
+	t.log.Tracef("%d session(s) closed", closedNum)
 	return t.listener.Close()
-}
-
-// GracefulStop 优雅停止，监听 syscall.Signal, 触发 Stop()
-func (t *TcpServer) GracefulStop() error {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	sig := <-sigCh
-	t.log.Warnf("receive signal: %s | graceful shutdown now", sig)
-	return t.Stop()
 }
