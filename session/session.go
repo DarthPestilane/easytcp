@@ -4,6 +4,8 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 )
 
+//go:generate mockgen -destination mock/session_mock.go -package mock . Session
+
 // Session handles message receiving and sending
 type Session interface {
 	ID() string                                              // get session id

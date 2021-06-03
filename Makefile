@@ -27,3 +27,7 @@ spec: lint test
 
 tidy:
 	go mod tidy
+
+gen:
+	CGO_ENABLED=0 go generate `go list ./... | grep -v /examples/` &>/dev/null
+	rm -rf ./**/gomock_reflect_*

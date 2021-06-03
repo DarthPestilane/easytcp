@@ -8,6 +8,8 @@ import (
 	"io"
 )
 
+//go:generate mockgen -destination mock/packer_mock.go -package mock . Packer
+
 // Packer 打包/拆包
 // 1. 对数据进行打包，得到消息
 // 2. 对消息进行拆包，得到消息元数据

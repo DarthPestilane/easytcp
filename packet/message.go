@@ -1,5 +1,7 @@
 package packet
 
+//go:generate mockgen -destination mock/message_mock.go -package mock . Message
+
 // Message 对原始消息的抽象
 // 通常由 Packer.Unpack() 拆包得到
 type Message interface {

@@ -6,6 +6,8 @@ import (
 	"reflect"
 )
 
+//go:generate mockgen -destination mock/codec_mock.go -package mock . Codec
+
 // Codec 编码解码器
 // 对原始消息的 data 进行编码和解码处理
 type Codec interface {
