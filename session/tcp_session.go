@@ -51,9 +51,6 @@ func (s *TcpSession) RecvReq() <-chan *packet.Request {
 }
 
 func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
-	if s.isClosed() {
-		return true, nil
-	}
 	data, err := s.msgCodec.Encode(resp.Data)
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
@@ -62,7 +59,12 @@ func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
-	return !s.safelyPushAckQueue(msg), nil
+	ok := s.safelyPushAckQueue(msg)
+	if !ok {
+		s.Close()
+		return true, nil
+	}
+	return false, nil
 }
 
 func (s *TcpSession) Close() {
@@ -74,43 +76,50 @@ func (s *TcpSession) Close() {
 }
 
 func (s *TcpSession) ReadLoop() {
-	defer s.Close()
 	for {
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
 			s.log.Tracef("unpack incoming message err:%s", err)
-			return
+			break
 		}
 		req := &packet.Request{
 			Id:      msg.GetId(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}
-		s.safelyPushReqQueue(req)
+		if !s.safelyPushReqQueue(req) {
+			break
+		}
 	}
+	s.log.Tracef("read loop exit")
+	s.Close()
 }
 
 func (s *TcpSession) WriteLoop() {
-	defer s.Close()
 	for {
 		msg, ok := <-s.ackQueue
 		if !ok {
-			return
+			break
 		}
 		if _, err := s.conn.Write(msg); err != nil {
 			s.log.Tracef("conn write err: %s", err)
-			return
+			break
 		}
 	}
+	s.log.Tracef("write loop exit")
+	s.Close()
 }
 
-func (s *TcpSession) safelyPushReqQueue(req *packet.Request) {
+func (s *TcpSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
+	ok = true
 	defer func() {
 		if r := recover(); r != nil {
+			ok = false
 			s.log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- req
+	return ok
 }
 
 func (s *TcpSession) safelyPushAckQueue(msg []byte) (ok bool) {
@@ -127,13 +136,4 @@ func (s *TcpSession) safelyPushAckQueue(msg []byte) (ok bool) {
 
 func (s *TcpSession) WaitUntilClosed() {
 	<-s.closed
-}
-
-func (s *TcpSession) isClosed() bool {
-	select {
-	case <-s.closed:
-		return true
-	default:
-		return false
-	}
 }

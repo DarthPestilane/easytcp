@@ -31,11 +31,16 @@ var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*
 
 func Instance() *Router {
 	once.Do(func() {
-		rt = &Router{
-			log: logger.Default.WithField("scope", "router.Router"),
-		}
+		rt = newRouter()
 	})
 	return rt
+}
+
+func newRouter() *Router {
+	return &Router{
+		log:               logger.Default.WithField("scope", "router.Router"),
+		globalMiddlewares: make([]MiddlewareFunc, 0),
+	}
 }
 
 func (r *Router) Loop(s session.Session) {
@@ -43,16 +48,18 @@ func (r *Router) Loop(s session.Session) {
 		req, ok := <-s.RecvReq()
 		if !ok {
 			r.log.WithField("sid", s.ID()).Tracef("loop stopped since session is closed")
-			return
+			break
 		}
-		if req != nil {
-			go func() {
-				if err := r.handleReq(s, req); err != nil {
-					r.log.WithField("sid", s.ID()).Tracef("handle request err: %s", err)
-				}
-			}()
+		if req == nil {
+			continue
 		}
+		go func() {
+			if err := r.handleReq(s, req); err != nil {
+				r.log.WithField("sid", s.ID()).Tracef("handle request err: %s", err)
+			}
+		}()
 	}
+	r.log.Tracef("loop exit")
 }
 
 func (r *Router) handleReq(s session.Session, req *packet.Request) error {
@@ -101,13 +108,25 @@ func (r *Router) Register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
 		r.handlerMapper.Store(id, h)
 	}
 	if len(m) != 0 {
-		r.middlewaresMapper.Store(id, m)
+		ms := make([]MiddlewareFunc, 0)
+		for _, mm := range m {
+			if mm != nil {
+				ms = append(ms, mm)
+			}
+		}
+		if len(ms) != 0 {
+			r.middlewaresMapper.Store(id, ms)
+		}
 	}
 }
 
 // RegisterMiddleware 注册全局中间件
 func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 	if len(m) != 0 {
-		r.globalMiddlewares = append(r.globalMiddlewares, m...)
+		for _, mm := range m {
+			if mm != nil {
+				r.globalMiddlewares = append(r.globalMiddlewares, mm)
+			}
+		}
 	}
 }
