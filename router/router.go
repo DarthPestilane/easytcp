@@ -14,7 +14,6 @@ var (
 	rt   *Router
 )
 
-// Router 路由器，负责对消息的路由
 type Router struct {
 	log               *logrus.Entry
 	handlerMapper     sync.Map
@@ -23,13 +22,13 @@ type Router struct {
 }
 
 type HandlerFunc func(s session.Session, req *packet.Request) (*packet.Response, error)
+
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
 	return nil, nil
 }
 
-// Instance 单例模式，获取 *Router 实例(instance)
 func Instance() *Router {
 	once.Do(func() {
 		rt = &Router{
@@ -39,8 +38,6 @@ func Instance() *Router {
 	return rt
 }
 
-// Loop 阻塞式消费 session.Session 中的 reqQueue channel
-// 通过消息ID找到对应的 HandleFunc 并调用
 func (r *Router) Loop(s session.Session) {
 	for {
 		req, ok := <-s.RecvReq()
@@ -79,7 +76,7 @@ func (r *Router) handleReq(s session.Session, req *packet.Request) error {
 	if resp == nil {
 		return nil
 	}
-	if err := s.SendResp(resp); err != nil {
+	if _, err := s.SendResp(resp); err != nil {
 		return fmt.Errorf("session send response err: %s", err)
 	}
 	return nil

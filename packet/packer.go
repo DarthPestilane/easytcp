@@ -43,15 +43,15 @@ func (d *DefaultPacker) Pack(id uint, data []byte) ([]byte, error) {
 func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
 	p := binpacker.NewUnpacker(d.bytesOrder(), reader)
 	size, err := p.ShiftUint32()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
 	id, err := p.ShiftUint32()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("read id err: %s", err)
 	}
 	data, err := p.ShiftBytes(uint64(size))
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 	msg := &DefaultMsg{

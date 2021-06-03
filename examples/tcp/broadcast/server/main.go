@@ -37,7 +37,7 @@ func main() {
 			if s.ID() == id {
 				return true // next iteration
 			}
-			err := sess.SendResp(&packet.Response{
+			_, err := sess.SendResp(&packet.Response{
 				Id:   fixture.MsgIdBroadCastAck,
 				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.ID()),
 			})

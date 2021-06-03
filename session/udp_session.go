@@ -43,10 +43,6 @@ func (s *UdpSession) ID() string {
 	return s.id
 }
 
-func (s *UdpSession) MsgPacker() packet.Packer {
-	return s.msgPacker
-}
-
 func (s *UdpSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
@@ -55,23 +51,19 @@ func (s *UdpSession) RecvReq() <-chan *packet.Request {
 	return s.reqQueue
 }
 
-func (s *UdpSession) SendResp(resp *packet.Response) error {
+func (s *UdpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if s.isClosed() {
-		return fmt.Errorf("session closed")
-	}
-	if resp == nil {
-		return fmt.Errorf("nil response")
+		return true, nil
 	}
 	data, err := s.msgCodec.Encode(resp.Data)
 	if err != nil {
-		return fmt.Errorf("encode response data err: %s", err)
+		return false, fmt.Errorf("encode response data err: %s", err)
 	}
 	msg, err := s.msgPacker.Pack(resp.Id, data)
 	if err != nil {
-		return fmt.Errorf("pack response data err: %s", err)
+		return false, fmt.Errorf("pack response data err: %s", err)
 	}
-	s.safelyPushAckQueue(msg)
-	return nil
+	return !s.safelyPushAckQueue(msg), nil
 }
 
 func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
@@ -108,17 +100,16 @@ func (s *UdpSession) safelyPushReqQueue(req *packet.Request) {
 	s.reqQueue <- req
 }
 
-func (s *UdpSession) safelyPushAckQueue(msg []byte) {
+func (s *UdpSession) safelyPushAckQueue(msg []byte) (ok bool) {
+	ok = true
 	defer func() {
 		if r := recover(); r != nil {
+			ok = false
 			s.log.Tracef("push ackQueue panics: %+v", r)
 		}
 	}()
 	s.ackQueue <- msg
-}
-
-func (s *UdpSession) WaitUntilClosed() {
-	<-s.closed
+	return ok
 }
 
 func (s *UdpSession) Close() {

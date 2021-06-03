@@ -93,6 +93,9 @@ func (t *TcpServer) handleConn(conn *net.TCPConn) {
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
 	t.log.WithField("sid", sess.ID()).Tracef("session closed")
+	if err := conn.Close(); err != nil {
+		t.log.Tracef("connection close err: %s", err)
+	}
 }
 
 // Stop 让 server 停止，关闭 router, session 和 listener
@@ -100,7 +103,7 @@ func (t *TcpServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
 		if tcpSess, ok := sess.(*session.TcpSession); ok {
-			_ = tcpSess.Close()
+			tcpSess.Close()
 			closedNum++
 		}
 		return true

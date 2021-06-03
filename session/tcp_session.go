@@ -42,53 +42,40 @@ func (s *TcpSession) ID() string {
 	return s.id
 }
 
-func (s *TcpSession) MsgPacker() packet.Packer {
-	return s.msgPacker
-}
-
 func (s *TcpSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
-func (s *TcpSession) WaitUntilClosed() {
-	<-s.closed
+func (s *TcpSession) RecvReq() <-chan *packet.Request {
+	return s.reqQueue
 }
 
-func (s *TcpSession) Close() error {
-	var err error
+func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
+	if s.isClosed() {
+		return true, nil
+	}
+	data, err := s.msgCodec.Encode(resp.Data)
+	if err != nil {
+		return false, fmt.Errorf("encode response data err: %s", err)
+	}
+	msg, err := s.msgPacker.Pack(resp.Id, data)
+	if err != nil {
+		return false, fmt.Errorf("pack response data err: %s", err)
+	}
+	return !s.safelyPushAckQueue(msg), nil
+}
+
+func (s *TcpSession) Close() {
 	s.closeOnce.Do(func() {
 		close(s.closed)
 		close(s.reqQueue)
 		close(s.ackQueue)
-		if s.conn != nil {
-			err = s.conn.Close()
-		}
 	})
-	return err
 }
 
-func (s *TcpSession) isClosed() bool {
-	select {
-	case <-s.closed:
-		return true
-	default:
-		return false
-	}
-}
-
-// ReadLoop 阻塞式读消息，读到消息后，
-// 通过 msgPacker 和 msgCodec 对原始消息进行处理
-// 发送到对应的 channel 中，等待消费
 func (s *TcpSession) ReadLoop() {
-	defer func() {
-		if err := s.Close(); err != nil {
-			s.log.Tracef("conn close err: %s", err)
-		}
-	}()
+	defer s.Close()
 	for {
-		if s.isClosed() {
-			return
-		}
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
 			s.log.Tracef("unpack incoming message err:%s", err)
@@ -103,43 +90,9 @@ func (s *TcpSession) ReadLoop() {
 	}
 }
 
-// RecvReq 接收请求
-func (s *TcpSession) RecvReq() <-chan *packet.Request {
-	return s.reqQueue
-}
-
-// SendResp 发送响应，
-// resp 会经过 msgCodec 和 msgPacker 处理得到待写入的消息
-func (s *TcpSession) SendResp(resp *packet.Response) error {
-	if s.isClosed() {
-		return fmt.Errorf("session closed")
-	}
-	if resp == nil {
-		return fmt.Errorf("nil response")
-	}
-	data, err := s.msgCodec.Encode(resp.Data)
-	if err != nil {
-		return fmt.Errorf("encode response data err: %s", err)
-	}
-	msg, err := s.msgPacker.Pack(resp.Id, data)
-	if err != nil {
-		return fmt.Errorf("pack response data err: %s", err)
-	}
-	s.safelyPushAckQueue(msg)
-	return nil
-}
-
-// WriteLoop 消费 ackQueue, 并写入连接
 func (s *TcpSession) WriteLoop() {
-	defer func() {
-		if err := s.Close(); err != nil {
-			s.log.Tracef("conn close err: %s", err)
-		}
-	}()
+	defer s.Close()
 	for {
-		if s.isClosed() {
-			return
-		}
 		msg, ok := <-s.ackQueue
 		if !ok {
 			return
@@ -160,11 +113,27 @@ func (s *TcpSession) safelyPushReqQueue(req *packet.Request) {
 	s.reqQueue <- req
 }
 
-func (s *TcpSession) safelyPushAckQueue(msg []byte) {
+func (s *TcpSession) safelyPushAckQueue(msg []byte) (ok bool) {
+	ok = true
 	defer func() {
 		if r := recover(); r != nil {
+			ok = false
 			s.log.Tracef("push ackQueue panics: %+v", r)
 		}
 	}()
 	s.ackQueue <- msg
+	return ok
+}
+
+func (s *TcpSession) WaitUntilClosed() {
+	<-s.closed
+}
+
+func (s *TcpSession) isClosed() bool {
+	select {
+	case <-s.closed:
+		return true
+	default:
+		return false
+	}
 }

@@ -20,20 +20,24 @@ func TestRouter_Loop(t *testing.T) {
 
 	t.Run("usually router can receive the request from session", func(t *testing.T) {
 		r, w := net.Pipe()
+		defer r.Close()
+		defer w.Close()
 		s := session.NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
 		go rt.Loop(s)
 		time.After(time.Millisecond * 10)
 
-		assert.NoError(t, s.Close())
+		s.Close()
 	})
 	t.Run("it should break the loop when session is closed", func(t *testing.T) {
 		r, w := net.Pipe()
+		defer r.Close()
+		defer w.Close()
 		s := session.NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 		go s.ReadLoop()
 		go func() { _, _ = w.Write(msg) }()
-		assert.NoError(t, s.Close())
+		s.Close()
 		rt.Loop(s) // loop after session closed
 	})
 }
@@ -46,16 +50,14 @@ func TestRouter_handleReq(t *testing.T) {
 		err := rt.handleReq(s, req)
 		assert.NoError(t, err)
 	})
-	t.Run("it should return error when session's closed", func(t *testing.T) {
+	t.Run("it should not return error when session's closed", func(t *testing.T) {
 		rt.Register(123, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return &packet.Response{}, nil
 		})
 		s := session.NewTcp(nil, &packet.DefaultPacker{}, &packet.StringCodec{})
-		assert.NoError(t, s.Close())
+		s.Close()
 		req := &packet.Request{Id: 123}
-		err := rt.handleReq(s, req)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "session send response err")
+		assert.NoError(t, rt.handleReq(s, req))
 	})
 	t.Run("it should be ok when handler returns nil response", func(t *testing.T) {
 		rt.Register(123, func(s session.Session, req *packet.Request) (*packet.Response, error) {
