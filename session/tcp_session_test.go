@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestSession_WaitToClose(t *testing.T) {
+func TestSession_WaitUntilClosed(t *testing.T) {
 	r, _ := net.Pipe()
 	sess := NewTcp(r, &packet.DefaultPacker{}, &packet.StringCodec{})
 	go func() {

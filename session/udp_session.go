@@ -51,41 +51,6 @@ func (s *UdpSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
-func (s *UdpSession) WaitUntilClosed() {
-	<-s.closed
-}
-
-func (s *UdpSession) Close() {
-	s.closeOnce.Do(func() {
-		close(s.closed)
-		close(s.reqQueue)
-		close(s.ackQueue)
-	})
-}
-
-func (s *UdpSession) isClosed() bool {
-	select {
-	case <-s.closed:
-		return true
-	default:
-		return false
-	}
-}
-
-func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
-	msg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
-	if err != nil {
-		s.log.Tracef("unpack incoming message err: %s", err)
-		return
-	}
-	req := &packet.Request{
-		Id:      msg.GetId(),
-		RawSize: msg.GetSize(),
-		RawData: msg.GetData(),
-	}
-	s.safelyPushReqQueue(req)
-}
-
 func (s *UdpSession) RecvReq() <-chan *packet.Request {
 	return s.reqQueue
 }
@@ -107,6 +72,20 @@ func (s *UdpSession) SendResp(resp *packet.Response) error {
 	}
 	s.safelyPushAckQueue(msg)
 	return nil
+}
+
+func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
+	msg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
+	if err != nil {
+		s.log.Tracef("unpack incoming message err: %s", err)
+		return
+	}
+	req := &packet.Request{
+		Id:      msg.GetId(),
+		RawSize: msg.GetSize(),
+		RawData: msg.GetData(),
+	}
+	s.safelyPushReqQueue(req)
 }
 
 func (s *UdpSession) Write() {
@@ -136,4 +115,25 @@ func (s *UdpSession) safelyPushAckQueue(msg []byte) {
 		}
 	}()
 	s.ackQueue <- msg
+}
+
+func (s *UdpSession) WaitUntilClosed() {
+	<-s.closed
+}
+
+func (s *UdpSession) Close() {
+	s.closeOnce.Do(func() {
+		close(s.closed)
+		close(s.reqQueue)
+		close(s.ackQueue)
+	})
+}
+
+func (s *UdpSession) isClosed() bool {
+	select {
+	case <-s.closed:
+		return true
+	default:
+		return false
+	}
 }
