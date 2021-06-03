@@ -16,6 +16,7 @@ type TcpServer struct {
 	log          *logrus.Entry
 	msgPacker    packet.Packer
 	msgCodec     packet.Codec
+	accepting    chan struct{}
 }
 
 type TcpOption struct {
@@ -36,6 +37,7 @@ func NewTcp(opt TcpOption) *TcpServer {
 		rwBufferSize: opt.RWBufferSize,
 		msgPacker:    opt.MsgPacker,
 		msgCodec:     opt.MsgCodec,
+		accepting:    make(chan struct{}),
 	}
 }
 
@@ -54,6 +56,7 @@ func (t *TcpServer) Serve(addr string) error {
 }
 
 func (t *TcpServer) acceptLoop() error {
+	close(t.accepting)
 	for {
 		conn, err := t.listener.AcceptTCP()
 		if err != nil {

@@ -19,8 +19,7 @@ type Packer interface {
 // DefaultPacker 默认的 Packer
 // 封包格式:
 //   size[4]id[4]data
-type DefaultPacker struct {
-}
+type DefaultPacker struct{}
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.LittleEndian
