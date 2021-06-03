@@ -49,6 +49,9 @@ func TestSession_ReadLoop(t *testing.T) {
 	defer r.Close()
 	defer w.Close()
 	sess := NewTcp(r, packer, codec)
+	assert.Equal(t, sess.ID(), sess.id)
+	assert.Equal(t, sess.MsgCodec(), codec)
+
 	go func() {
 		_, _ = w.Write(msg) // send msg
 	}()
@@ -87,11 +90,43 @@ func TestSession_WriteLoop(t *testing.T) {
 }
 
 func TestTcpSession_safelyPushAckQueue(t *testing.T) {
-	_, w := net.Pipe()
 	packer := &packet.DefaultPacker{}
 	codec := &packet.StringCodec{}
-	sess := NewTcp(w, packer, codec)
+	sess := NewTcp(nil, packer, codec)
 	assert.True(t, sess.safelyPushAckQueue([]byte("test")))
 	sess.Close()
 	assert.False(t, sess.safelyPushAckQueue([]byte("test")))
+}
+
+func TestTcpSession_safelyPushReqQueue(t *testing.T) {
+	packer := &packet.DefaultPacker{}
+	codec := &packet.StringCodec{}
+	sess := NewTcp(nil, packer, codec)
+	assert.NotPanics(t, func() {
+		sess.safelyPushReqQueue(nil)
+	})
+	sess.Close()
+	assert.NotPanics(t, func() {
+		sess.safelyPushReqQueue(nil)
+	})
+}
+
+func TestTcpSession_isClosed(t *testing.T) {
+	sess := &TcpSession{
+		closed: make(chan struct{}),
+	}
+	assert.False(t, sess.isClosed())
+	close(sess.closed)
+	assert.True(t, sess.isClosed())
+}
+
+func TestTcpSession_SendResp(t *testing.T) {
+	packer := &packet.DefaultPacker{}
+	codec := &packet.StringCodec{}
+	sess := NewTcp(nil, packer, codec)
+	assert.Panics(t, func() { _, _ = sess.SendResp(nil) })
+	sess.Close()
+	closed, err := sess.SendResp(nil)
+	assert.NoError(t, err)
+	assert.True(t, closed)
 }
