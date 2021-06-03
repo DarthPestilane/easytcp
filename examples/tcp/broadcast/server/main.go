@@ -30,6 +30,10 @@ func main() {
 		var reqData string
 		_ = s.MsgCodec().Decode(req.RawData, &reqData)
 		session.Sessions().Range(func(id string, sess session.Session) (next bool) {
+			if _, ok := sess.(*session.TcpSession); !ok {
+				// only broadcast to the same kind sessions
+				return true // next iteration
+			}
 			if s.ID() == id {
 				return true // next iteration
 			}
