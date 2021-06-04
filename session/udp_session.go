@@ -8,14 +8,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net"
-	"sync"
 )
 
 type UdpSession struct {
 	id         string       // 会话的ID，uuid形式
 	conn       *net.UDPConn // 网络连接
 	log        *logrus.Entry
-	closeOnce  sync.Once
 	closed     chan struct{} // to close()
 	reqQueue   chan *packet.Request
 	ackQueue   chan []byte
@@ -23,6 +21,8 @@ type UdpSession struct {
 	msgCodec   packet.Codec  // encode/decode 包里的data
 	remoteAddr *net.UDPAddr
 }
+
+var _ Session = &UdpSession{}
 
 func NewUdp(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec packet.Codec) *UdpSession {
 	id := uuid.NewString()
@@ -66,11 +66,11 @@ func (s *UdpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	return !s.safelyPushAckQueue(msg), nil
 }
 
-func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
+func (s *UdpSession) ReadIncomingMsg(inMsg []byte) error {
 	msg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
 	if err != nil {
 		s.log.Tracef("unpack incoming message err: %s", err)
-		return
+		return err
 	}
 	req := &packet.Request{
 		Id:      msg.GetId(),
@@ -78,6 +78,7 @@ func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
 		RawData: msg.GetData(),
 	}
 	s.safelyPushReqQueue(req)
+	return nil
 }
 
 func (s *UdpSession) Write(done <-chan struct{}) {

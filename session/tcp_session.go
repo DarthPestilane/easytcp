@@ -23,6 +23,8 @@ type TcpSession struct {
 	msgCodec  packet.Codec  // encode/decode 包里的data
 }
 
+var _ Session = &TcpSession{}
+
 // NewTcp 创建一个会话
 func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
 	id := uuid.NewString()
