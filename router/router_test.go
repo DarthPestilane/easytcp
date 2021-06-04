@@ -12,53 +12,6 @@ import (
 	"testing"
 )
 
-// func TestRouter_wrapHandlers(t *testing.T) {
-// 	rt := Instance()
-// 	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
-// 		wrap := rt.wrapHandlers(nil, nil)
-// 		resp, err := wrap(nil, nil)
-// 		assert.NoError(t, err)
-// 		assert.Nil(t, resp)
-// 	})
-// 	t.Run("it should invoke handlers in the right order", func(t *testing.T) {
-// 		result := make([]string, 0)
-//
-// 		middles := []MiddlewareFunc{
-// 			func(next HandlerFunc) HandlerFunc {
-// 				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
-// 					result = append(result, "m1-before")
-// 					return next(s, req)
-// 				}
-// 			},
-// 			func(next HandlerFunc) HandlerFunc {
-// 				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
-// 					result = append(result, "m2-before")
-// 					resp, err := next(s, req)
-// 					result = append(result, "m2-after")
-// 					return resp, err
-// 				}
-// 			},
-// 			func(next HandlerFunc) HandlerFunc {
-// 				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
-// 					resp, err := next(s, req)
-// 					result = append(result, "m3-after")
-// 					return resp, err
-// 				}
-// 			},
-// 		}
-// 		var handler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
-// 			result = append(result, "done")
-// 			return &packet.Response{Data: "done"}, nil
-// 		}
-//
-// 		wrap := rt.wrapHandlers(handler, middles)
-// 		resp, err := wrap(nil, nil)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, resp.Data, "done")
-// 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
-// 	})
-// }
-
 func TestInstance(t *testing.T) {
 	var rt *Router
 	for i := 0; i < 100; i++ {
@@ -315,5 +268,48 @@ func TestRouter_handleReq(t *testing.T) {
 }
 
 func TestRouter_wrapHandlers(t *testing.T) {
+	rt := newRouter()
+	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
+		wrap := rt.wrapHandlers(nil, nil)
+		resp, err := wrap(nil, nil)
+		assert.NoError(t, err)
+		assert.Nil(t, resp)
+	})
+	t.Run("it should invoke handlers in the right order", func(t *testing.T) {
+		result := make([]string, 0)
 
+		middles := []MiddlewareFunc{
+			func(next HandlerFunc) HandlerFunc {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+					result = append(result, "m1-before")
+					return next(s, req)
+				}
+			},
+			func(next HandlerFunc) HandlerFunc {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+					result = append(result, "m2-before")
+					resp, err := next(s, req)
+					result = append(result, "m2-after")
+					return resp, err
+				}
+			},
+			func(next HandlerFunc) HandlerFunc {
+				return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+					resp, err := next(s, req)
+					result = append(result, "m3-after")
+					return resp, err
+				}
+			},
+		}
+		var handler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
+			result = append(result, "done")
+			return &packet.Response{Data: "done"}, nil
+		}
+
+		wrap := rt.wrapHandlers(handler, middles)
+		resp, err := wrap(nil, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, resp.Data, "done")
+		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
+	})
 }
