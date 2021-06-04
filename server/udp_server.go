@@ -17,6 +17,8 @@ type UdpServer struct {
 	log           *logrus.Entry
 	msgPacker     packet.Packer
 	msgCodec      packet.Codec
+	accepting     chan struct{}
+	stopped       chan struct{}
 }
 
 type UdpOption struct {
@@ -42,6 +44,8 @@ func NewUdp(opt UdpOption) *UdpServer {
 		msgPacker:     opt.MsgPacker,
 		msgCodec:      opt.MsgCodec,
 		maxBufferSize: opt.MaxBufferSize,
+		accepting:     make(chan struct{}),
+		stopped:       make(chan struct{}),
 	}
 }
 
@@ -67,6 +71,7 @@ func (t *UdpServer) Serve(addr string) error {
 }
 
 func (t *UdpServer) acceptLoop() error {
+	close(t.accepting)
 	buff := make([]byte, t.maxBufferSize)
 	for {
 		n, remoteAddr, err := t.conn.ReadFromUDP(buff)
@@ -81,11 +86,12 @@ func (t *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess := session.NewUdp(t.conn, addr, t.msgPacker, t.msgCodec)
 	go router.Instance().Loop(sess)
 	sess.ReadIncomingMsg(msg)
-	sess.Write()
+	sess.Write(t.stopped)
 	sess.Close()
 	t.log.WithField("sid", sess.ID()).Tracef("session closed")
 }
 
 func (t *UdpServer) Stop() error {
+	close(t.stopped)
 	return t.conn.Close()
 }

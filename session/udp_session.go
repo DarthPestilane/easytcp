@@ -80,14 +80,18 @@ func (s *UdpSession) ReadIncomingMsg(inMsg []byte) {
 	s.safelyPushReqQueue(req)
 }
 
-func (s *UdpSession) Write() {
-	msg, ok := <-s.ackQueue
-	if !ok {
+func (s *UdpSession) Write(done <-chan struct{}) {
+	select {
+	case <-done:
 		return
-	}
-	if _, err := s.conn.WriteToUDP(msg, s.remoteAddr); err != nil {
-		s.log.Tracef("conn write err: %s", err)
-		return
+	case msg, ok := <-s.ackQueue:
+		if !ok {
+			return
+		}
+		if _, err := s.conn.WriteToUDP(msg, s.remoteAddr); err != nil {
+			s.log.Tracef("conn write err: %s", err)
+			return
+		}
 	}
 }
 
@@ -113,11 +117,9 @@ func (s *UdpSession) safelyPushAckQueue(msg []byte) (ok bool) {
 }
 
 func (s *UdpSession) Close() {
-	s.closeOnce.Do(func() {
-		close(s.closed)
-		close(s.reqQueue)
-		close(s.ackQueue)
-	})
+	close(s.closed)
+	close(s.reqQueue)
+	close(s.ackQueue)
 }
 
 func (s *UdpSession) isClosed() bool {
