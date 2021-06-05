@@ -84,8 +84,10 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 				if resp != nil {
 					msgData, _ := s.MsgCodec().Encode(resp.Data)
 					size = len(msgData)
+					log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.Id, size, resp.Data)
+				} else {
+					log.Infof("don't send response since nil")
 				}
-				log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.Id, size, resp.Data)
 			}
 		}()
 		return next(s, req)
