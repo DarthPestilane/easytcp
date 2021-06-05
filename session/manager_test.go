@@ -56,9 +56,38 @@ func TestManager_Get(t *testing.T) {
 }
 
 func TestManager_Range(t *testing.T) {
+	mg := &Manager{}
+	var count int
+	mg.Range(func(id string, sess Session) (next bool) {
+		count++
+		return true
+	})
+	assert.Zero(t, count)
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sess := mock.NewMockSession(ctrl)
+	sess.EXPECT().ID().MinTimes(1).Return("sess id")
+
+	mg.Add(sess)
+	count = 0
+	mg.Range(func(id string, s Session) (next bool) {
+		assert.Equal(t, sess.ID(), id)
+		assert.Equal(t, s, sess)
+		count++
+		return true
+	})
+	assert.Equal(t, count, 1)
 }
 
 func TestManager_Remove(t *testing.T) {
-
+	mg := &Manager{}
+	assert.NotPanics(t, func() {
+		mg.Remove("not found")
+	})
+	mg.Sessions.Store("test", "test")
+	mg.Remove("test")
+	_, found := mg.Sessions.Load("test")
+	assert.False(t, found)
 }

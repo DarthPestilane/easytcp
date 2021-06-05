@@ -35,7 +35,7 @@ func TestRouter_Loop(t *testing.T) {
 		reqCh := make(chan *packet.Request)
 		close(reqCh)
 		sess.EXPECT().RecvReq().Return(reqCh)
-		sess.EXPECT().ID().Return("test-session-id")
+		sess.EXPECT().ID().Times(2).Return("test-session-id")
 		rt.Loop(sess) // should return
 	})
 	t.Run("when received a nil request", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestRouter_Loop(t *testing.T) {
 		}()
 		sess := mock.NewMockSession(ctrl)
 		sess.EXPECT().RecvReq().Times(2).Return(reqCh)
-		sess.EXPECT().ID().Return("test session id")
+		sess.EXPECT().ID().Times(2).Return("test session id")
 		loopDone := make(chan struct{})
 		go func() {
 			rt.Loop(sess) // should not call to handler
@@ -79,7 +79,7 @@ func TestRouter_Loop(t *testing.T) {
 			}()
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().RecvReq().Times(2).Return(reqCh)
-			sess.EXPECT().ID().MaxTimes(2).Return("test session id")
+			sess.EXPECT().ID().MaxTimes(3).Return("test session id")
 			loopDone := make(chan struct{})
 			go func() {
 				rt.Loop(sess) // should not call to handler
@@ -101,7 +101,7 @@ func TestRouter_Loop(t *testing.T) {
 			}()
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().RecvReq().Times(2).Return(reqCh)
-			sess.EXPECT().ID().Return("test session id")
+			sess.EXPECT().ID().Times(2).Return("test session id")
 			loopDone := make(chan struct{})
 			go func() {
 				rt.Loop(sess) // should not call to handler

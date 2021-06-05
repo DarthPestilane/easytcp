@@ -59,7 +59,7 @@ func (r *Router) Loop(s session.Session) {
 			}
 		}()
 	}
-	r.log.Tracef("loop exit")
+	r.log.WithField("sid", s.ID()).Tracef("loop exit")
 }
 
 func (r *Router) handleReq(s session.Session, req *packet.Request) error {
