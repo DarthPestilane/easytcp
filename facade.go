@@ -1,15 +1,30 @@
 package easytcp
 
 import (
-	"github.com/DarthPestilane/easytcp/core"
 	"github.com/DarthPestilane/easytcp/logger"
+	"github.com/DarthPestilane/easytcp/router"
+	"github.com/DarthPestilane/easytcp/server"
 	"github.com/sirupsen/logrus"
 )
 
-func SetLogger(l *logrus.Logger) {
-	logger.Default = l
+func SetLogger(log *logrus.Logger) {
+	logger.Default = log
 }
 
-func NewServer(addr string, port int) *core.Server {
-	return core.NewServer(addr, port)
+func NewTcp(opt server.TcpOption) *server.TcpServer {
+	return server.NewTcp(opt)
+}
+
+func NewUdp(opt server.UdpOption) *server.UdpServer {
+	return server.NewUdp(opt)
+}
+
+// RegisterRoute register route rule for incoming message
+func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
+	router.Instance().Register(msgId, handler, middleware...)
+}
+
+// RegisterMiddleware register global middlewares
+func RegisterMiddleware(m ...router.MiddlewareFunc) {
+	router.Instance().RegisterMiddleware(m...)
 }

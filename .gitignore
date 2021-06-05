@@ -1,2 +1,5 @@
 .idea
 vender
+
+*.exe
+.testCoverage.txt

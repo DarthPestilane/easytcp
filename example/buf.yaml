@@ -1,7 +1,0 @@
-version: v1beta1
-
-name: buf.build/darthpestilane/tcp-demo
-
-build:
-  roots:
-    - proto
