@@ -19,6 +19,7 @@ type UdpServer struct {
 	msgCodec      packet.Codec
 	accepting     chan struct{}
 	stopped       chan struct{}
+	router        *router.Router
 }
 
 type UdpOption struct {
@@ -46,10 +47,11 @@ func NewUdp(opt UdpOption) *UdpServer {
 		maxBufferSize: opt.MaxBufferSize,
 		accepting:     make(chan struct{}),
 		stopped:       make(chan struct{}),
+		router:        router.New(),
 	}
 }
 
-func (t *UdpServer) Serve(addr string) error {
+func (s *UdpServer) Serve(addr string) error {
 	address, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
@@ -58,43 +60,51 @@ func (t *UdpServer) Serve(addr string) error {
 	if err != nil {
 		return err
 	}
-	if t.rwBufferSize > 0 {
-		if err := conn.SetReadBuffer(t.rwBufferSize); err != nil {
+	if s.rwBufferSize > 0 {
+		if err := conn.SetReadBuffer(s.rwBufferSize); err != nil {
 			return fmt.Errorf("conn set read buffer err: %s", err)
 		}
-		if err := conn.SetWriteBuffer(t.rwBufferSize); err != nil {
+		if err := conn.SetWriteBuffer(s.rwBufferSize); err != nil {
 			return fmt.Errorf("conn set write buffer err: %s", err)
 		}
 	}
-	t.conn = conn
-	return t.acceptLoop()
+	s.conn = conn
+	return s.acceptLoop()
 }
 
-func (t *UdpServer) acceptLoop() error {
-	close(t.accepting)
-	buff := make([]byte, t.maxBufferSize)
+func (s *UdpServer) acceptLoop() error {
+	close(s.accepting)
+	buff := make([]byte, s.maxBufferSize)
 	for {
-		n, remoteAddr, err := t.conn.ReadFromUDP(buff)
+		n, remoteAddr, err := s.conn.ReadFromUDP(buff)
 		if err != nil {
 			return fmt.Errorf("read conn err: %s", err)
 		}
-		go t.handleIncomingMsg(buff[:n], remoteAddr)
+		go s.handleIncomingMsg(buff[:n], remoteAddr)
 	}
 }
 
-func (t *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
-	sess := session.NewUdp(t.conn, addr, t.msgPacker, t.msgCodec)
-	defer func() { t.log.WithField("sid", sess.ID()).Tracef("session closed") }()
+func (s *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
+	sess := session.NewUdp(s.conn, addr, s.msgPacker, s.msgCodec)
+	defer func() { s.log.WithField("sid", sess.ID()).Tracef("session closed") }()
 
-	go router.Instance().Loop(sess)
+	go s.router.Loop(sess)
 	if err := sess.ReadIncomingMsg(msg); err != nil {
 		return
 	}
-	sess.Write(t.stopped)
+	sess.Write(s.stopped)
 	sess.Close()
 }
 
-func (t *UdpServer) Stop() error {
-	close(t.stopped)
-	return t.conn.Close()
+func (s *UdpServer) Stop() error {
+	close(s.stopped)
+	return s.conn.Close()
+}
+
+func (s *UdpServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+	s.router.Register(msgId, handler, middlewares...)
+}
+
+func (s *UdpServer) Use(middlewares ...router.MiddlewareFunc) {
+	s.router.RegisterMiddleware(middlewares...)
 }
