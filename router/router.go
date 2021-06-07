@@ -31,12 +31,12 @@ var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*
 
 func Instance() *Router {
 	once.Do(func() {
-		rt = newRouter()
+		rt = New()
 	})
 	return rt
 }
 
-func newRouter() *Router {
+func New() *Router {
 	return &Router{
 		log:               logger.Default.WithField("scope", "router.Router"),
 		globalMiddlewares: make([]MiddlewareFunc, 0),

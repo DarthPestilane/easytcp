@@ -31,7 +31,7 @@ func main() {
 		MsgPacker: &fixture.Packer16bit{},
 	})
 
-	easytcp.RegisterRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
+	s.AddRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
 		log.Infof("serve at %s", fixture.ServerAddr)

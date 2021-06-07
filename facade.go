@@ -23,8 +23,3 @@ func NewUdp(opt server.UdpOption) *server.UdpServer {
 func RegisterRoute(msgId uint, handler router.HandlerFunc, middleware ...router.MiddlewareFunc) {
 	router.Instance().Register(msgId, handler, middleware...)
 }
-
-// RegisterMiddleware register global middlewares
-func RegisterMiddleware(m ...router.MiddlewareFunc) {
-	router.Instance().RegisterMiddleware(m...)
-}
