@@ -13,7 +13,7 @@ func RecoverMiddleware(log *logrus.Logger) router.MiddlewareFunc {
 		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Errorf("PANIC | %+v | %s", r, debug.Stack())
+					log.WithField("sid", s.ID()).Errorf("PANIC | %+v | %s", r, debug.Stack())
 				}
 			}()
 			return next(s, req)

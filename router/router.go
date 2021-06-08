@@ -9,11 +9,6 @@ import (
 	"sync"
 )
 
-var (
-	once sync.Once
-	rt   *Router
-)
-
 type Router struct {
 	log               *logrus.Entry
 	handlerMapper     sync.Map
@@ -29,14 +24,7 @@ var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*
 	return nil, nil
 }
 
-func Instance() *Router {
-	once.Do(func() {
-		rt = newRouter()
-	})
-	return rt
-}
-
-func newRouter() *Router {
+func New() *Router {
 	return &Router{
 		log:               logger.Default.WithField("scope", "router.Router"),
 		globalMiddlewares: make([]MiddlewareFunc, 0),

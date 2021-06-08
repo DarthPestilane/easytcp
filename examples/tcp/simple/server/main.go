@@ -30,7 +30,7 @@ func main() {
 		RWBufferSize: 1024 * 1024,
 	})
 
-	easytcp.RegisterRoute(fixture.MsgIdPingReq, handler, fixture.RecoverMiddleware(log), logMiddleware)
+	s.AddRoute(fixture.MsgIdPingReq, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
 		if err := s.Serve(fixture.ServerAddr); err != nil {

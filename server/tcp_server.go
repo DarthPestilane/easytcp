@@ -17,6 +17,7 @@ type TcpServer struct {
 	msgPacker    packet.Packer
 	msgCodec     packet.Codec
 	accepting    chan struct{}
+	router       *router.Router
 }
 
 type TcpOption struct {
@@ -38,10 +39,11 @@ func NewTcp(opt TcpOption) *TcpServer {
 		msgPacker:    opt.MsgPacker,
 		msgCodec:     opt.MsgCodec,
 		accepting:    make(chan struct{}),
+		router:       router.New(),
 	}
 }
 
-func (t *TcpServer) Serve(addr string) error {
+func (s *TcpServer) Serve(addr string) error {
 	address, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return err
@@ -50,29 +52,29 @@ func (t *TcpServer) Serve(addr string) error {
 	if err != nil {
 		return err
 	}
-	t.listener = lis
+	s.listener = lis
 
-	return t.acceptLoop()
+	return s.acceptLoop()
 }
 
-func (t *TcpServer) acceptLoop() error {
-	close(t.accepting)
+func (s *TcpServer) acceptLoop() error {
+	close(s.accepting)
 	for {
-		conn, err := t.listener.AcceptTCP()
+		conn, err := s.listener.AcceptTCP()
 		if err != nil {
 			return fmt.Errorf("accept err: %s", err)
 		}
-		if t.rwBufferSize > 0 {
-			if err := conn.SetReadBuffer(t.rwBufferSize); err != nil {
+		if s.rwBufferSize > 0 {
+			if err := conn.SetReadBuffer(s.rwBufferSize); err != nil {
 				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
-			if err := conn.SetWriteBuffer(t.rwBufferSize); err != nil {
+			if err := conn.SetWriteBuffer(s.rwBufferSize); err != nil {
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
 
 		// handle conn in a new goroutine
-		go t.handleConn(conn)
+		go s.handleConn(conn)
 	}
 }
 
@@ -82,24 +84,22 @@ func (t *TcpServer) acceptLoop() error {
 // route incoming message to handler
 // wait for session to close
 // remove session from memory
-func (t *TcpServer) handleConn(conn *net.TCPConn) {
-	// create a new session
-	sess := session.NewTcp(conn, t.msgPacker, t.msgCodec)
+func (s *TcpServer) handleConn(conn *net.TCPConn) {
+	sess := session.NewTcp(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
-	// route incoming message to handler
-	go router.Instance().Loop(sess)
+	go s.router.Loop(sess)
 	go sess.ReadLoop()
 	go sess.WriteLoop()
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
-	t.log.WithField("sid", sess.ID()).Tracef("session closed")
+	s.log.WithField("sid", sess.ID()).Tracef("session closed")
 	if err := conn.Close(); err != nil {
-		t.log.Tracef("connection close err: %s", err)
+		s.log.Tracef("connection close err: %s", err)
 	}
 }
 
-// Stop 让 server 停止，关闭 router, session 和 listener
-func (t *TcpServer) Stop() error {
+// Stop stops server and closes all the tcp sessions
+func (s *TcpServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
 		if tcpSess, ok := sess.(*session.TcpSession); ok {
@@ -108,6 +108,14 @@ func (t *TcpServer) Stop() error {
 		}
 		return true
 	})
-	t.log.Tracef("%d session(s) closed", closedNum)
-	return t.listener.Close()
+	s.log.Tracef("%d session(s) closed", closedNum)
+	return s.listener.Close()
+}
+
+func (s *TcpServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+	s.router.Register(msgId, handler, middlewares...)
+}
+
+func (s *TcpServer) Use(middlewares ...router.MiddlewareFunc) {
+	s.router.RegisterMiddleware(middlewares...)
 }

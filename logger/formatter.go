@@ -19,23 +19,28 @@ func NewTextFormatter() *TextFormatter {
 }
 
 func (f *TextFormatter) formatLevel(level logrus.Level) string {
-	levelTxt := fmt.Sprintf("%-7s", strings.ToUpper(level.String())) // align level
+	return fmt.Sprintf("%-7s", strings.ToUpper(level.String())) // align level
+}
+
+func (f *TextFormatter) paintColor(level logrus.Level, msg string) string {
 	if f.WithColor {
 		// @see https://en.wikipedia.org/wiki/ANSI_escape_code for colors code
-		var levelColor int
+		var color int
 		switch level {
-		case logrus.DebugLevel, logrus.TraceLevel:
-			levelColor = 37 // gray
+		case logrus.TraceLevel:
+			color = 90 // dark gray
+		case logrus.DebugLevel:
+			color = 37 // light gray
 		case logrus.WarnLevel:
-			levelColor = 33 // yellow
+			color = 33 // yellow
 		case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
-			levelColor = 31 // red
+			color = 31 // red
 		default:
-			levelColor = 34 // blue
+			color = 34 // blue
 		}
-		levelTxt = fmt.Sprintf("\u001B[%dm%s", levelColor, levelTxt)
+		msg = fmt.Sprintf("\033[%dm%s\033[0m", color, msg)
 	}
-	return levelTxt
+	return msg
 }
 
 func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
@@ -56,9 +61,8 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	if entry.Message != "" {
 		msg += fmt.Sprintf(" %s", entry.Message)
 	}
-	if f.WithColor {
-		msg += "\u001B[0m"
-	}
+	// paint color
+	msg = f.paintColor(entry.Level, msg)
 	// end the message with \n
 	msg += "\n"
 	return []byte(msg), nil

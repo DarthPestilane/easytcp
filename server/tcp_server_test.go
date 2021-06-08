@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -89,7 +88,7 @@ func TestTcpServer_handleConn(t *testing.T) {
 	})
 
 	// register route
-	router.Instance().Register(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	server.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		var reqData TestReq
 		assert.NoError(t, s.MsgCodec().Decode(req.RawData, &reqData))
 		assert.EqualValues(t, 1, req.Id)

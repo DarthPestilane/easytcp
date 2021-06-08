@@ -25,7 +25,7 @@ func main() {
 	// go printGoroutineNum()
 	s := easytcp.NewUdp(server.UdpOption{})
 
-	easytcp.RegisterRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	s.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		log.Infof("recv: %s", string(req.RawData))
 		return &packet.Response{Id: 2, Data: "done"}, nil
 	})

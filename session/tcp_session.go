@@ -61,12 +61,7 @@ func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
-	ok := s.safelyPushAckQueue(msg)
-	if !ok {
-		s.Close()
-		return true, nil
-	}
-	return false, nil
+	return !s.safelyPushAckQueue(msg), nil
 }
 
 func (s *TcpSession) Close() {
