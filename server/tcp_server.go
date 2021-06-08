@@ -12,7 +12,7 @@ import (
 )
 
 // TCPServer is a server for TCP connections.
-// TCPServer implements Server interface.
+// TCPServer implements the Server interface.
 type TCPServer struct {
 	rwBufferSize int
 	readTimeout  time.Duration
@@ -57,7 +57,7 @@ func NewTCPServer(opt TCPOption) *TCPServer {
 }
 
 // Serve implements the Server Serve method.
-// Serve starts to listen to address and keep accepting TCP connection in a loop.
+// Serve starts to listen TCP and keep accepting TCP connection in a loop.
 // Accepting loop will break when error occurred, and the error will be returned.
 func (s *TCPServer) Serve(addr string) error {
 	address, err := net.ResolveTCPAddr("tcp", addr)

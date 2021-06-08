@@ -10,7 +10,9 @@ import (
 	"net"
 )
 
-type UdpServer struct {
+// UDPServer is a server for UDP connections.
+// UDPServer implements the Server interface.
+type UDPServer struct {
 	conn          *net.UDPConn
 	rwBufferSize  int
 	maxBufferSize int
@@ -22,16 +24,18 @@ type UdpServer struct {
 	router        *router.Router
 }
 
-var _ Server = &UdpServer{}
+var _ Server = &UDPServer{}
 
-type UdpOption struct {
+// UDPOption is the option for UDPServer.
+type UDPOption struct {
 	MaxBufferSize int
 	RWBufferSize  int
 	MsgPacker     packet.Packer
 	MsgCodec      packet.Codec
 }
 
-func NewUdpServer(opt UdpOption) *UdpServer {
+// NewUDPServer creates a UDPServer pointer according to opt.
+func NewUDPServer(opt UDPOption) *UDPServer {
 	if opt.MaxBufferSize <= 0 {
 		opt.MaxBufferSize = 1024
 	}
@@ -41,8 +45,8 @@ func NewUdpServer(opt UdpOption) *UdpServer {
 	if opt.MsgCodec == nil {
 		opt.MsgCodec = &packet.StringCodec{}
 	}
-	return &UdpServer{
-		log:           logger.Default.WithField("scope", "server.UdpServer"),
+	return &UDPServer{
+		log:           logger.Default.WithField("scope", "server.UDPServer"),
 		rwBufferSize:  opt.RWBufferSize,
 		msgPacker:     opt.MsgPacker,
 		msgCodec:      opt.MsgCodec,
@@ -53,7 +57,10 @@ func NewUdpServer(opt UdpOption) *UdpServer {
 	}
 }
 
-func (s *UdpServer) Serve(addr string) error {
+// Serve implements the Server Serve method.
+// Serve starts to listen UDP, and keep reading from UDP connection in a loop.
+// The loop will break when error occurred and the error will be returned.
+func (s *UDPServer) Serve(addr string) error {
 	address, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
@@ -74,7 +81,9 @@ func (s *UdpServer) Serve(addr string) error {
 	return s.acceptLoop()
 }
 
-func (s *UdpServer) acceptLoop() error {
+// acceptLoop keeps reading bytes from UDP connection and handle bytes in goroutine.
+// Returns error when error occurred.
+func (s *UDPServer) acceptLoop() error {
 	close(s.accepting)
 	buff := make([]byte, s.maxBufferSize)
 	for {
@@ -86,7 +95,10 @@ func (s *UdpServer) acceptLoop() error {
 	}
 }
 
-func (s *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
+// handleIncomingMsg creates a session.UDPSession to handle the incoming msg.
+// And starts routing the message to the handler.
+// Session will close after finishing writing, or the server's closed.
+func (s *UDPServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess := session.NewUDP(s.conn, addr, s.msgPacker, s.msgCodec)
 	defer func() { s.log.WithField("sid", sess.ID()).Tracef("session closed") }()
 
@@ -98,15 +110,21 @@ func (s *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess.Close()
 }
 
-func (s *UdpServer) Stop() error {
+// Stop implements the Server Stop method.
+// Stop stops server by close the connection.
+func (s *UDPServer) Stop() error {
 	close(s.stopped)
 	return s.conn.Close()
 }
 
-func (s *UdpServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+// AddRoute implements the Server AddRoute method.
+// AddRoute registers message handler and middlewares to the router.
+func (s *UDPServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
 	s.router.Register(msgId, handler, middlewares...)
 }
 
-func (s *UdpServer) Use(middlewares ...router.MiddlewareFunc) {
+// Use implements the Server Use method.
+// Use registers global middlewares to the router.
+func (s *UDPServer) Use(middlewares ...router.MiddlewareFunc) {
 	s.router.RegisterMiddleware(middlewares...)
 }

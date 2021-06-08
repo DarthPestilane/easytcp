@@ -14,6 +14,6 @@ func NewTcpServer(opt server.TCPOption) *server.TCPServer {
 	return server.NewTCPServer(opt)
 }
 
-func NewUdpServer(opt server.UdpOption) *server.UdpServer {
-	return server.NewUdpServer(opt)
+func NewUdpServer(opt server.UDPOption) *server.UDPServer {
+	return server.NewUDPServer(opt)
 }
