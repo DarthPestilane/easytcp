@@ -8,24 +8,24 @@ import (
 	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
+	"time"
 )
 
-// TcpSession 会话，负责读写和关闭连接
+// TcpSession handles read and write of tcp connection
 type TcpSession struct {
-	id        string   // 会话的ID，uuid形式
-	conn      net.Conn // 网络连接
-	log       *logrus.Entry
-	closeOnce sync.Once
-	closed    chan struct{} // to close()
-	reqQueue  chan *packet.Request
-	ackQueue  chan []byte
-	msgPacker packet.Packer // 拆包和封包
-	msgCodec  packet.Codec  // encode/decode 包里的data
+	id        string               // session's id. it's a uuid
+	conn      net.Conn             // tcp connection
+	log       *logrus.Entry        // logger
+	closeOnce sync.Once            // to make sure we can only close each session one time
+	closed    chan struct{}        // to close()
+	reqQueue  chan *packet.Request // request queue channel, pushed in ReadLoop() and popped in router.Router
+	ackQueue  chan []byte          // ack queue channel, pushed in SendResp() and popped in WriteLoop()
+	msgPacker packet.Packer        // to pack and unpack message
+	msgCodec  packet.Codec         // encode/decode message data
 }
 
 var _ Session = &TcpSession{}
 
-// NewTcp 创建一个会话
 func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
 	id := uuid.NewString()
 	return &TcpSession{
@@ -72,8 +72,14 @@ func (s *TcpSession) Close() {
 	})
 }
 
-func (s *TcpSession) ReadLoop() {
+func (s *TcpSession) ReadLoop(readTimeout time.Duration) {
 	for {
+		if readTimeout > 0 {
+			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
+				s.log.Tracef("set read deadline err: %s", err)
+				break
+			}
+		}
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
 			s.log.Tracef("unpack incoming message err:%s", err)
@@ -92,11 +98,17 @@ func (s *TcpSession) ReadLoop() {
 	s.Close()
 }
 
-func (s *TcpSession) WriteLoop() {
+func (s *TcpSession) WriteLoop(writeTimeout time.Duration) {
 	for {
 		msg, ok := <-s.ackQueue
 		if !ok {
 			break
+		}
+		if writeTimeout > 0 {
+			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+				s.log.Tracef("set write deadline err: %s", err)
+				break
+			}
 		}
 		if _, err := s.conn.Write(msg); err != nil {
 			s.log.Tracef("conn write err: %s", err)
