@@ -12,7 +12,7 @@ import (
 
 // Packer 打包/拆包
 // 1. 对数据进行打包，得到消息
-// 2. 对消息进行拆包，得到消息元数据
+// 2. 对消息进行拆包，得到消息元数据.
 type Packer interface {
 	Pack(id uint, data []byte) ([]byte, error) // 打包
 	Unpack(reader io.Reader) (Message, error)  // 拆包
@@ -20,7 +20,7 @@ type Packer interface {
 
 // DefaultPacker 默认的 Packer
 // 封包格式:
-//   size[4]id[4]data
+//   size[4]id[4]data.
 type DefaultPacker struct{}
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {

@@ -6,7 +6,7 @@ import (
 
 //go:generate mockgen -destination mock/session_mock.go -package mock . Session
 
-// Session handles message receiving and sending
+// Session handles message receiving and sending.
 type Session interface {
 	ID() string                                              // get session id
 	MsgCodec() packet.Codec                                  // get message codec

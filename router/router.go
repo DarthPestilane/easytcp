@@ -77,7 +77,7 @@ func (r *Router) handleReq(s session.Session, req *packet.Request) error {
 	return nil
 }
 
-// wrapHandlers make something like wrapped = M1(M2(M3(handle)))
+// wrapHandlers make something like wrapped = M1(M2(M3(handle))).
 func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wrapped HandlerFunc) {
 	if handler == nil {
 		handler = defaultHandler
@@ -90,7 +90,7 @@ func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wr
 	return wrapped
 }
 
-// Register 注册路由
+// Register 注册路由.
 func (r *Router) Register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
 	if h != nil {
 		r.handlerMapper.Store(id, h)
@@ -108,7 +108,7 @@ func (r *Router) Register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
 	}
 }
 
-// RegisterMiddleware 注册全局中间件
+// RegisterMiddleware 注册全局中间件.
 func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 	if len(m) != 0 {
 		for _, mm := range m {

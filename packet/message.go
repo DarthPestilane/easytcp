@@ -3,7 +3,7 @@ package packet
 //go:generate mockgen -destination mock/message_mock.go -package mock . Message
 
 // Message 对原始消息的抽象
-// 通常由 Packer.Unpack() 拆包得到
+// 通常由 Packer.Unpack() 拆包得到.
 type Message interface {
 	GetSize() uint   // 返回消息的 size 长度部分
 	GetId() uint     // 返回消息的 id 标识部分, 用于消息路由

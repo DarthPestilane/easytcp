@@ -29,7 +29,7 @@ var _ Session = &UDPSession{}
 // NewUDP creates a new UDPSession.
 // Parameter conn is the UDP connection, addr will be used as remote UDP peer address to write to,
 // packer and codec will be used to pack/unpack and encode/decode message.
-// Returns a UDPSession pointer
+// Returns a UDPSession pointer.
 func NewUDP(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec packet.Codec) *UDPSession {
 	id := uuid.NewString()
 	return &UDPSession{
@@ -46,19 +46,19 @@ func NewUDP(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec pa
 }
 
 // ID implements the Session ID method.
-// Returns session's ID
+// Returns session's ID.
 func (s *UDPSession) ID() string {
 	return s.id
 }
 
 // MsgCodec implements the Session MsgCodec method.
-// Returns the message codec bound to session
+// Returns the message codec bound to session.
 func (s *UDPSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
 // RecvReq implements the Session RecvReq method.
-// Returns reqQueue channel which contains *packet.Request
+// Returns reqQueue channel which contains *packet.Request.
 func (s *UDPSession) RecvReq() <-chan *packet.Request {
 	return s.reqQueue
 }

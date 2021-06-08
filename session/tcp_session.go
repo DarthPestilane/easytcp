@@ -30,7 +30,7 @@ var _ Session = &TCPSession{}
 // NewTCP creates a new TCPSession.
 // Parameter conn is the TCP connection,
 // packer and codec will be used to pack/unpack and encode/decode message.
-// Returns a TCPSession pointer
+// Returns a TCPSession pointer.
 func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession {
 	id := uuid.NewString()
 	return &TCPSession{
@@ -46,19 +46,19 @@ func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession
 }
 
 // ID implements the Session ID method.
-// Returns session's ID
+// Returns session's ID.
 func (s *TCPSession) ID() string {
 	return s.id
 }
 
 // MsgCodec implements the Session MsgCodec method.
-// Returns the message codec bound to session
+// Returns the message codec bound to session.
 func (s *TCPSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
 // RecvReq implements the Session RecvReq method.
-// Returns reqQueue channel which contains *packet.Request
+// Returns reqQueue channel which contains *packet.Request.
 func (s *TCPSession) RecvReq() <-chan *packet.Request {
 	return s.reqQueue
 }
