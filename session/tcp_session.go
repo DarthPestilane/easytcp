@@ -11,9 +11,10 @@ import (
 	"time"
 )
 
-// TcpSession handles read and write of tcp connection
-type TcpSession struct {
-	id        string               // session's id. it's a uuid
+// TCPSession represents a TCP session.
+// Implements Session interface.
+type TCPSession struct {
+	id        string               // session's ID. it's a uuid
 	conn      net.Conn             // tcp connection
 	log       *logrus.Entry        // logger
 	closeOnce sync.Once            // to make sure we can only close each session one time
@@ -24,15 +25,19 @@ type TcpSession struct {
 	msgCodec  packet.Codec         // encode/decode message data
 }
 
-var _ Session = &TcpSession{}
+var _ Session = &TCPSession{}
 
-func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession {
+// NewTCP creates a new TCPSession.
+// Parameter conn is the TCP connection,
+// packer and codec will be used to pack/unpack and encode/decode message.
+// Returns a TCPSession pointer
+func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession {
 	id := uuid.NewString()
-	return &TcpSession{
+	return &TCPSession{
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TcpSession"),
+		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
 		reqQueue:  make(chan *packet.Request, 1024),
 		ackQueue:  make(chan []byte, 1024),
 		msgPacker: packer,
@@ -40,19 +45,29 @@ func NewTcp(conn net.Conn, packer packet.Packer, codec packet.Codec) *TcpSession
 	}
 }
 
-func (s *TcpSession) ID() string {
+// ID implements the Session ID method.
+// Returns session's ID
+func (s *TCPSession) ID() string {
 	return s.id
 }
 
-func (s *TcpSession) MsgCodec() packet.Codec {
+// MsgCodec implements the Session MsgCodec method.
+// Returns the message codec bound to session
+func (s *TCPSession) MsgCodec() packet.Codec {
 	return s.msgCodec
 }
 
-func (s *TcpSession) RecvReq() <-chan *packet.Request {
+// RecvReq implements the Session RecvReq method.
+// Returns reqQueue channel which contains *packet.Request
+func (s *TCPSession) RecvReq() <-chan *packet.Request {
 	return s.reqQueue
 }
 
-func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
+// SendResp implements the Session SendResp method.
+// Encode and pack resp and push to ackQueue channel.
+// It won't panic even when ackQueue channel is closed.
+// It returns error when encode or pack failed.
+func (s *TCPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	data, err := s.msgCodec.Encode(resp.Data)
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
@@ -64,7 +79,8 @@ func (s *TcpSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	return !s.safelyPushAckQueue(msg), nil
 }
 
-func (s *TcpSession) Close() {
+// Close closes the session by closing all the channels.
+func (s *TCPSession) Close() {
 	s.closeOnce.Do(func() {
 		close(s.closed)
 		close(s.reqQueue)
@@ -72,7 +88,13 @@ func (s *TcpSession) Close() {
 	})
 }
 
-func (s *TcpSession) ReadLoop(readTimeout time.Duration) {
+// ReadLoop reads TCP connection, unpacks message packet,
+// creates a packet.Request and push to reqQueue channel.
+// The above operations are in a loop.
+// Parameter readTimeout specified the connection reading timeout.
+// The loop will break if any error occurred, or the session is closed.
+// After loop ended, this session will be closed.
+func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 	for {
 		if readTimeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
@@ -98,7 +120,12 @@ func (s *TcpSession) ReadLoop(readTimeout time.Duration) {
 	s.Close()
 }
 
-func (s *TcpSession) WriteLoop(writeTimeout time.Duration) {
+// WriteLoop fetches message from ackQueue channel and writes to TCP connection.
+// The above operations are in a loop.
+// Parameter writeTimeout specified the connection writing timeout.
+// The loop will break if any error occurred, or the session is closed.
+// After loop ended, this session will be closed.
+func (s *TCPSession) WriteLoop(writeTimeout time.Duration) {
 	for {
 		msg, ok := <-s.ackQueue
 		if !ok {
@@ -119,7 +146,12 @@ func (s *TcpSession) WriteLoop(writeTimeout time.Duration) {
 	s.Close()
 }
 
-func (s *TcpSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
+// WaitUntilClosed waits until the session is closed.
+func (s *TCPSession) WaitUntilClosed() {
+	<-s.closed
+}
+
+func (s *TCPSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -131,7 +163,7 @@ func (s *TcpSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
 	return ok
 }
 
-func (s *TcpSession) safelyPushAckQueue(msg []byte) (ok bool) {
+func (s *TCPSession) safelyPushAckQueue(msg []byte) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -141,8 +173,4 @@ func (s *TcpSession) safelyPushAckQueue(msg []byte) (ok bool) {
 	}()
 	s.ackQueue <- msg
 	return ok
-}
-
-func (s *TcpSession) WaitUntilClosed() {
-	<-s.closed
 }

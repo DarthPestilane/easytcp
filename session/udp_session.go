@@ -115,6 +115,14 @@ func (s *UDPSession) Write(done <-chan struct{}) {
 	}
 }
 
+// Close closes the session by closing all the channels.
+// NOT safe in concurrency, each session should call Close() only for one time.
+func (s *UDPSession) Close() {
+	close(s.closed)
+	close(s.reqQueue)
+	close(s.ackQueue)
+}
+
 func (s *UDPSession) safelyPushReqQueue(req *packet.Request) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -134,12 +142,4 @@ func (s *UDPSession) safelyPushAckQueue(msg []byte) (ok bool) {
 	}()
 	s.ackQueue <- msg
 	return ok
-}
-
-// Close closes all the channels.
-// NOT safe in concurrency, each session should call Close() only for one time.
-func (s *UDPSession) Close() {
-	close(s.closed)
-	close(s.reqQueue)
-	close(s.ackQueue)
 }

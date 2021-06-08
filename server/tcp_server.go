@@ -94,7 +94,7 @@ func (s *TcpServer) acceptLoop() error {
 // wait for session to close
 // remove session from memory
 func (s *TcpServer) handleConn(conn *net.TCPConn) {
-	sess := session.NewTcp(conn, s.msgPacker, s.msgCodec)
+	sess := session.NewTCP(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
 	go s.router.Loop(sess)
 	go sess.ReadLoop(s.readTimeout)
@@ -111,7 +111,7 @@ func (s *TcpServer) handleConn(conn *net.TCPConn) {
 func (s *TcpServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-		if tcpSess, ok := sess.(*session.TcpSession); ok {
+		if tcpSess, ok := sess.(*session.TCPSession); ok {
 			tcpSess.Close()
 			closedNum++
 		}
