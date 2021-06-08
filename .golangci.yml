@@ -18,7 +18,7 @@ run:
   # can use regexp here: generated.*, regexp is applied on full path;
   # default value is empty list, but default dirs are skipped independently
   # from this option's value (see skip-dirs-use-default).
-  skip-dirs: [ ]
+  skip-dirs: [ 'examples' ]
 
   # default is true. Enables skipping of directories:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
@@ -50,9 +50,10 @@ linters:
     - typecheck
     - goconst
     - gofmt
-    #- scopelint deprecated
     - nakedret
     - unconvert
     - unparam
+    #- scopelint deprecated, use exportloopref instead.
     - exportloopref
+    - godot
   fast: true
