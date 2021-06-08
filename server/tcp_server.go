@@ -20,13 +20,15 @@ type TcpServer struct {
 	router       *router.Router
 }
 
+var _ Server = &TcpServer{}
+
 type TcpOption struct {
 	RWBufferSize int           // socket 读写 buffer
 	MsgPacker    packet.Packer // 消息封包/拆包器
 	MsgCodec     packet.Codec  // 消息编码/解码器
 }
 
-func NewTcp(opt TcpOption) *TcpServer {
+func NewTcpServer(opt TcpOption) *TcpServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}

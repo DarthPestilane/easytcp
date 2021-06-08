@@ -26,7 +26,7 @@ func init() {
 func main() {
 	// go printGoroutineNum()
 
-	s := easytcp.NewTcp(server.TcpOption{
+	s := easytcp.NewTcpServer(server.TcpOption{
 		RWBufferSize: 1024 * 1024,
 	})
 

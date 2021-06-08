@@ -16,17 +16,23 @@ func main() {
 	}
 	packer := &packet.DefaultPacker{}
 
-	time.Sleep(time.Second)
-	msgSend, _ := packer.Pack(1, []byte("hello"))
-	if _, err := conn.Write(msgSend); err != nil {
-		panic(err)
-	}
+	go func() {
+		for {
+			msgSend, _ := packer.Pack(1, []byte("hello"))
+			if _, err := conn.Write(msgSend); err != nil {
+				panic(err)
+			}
+			time.Sleep(time.Second)
+		}
+	}()
 
-	buff := make([]byte, 1024)
-	n, err := conn.Read(buff)
-	if err != nil {
-		panic(err)
+	for {
+		buff := make([]byte, 1024)
+		n, err := conn.Read(buff)
+		if err != nil {
+			panic(err)
+		}
+		msg, _ := packer.Unpack(bytes.NewReader(buff[:n]))
+		fmt.Printf("recv: %s\n", msg.GetData())
 	}
-	msg, _ := packer.Unpack(bytes.NewReader(buff[:n]))
-	fmt.Printf("recv: %s\n", msg.GetData())
 }

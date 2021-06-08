@@ -23,7 +23,7 @@ func init() {
 
 func main() {
 	// go printGoroutineNum()
-	s := easytcp.NewUdp(server.UdpOption{})
+	s := easytcp.NewUdpServer(server.UdpOption{})
 
 	s.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		log.Infof("recv: %s", string(req.RawData))
@@ -31,6 +31,7 @@ func main() {
 	})
 
 	go func() {
+		log.Infof("serve at %s", fixture.ServerAddr)
 		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}

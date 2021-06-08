@@ -10,10 +10,10 @@ func SetLogger(log *logrus.Logger) {
 	logger.Default = log
 }
 
-func NewTcp(opt server.TcpOption) *server.TcpServer {
-	return server.NewTcp(opt)
+func NewTcpServer(opt server.TcpOption) *server.TcpServer {
+	return server.NewTcpServer(opt)
 }
 
-func NewUdp(opt server.UdpOption) *server.UdpServer {
-	return server.NewUdp(opt)
+func NewUdpServer(opt server.UdpOption) *server.UdpServer {
+	return server.NewUdpServer(opt)
 }

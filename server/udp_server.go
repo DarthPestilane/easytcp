@@ -22,6 +22,8 @@ type UdpServer struct {
 	router        *router.Router
 }
 
+var _ Server = &UdpServer{}
+
 type UdpOption struct {
 	MaxBufferSize int
 	RWBufferSize  int
@@ -29,7 +31,7 @@ type UdpOption struct {
 	MsgCodec      packet.Codec
 }
 
-func NewUdp(opt UdpOption) *UdpServer {
+func NewUdpServer(opt UdpOption) *UdpServer {
 	if opt.MaxBufferSize <= 0 {
 		opt.MaxBufferSize = 1024
 	}

@@ -12,7 +12,7 @@ import (
 
 func TestTcpServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
-	server := NewTcp(TcpOption{})
+	server := NewTcpServer(TcpOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -26,7 +26,7 @@ func TestTcpServer_Serve(t *testing.T) {
 }
 
 func TestTcpServer_acceptLoop(t *testing.T) {
-	server := NewTcp(TcpOption{
+	server := NewTcpServer(TcpOption{
 		RWBufferSize: 1024,
 	})
 	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -49,7 +49,7 @@ func TestTcpServer_acceptLoop(t *testing.T) {
 }
 
 func TestTcpServer_Stop(t *testing.T) {
-	server := NewTcp(TcpOption{})
+	server := NewTcpServer(TcpOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -81,7 +81,7 @@ func TestTcpServer_handleConn(t *testing.T) {
 	packer := &packet.DefaultPacker{}
 
 	// server
-	server := NewTcp(TcpOption{
+	server := NewTcpServer(TcpOption{
 		RWBufferSize: 1024,
 		MsgCodec:     codec,
 		MsgPacker:    packer,
