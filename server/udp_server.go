@@ -87,7 +87,7 @@ func (s *UdpServer) acceptLoop() error {
 }
 
 func (s *UdpServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
-	sess := session.NewUdp(s.conn, addr, s.msgPacker, s.msgCodec)
+	sess := session.NewUDP(s.conn, addr, s.msgPacker, s.msgCodec)
 	defer func() { s.log.WithField("sid", sess.ID()).Tracef("session closed") }()
 
 	go s.router.Loop(sess)
