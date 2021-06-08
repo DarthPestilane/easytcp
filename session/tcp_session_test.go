@@ -64,6 +64,21 @@ func TestTcpSession_MsgCodec(t *testing.T) {
 }
 
 func TestTcpSession_ReadLoop(t *testing.T) {
+	t.Run("when connection set read timeout failed", func(t *testing.T) {
+		p1, _ := net.Pipe()
+		_ = p1.Close()
+		sess := NewTcp(p1, nil, nil)
+		go sess.ReadLoop(time.Millisecond)
+		<-sess.closed
+	})
+	t.Run("when connection read timeout", func(t *testing.T) {
+		p1, _ := net.Pipe()
+		packer := &packet.DefaultPacker{}
+		sess := NewTcp(p1, packer, nil)
+		go sess.ReadLoop(time.Millisecond * 10)
+		<-sess.closed
+		_ = p1.Close()
+	})
 	t.Run("when unpack message failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -72,7 +87,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewTcp(nil, packer, mock.NewMockCodec(ctrl))
-		go sess.ReadLoop()
+		go sess.ReadLoop(0)
 		<-sess.closed
 	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
@@ -91,7 +106,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		sess.reqQueue = make(chan *packet.Request) // no buffer
 		readDone := make(chan struct{})
 		go func() {
-			sess.ReadLoop()
+			sess.ReadLoop(0)
 			readDone <- struct{}{}
 		}()
 		req := <-sess.reqQueue
@@ -199,16 +214,34 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 	t.Run("when session is already closed", func(t *testing.T) {
 		sess := NewTcp(nil, nil, nil)
 		sess.Close()
-		sess.WriteLoop() // should stop looping and return
+		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
+	})
+	t.Run("when set write deadline failed", func(t *testing.T) {
+		p1, _ := net.Pipe()
+		_ = p1.Close()
+		sess := NewTcp(p1, nil, nil)
+		sess.ackQueue <- []byte("test")
+		go sess.WriteLoop(time.Millisecond * 10)
+		_, ok := <-sess.closed
+		assert.False(t, ok)
+	})
+	t.Run("when conn write timeout", func(t *testing.T) {
+		p1, _ := net.Pipe()
+		sess := NewTcp(p1, nil, nil)
+		sess.ackQueue <- []byte("test")
+		go sess.WriteLoop(time.Millisecond * 10)
+		_, ok := <-sess.closed
+		assert.False(t, ok)
+		_ = p1.Close()
 	})
 	t.Run("when conn write failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := NewTcp(p1, nil, nil)
 		sess.ackQueue <- []byte("test")
-		sess.WriteLoop() // should stop looping and return
+		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -223,7 +256,7 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 		sess.ackQueue = make(chan []byte) // no buffer
 		writeDone := make(chan struct{})
 		go func() {
-			sess.WriteLoop()
+			sess.WriteLoop(0)
 			writeDone <- struct{}{}
 		}()
 		sess.ackQueue <- []byte("test")

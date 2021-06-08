@@ -8,10 +8,13 @@ import (
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"net"
+	"time"
 )
 
 type TcpServer struct {
 	rwBufferSize int
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 	listener     *net.TCPListener
 	log          *logrus.Entry
 	msgPacker    packet.Packer
@@ -23,9 +26,11 @@ type TcpServer struct {
 var _ Server = &TcpServer{}
 
 type TcpOption struct {
-	RWBufferSize int           // socket 读写 buffer
-	MsgPacker    packet.Packer // 消息封包/拆包器
-	MsgCodec     packet.Codec  // 消息编码/解码器
+	RWBufferSize int           // socket read write buffer
+	ReadTimeout  time.Duration // sets the timeout for connection read
+	WriteTimeout time.Duration // sets the timeout for connection write
+	MsgPacker    packet.Packer // MsgPacker to pack and unpack the message packet
+	MsgCodec     packet.Codec  // MsgCodec to encode and decode the message data
 }
 
 func NewTcpServer(opt TcpOption) *TcpServer {
@@ -38,6 +43,8 @@ func NewTcpServer(opt TcpOption) *TcpServer {
 	return &TcpServer{
 		log:          logger.Default.WithField("scope", "server.TcpServer"),
 		rwBufferSize: opt.RWBufferSize,
+		readTimeout:  opt.ReadTimeout,
+		writeTimeout: opt.WriteTimeout,
 		msgPacker:    opt.MsgPacker,
 		msgCodec:     opt.MsgCodec,
 		accepting:    make(chan struct{}),
@@ -90,8 +97,8 @@ func (s *TcpServer) handleConn(conn *net.TCPConn) {
 	sess := session.NewTcp(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
 	go s.router.Loop(sess)
-	go sess.ReadLoop()
-	go sess.WriteLoop()
+	go sess.ReadLoop(s.readTimeout)
+	go sess.WriteLoop(s.writeTimeout)
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
 	s.log.WithField("sid", sess.ID()).Tracef("session closed")

@@ -28,11 +28,14 @@ func main() {
 
 	s := easytcp.NewTcpServer(server.TcpOption{
 		RWBufferSize: 1024 * 1024,
+		ReadTimeout:  time.Second * 10,
+		WriteTimeout: time.Second * 10,
 	})
 
 	s.AddRoute(fixture.MsgIdPingReq, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
+		log.Infof("serving at %s", fixture.ServerAddr)
 		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
@@ -44,8 +47,6 @@ func main() {
 	if err := s.Stop(); err != nil {
 		log.Errorf("server stopped err: %s", err)
 	}
-
-	time.Sleep(time.Second * 3)
 }
 
 func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
