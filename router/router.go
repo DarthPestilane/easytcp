@@ -9,11 +9,6 @@ import (
 	"sync"
 )
 
-var (
-	once sync.Once
-	rt   *Router
-)
-
 type Router struct {
 	log               *logrus.Entry
 	handlerMapper     sync.Map
@@ -27,13 +22,6 @@ type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
 	return nil, nil
-}
-
-func Instance() *Router {
-	once.Do(func() {
-		rt = New()
-	})
-	return rt
 }
 
 func New() *Router {
