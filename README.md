@@ -1,5 +1,7 @@
 # EasyTCP
 
+[![Run Actions](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml/badge.svg?branch=master&event=push)](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml)
+
 road map:
 
 - [x] tcp server
