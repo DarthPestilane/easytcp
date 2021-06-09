@@ -72,7 +72,7 @@ func (s *UDPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
 	}
-	msg, err := s.msgPacker.Pack(resp.Id, data)
+	msg, err := s.msgPacker.Pack(resp.ID, data)
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
@@ -89,7 +89,7 @@ func (s *UDPSession) ReadIncomingMsg(inMsg []byte) error {
 		return err
 	}
 	req := &packet.Request{
-		Id:      msg.GetID(),
+		ID:      msg.GetID(),
 		RawSize: msg.GetSize(),
 		RawData: msg.GetData(),
 	}

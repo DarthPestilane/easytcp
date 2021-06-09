@@ -72,7 +72,7 @@ func (s *TCPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
 	}
-	msg, err := s.msgPacker.Pack(resp.Id, data)
+	msg, err := s.msgPacker.Pack(resp.ID, data)
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
@@ -108,7 +108,7 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 			break
 		}
 		req := &packet.Request{
-			Id:      msg.GetID(),
+			ID:      msg.GetID(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}

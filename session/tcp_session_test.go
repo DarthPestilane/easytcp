@@ -112,7 +112,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
 		expectReq := &packet.Request{
-			Id:      msg.GetID(),
+			ID:      msg.GetID(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}

@@ -1,19 +1,24 @@
 package packet
 
-// Request 请求
-// 当 session.Session 读取到消息后，经过 Packer.Unpack() 和 Codec.Decode() 后
-// 构建出 Request，发送到 channel 中，等待 router.Router 消费.
+// Request is the request for router.Router to handle.
 type Request struct {
-	Id      uint   // 消息ID
-	RawSize uint   // 原始消息的长度
-	RawData []byte // 原始消息中的数据段
+	// ID is the Message's ID.
+	ID uint
+
+	// RawSize is the Message's size.
+	RawSize uint
+
+	// RawData is the Message's data, usually need to be decoded by Packer.
+	RawData []byte
 }
 
-// Response 响应
-// 通常随路由 handler (router.HandleFunc) 的返回，
-// 并发送到 session.Session 的 channel 中，在 SendResp 方法里被消费。
-// Data 会由 Codec.Encode() 进行编码后，和 Id 一起由 Packer.Pack() 封包成最终待发送的消息.
+// Response is the response sent to session.Session.
+// Response contains message's ID and Data.
+// Usually the Data is not encoded yet at this moment, and will be encoded in session.Session's SendResp() method.
 type Response struct {
-	Id   uint        // 消息ID
-	Data interface{} // 未经过编码的数据
+	// ID is the message's ID
+	ID uint
+
+	// Data is the message's data, usually the Data is not encoded yet.
+	Data interface{}
 }

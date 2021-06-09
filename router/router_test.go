@@ -58,7 +58,7 @@ func TestRouter_Loop(t *testing.T) {
 			rt := New()
 
 			rt.Register(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
-				assert.EqualValues(t, req.Id, 1)
+				assert.EqualValues(t, req.ID, 1)
 				assert.EqualValues(t, req.RawSize, 4)
 				assert.Equal(t, req.RawData, []byte("test"))
 				return nil, fmt.Errorf("some err")
@@ -68,7 +68,7 @@ func TestRouter_Loop(t *testing.T) {
 
 			reqCh := make(chan *packet.Request)
 			go func() {
-				reqCh <- &packet.Request{Id: 1, RawData: []byte("test"), RawSize: 4}
+				reqCh <- &packet.Request{ID: 1, RawData: []byte("test"), RawSize: 4}
 				close(reqCh)
 			}()
 			sess := mock.NewMockSession(ctrl)
@@ -90,7 +90,7 @@ func TestRouter_Loop(t *testing.T) {
 
 			reqCh := make(chan *packet.Request)
 			go func() {
-				reqCh <- &packet.Request{Id: 1, RawData: []byte("test"), RawSize: 4}
+				reqCh <- &packet.Request{ID: 1, RawData: []byte("test"), RawSize: 4}
 				close(reqCh)
 			}()
 			sess := mock.NewMockSession(ctrl)
@@ -192,7 +192,7 @@ func TestRouter_handleReq(t *testing.T) {
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		assert.Nil(t, rt.handleReq(sess, &packet.Request{Id: 1}))
+		assert.Nil(t, rt.handleReq(sess, &packet.Request{ID: 1}))
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
 		rt := New()
@@ -205,7 +205,7 @@ func TestRouter_handleReq(t *testing.T) {
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		assert.Nil(t, rt.handleReq(sess, &packet.Request{Id: id}))
+		assert.Nil(t, rt.handleReq(sess, &packet.Request{ID: id}))
 	})
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := New()
@@ -218,7 +218,7 @@ func TestRouter_handleReq(t *testing.T) {
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		err := rt.handleReq(sess, &packet.Request{Id: id})
+		err := rt.handleReq(sess, &packet.Request{ID: id})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "handler err")
 	})
@@ -237,7 +237,7 @@ func TestRouter_handleReq(t *testing.T) {
 
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().SendResp(resp).Return(false, fmt.Errorf("some err"))
-			err := rt.handleReq(sess, &packet.Request{Id: id})
+			err := rt.handleReq(sess, &packet.Request{ID: id})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "session send response err")
 		})
@@ -255,7 +255,7 @@ func TestRouter_handleReq(t *testing.T) {
 
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().SendResp(resp).Return(false, nil)
-			err := rt.handleReq(sess, &packet.Request{Id: id})
+			err := rt.handleReq(sess, &packet.Request{ID: id})
 			assert.NoError(t, err)
 		})
 	})

@@ -81,12 +81,12 @@ func (r *Router) Loop(s session.Session) {
 // Returns error when calling handler functions or sending response failed.
 func (r *Router) handleReq(s session.Session, req *packet.Request) error {
 	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(req.Id); has {
+	if v, has := r.handlerMapper.Load(req.ID); has {
 		handler = v.(HandlerFunc)
 	}
 
 	var middles = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(req.Id); has {
+	if v, has := r.middlewaresMapper.Load(req.ID); has {
 		middles = append(middles, v.([]MiddlewareFunc)...) // append to global ones
 	}
 

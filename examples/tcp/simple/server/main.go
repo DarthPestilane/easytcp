@@ -65,7 +65,7 @@ func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 	}
 
 	return &packet.Response{
-		Id:   fixture.MsgIdPingAck,
+		ID:   fixture.MsgIdPingAck,
 		Data: data + "||pong, pong, pong",
 	}, nil
 }
@@ -74,7 +74,7 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 	return func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		var data string
 		_ = s.MsgCodec().Decode(req.RawData, &data)
-		log.Infof("recv req | id:(%d) size:(%d) data: %s", req.Id, req.RawSize, data)
+		log.Infof("recv req | id:(%d) size:(%d) data: %s", req.ID, req.RawSize, data)
 		return next(s, req)
 	}
 }

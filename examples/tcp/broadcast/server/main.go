@@ -38,7 +38,7 @@ func main() {
 				return true // next iteration
 			}
 			_, err := sess.SendResp(&packet.Response{
-				Id:   fixture.MsgIdBroadCastAck,
+				ID:   fixture.MsgIdBroadCastAck,
 				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.ID()),
 			})
 			if err != nil {
@@ -46,7 +46,7 @@ func main() {
 			}
 			return true
 		})
-		return &packet.Response{Id: fixture.MsgIdBroadCastAck, Data: "broadcast done"}, nil
+		return &packet.Response{ID: fixture.MsgIdBroadCastAck, Data: "broadcast done"}, nil
 	})
 
 	go func() {
