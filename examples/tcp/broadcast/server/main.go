@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	s := easytcp.NewTcpServer(server.TCPOption{})
+	s := easytcp.NewTCPServer(server.TCPOption{})
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
