@@ -14,11 +14,18 @@ jobs:
       with:
         go-version: 1.14
 
+    - name: Set up cache
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+        restore-key: ${{ runner.os }}-
+
     - name: Build
       run: make
 
     - name: Lint
-      run: make lint
+      uses: golangci/golangci-lint-action@v2
 
     - name: Test
       run: make test
