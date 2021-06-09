@@ -67,7 +67,7 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().Return(uint(1))
+		msg.EXPECT().GetID().Return(uint(1))
 		msg.EXPECT().GetData().Return([]byte("test"))
 		msg.EXPECT().GetSize().Return(uint(1))
 
@@ -83,7 +83,7 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().Return(uint(1))
+		msg.EXPECT().GetID().Return(uint(1))
 		msg.EXPECT().GetData().Return([]byte("test"))
 		msg.EXPECT().GetSize().Return(uint(1))
 

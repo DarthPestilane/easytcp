@@ -44,7 +44,7 @@ func main() {
 			if err := codec.Decode(msg.GetData(), &data); err != nil {
 				panic(err)
 			}
-			log.Infof("recv ack | id:(%d) size:(%d) data: %s", msg.GetId(), msg.GetSize(), data)
+			log.Infof("recv ack | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), data)
 		}
 	}()
 	select {}

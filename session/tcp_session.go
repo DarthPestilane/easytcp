@@ -108,7 +108,7 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 			break
 		}
 		req := &packet.Request{
-			Id:      msg.GetId(),
+			Id:      msg.GetID(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}

@@ -89,7 +89,7 @@ func (s *UDPSession) ReadIncomingMsg(inMsg []byte) error {
 		return err
 	}
 	req := &packet.Request{
-		Id:      msg.GetId(),
+		Id:      msg.GetID(),
 		RawSize: msg.GetSize(),
 		RawData: msg.GetData(),
 	}

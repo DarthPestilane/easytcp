@@ -15,7 +15,7 @@ type Msg16bit struct {
 	Data []byte
 }
 
-func (m *Msg16bit) GetId() uint {
+func (m *Msg16bit) GetID() uint {
 	return uint(m.ID)
 }
 

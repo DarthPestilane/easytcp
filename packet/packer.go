@@ -57,7 +57,7 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 	msg := &DefaultMsg{
-		Id:   id,
+		ID:   id,
 		Size: size,
 		Data: data,
 	}

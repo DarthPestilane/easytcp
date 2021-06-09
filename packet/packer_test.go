@@ -44,6 +44,6 @@ func TestDefaultPacker_Unpack(t *testing.T) {
 	assert.NoError(t, err)
 	assert.IsType(t, &DefaultMsg{}, msg)
 	assert.EqualValues(t, msg.GetSize(), size)
-	assert.EqualValues(t, msg.GetId(), id)
+	assert.EqualValues(t, msg.GetID(), id)
 	assert.Equal(t, msg.GetData(), data)
 }

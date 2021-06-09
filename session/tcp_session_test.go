@@ -95,7 +95,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().AnyTimes().Return(uint(1))
+		msg.EXPECT().GetID().AnyTimes().Return(uint(1))
 		msg.EXPECT().GetSize().AnyTimes().Return(uint(len("unpacked")))
 		msg.EXPECT().GetData().AnyTimes().Return([]byte("unpacked"))
 
@@ -112,7 +112,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
 		expectReq := &packet.Request{
-			Id:      msg.GetId(),
+			Id:      msg.GetID(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}

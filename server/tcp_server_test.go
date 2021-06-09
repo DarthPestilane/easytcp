@@ -128,6 +128,6 @@ func TestTcpServer_handleConn(t *testing.T) {
 	assert.NoError(t, err)
 	var respData TestResp
 	assert.NoError(t, codec.Decode(respMsg.GetData(), &respData))
-	assert.EqualValues(t, 2, respMsg.GetId())
+	assert.EqualValues(t, 2, respMsg.GetID())
 	assert.True(t, respData.Success)
 }
