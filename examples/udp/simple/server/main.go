@@ -23,11 +23,11 @@ func init() {
 
 func main() {
 	// go printGoroutineNum()
-	s := easytcp.NewUdpServer(server.UdpOption{})
+	s := easytcp.NewUDPServer(server.UDPOption{})
 
 	s.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		log.Infof("recv: %s", string(req.RawData))
-		return &packet.Response{Id: 2, Data: "done"}, nil
+		return &packet.Response{ID: 2, Data: "done"}, nil
 	})
 
 	go func() {

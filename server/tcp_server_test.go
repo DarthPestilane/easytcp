@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func TestTcpServer_Serve(t *testing.T) {
+func TestTCPServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
-	server := NewTcpServer(TcpOption{})
+	server := NewTCPServer(TCPOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -25,8 +25,8 @@ func TestTcpServer_Serve(t *testing.T) {
 	assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
 }
 
-func TestTcpServer_acceptLoop(t *testing.T) {
-	server := NewTcpServer(TcpOption{
+func TestTCPServer_acceptLoop(t *testing.T) {
+	server := NewTCPServer(TCPOption{
 		RWBufferSize: 1024,
 	})
 	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -48,8 +48,8 @@ func TestTcpServer_acceptLoop(t *testing.T) {
 	assert.NoError(t, server.Stop())
 }
 
-func TestTcpServer_Stop(t *testing.T) {
-	server := NewTcpServer(TcpOption{})
+func TestTCPServer_Stop(t *testing.T) {
+	server := NewTCPServer(TCPOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -68,7 +68,7 @@ func TestTcpServer_Stop(t *testing.T) {
 	assert.NoError(t, cli.Close())
 }
 
-func TestTcpServer_handleConn(t *testing.T) {
+func TestTCPServer_handleConn(t *testing.T) {
 	type TestReq struct {
 		Param string
 	}
@@ -81,7 +81,7 @@ func TestTcpServer_handleConn(t *testing.T) {
 	packer := &packet.DefaultPacker{}
 
 	// server
-	server := NewTcpServer(TcpOption{
+	server := NewTCPServer(TCPOption{
 		RWBufferSize: 1024,
 		MsgCodec:     codec,
 		MsgPacker:    packer,
@@ -91,10 +91,10 @@ func TestTcpServer_handleConn(t *testing.T) {
 	server.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 		var reqData TestReq
 		assert.NoError(t, s.MsgCodec().Decode(req.RawData, &reqData))
-		assert.EqualValues(t, 1, req.Id)
+		assert.EqualValues(t, 1, req.ID)
 		assert.Equal(t, reqData.Param, "hello test")
 		resp := &packet.Response{
-			Id:   2,
+			ID:   2,
 			Data: &TestResp{Success: true},
 		}
 		return resp, nil
@@ -128,6 +128,6 @@ func TestTcpServer_handleConn(t *testing.T) {
 	assert.NoError(t, err)
 	var respData TestResp
 	assert.NoError(t, codec.Decode(respMsg.GetData(), &respData))
-	assert.EqualValues(t, 2, respMsg.GetId())
+	assert.EqualValues(t, 2, respMsg.GetID())
 	assert.True(t, respData.Success)
 }

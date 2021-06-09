@@ -47,18 +47,18 @@ func (mr *MockMessageMockRecorder) GetData() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockMessage)(nil).GetData))
 }
 
-// GetId mocks base method.
-func (m *MockMessage) GetId() uint {
+// GetID mocks base method.
+func (m *MockMessage) GetID() uint {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetId")
+	ret := m.ctrl.Call(m, "GetID")
 	ret0, _ := ret[0].(uint)
 	return ret0
 }
 
-// GetId indicates an expected call of GetId.
-func (mr *MockMessageMockRecorder) GetId() *gomock.Call {
+// GetID indicates an expected call of GetID.
+func (mr *MockMessageMockRecorder) GetID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetId", reflect.TypeOf((*MockMessage)(nil).GetId))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetID", reflect.TypeOf((*MockMessage)(nil).GetID))
 }
 
 // GetSize mocks base method.

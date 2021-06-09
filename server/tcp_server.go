@@ -11,7 +11,9 @@ import (
 	"time"
 )
 
-type TcpServer struct {
+// TCPServer is a server for TCP connections.
+// TCPServer implements the Server interface.
+type TCPServer struct {
 	rwBufferSize int
 	readTimeout  time.Duration
 	writeTimeout time.Duration
@@ -23,25 +25,27 @@ type TcpServer struct {
 	router       *router.Router
 }
 
-var _ Server = &TcpServer{}
+var _ Server = &TCPServer{}
 
-type TcpOption struct {
-	RWBufferSize int           // socket read write buffer
+// TCPOption is the option for TCPServer.
+type TCPOption struct {
+	RWBufferSize int           // RWBufferSize is socket read write buffer
 	ReadTimeout  time.Duration // sets the timeout for connection read
 	WriteTimeout time.Duration // sets the timeout for connection write
-	MsgPacker    packet.Packer // MsgPacker to pack and unpack the message packet
-	MsgCodec     packet.Codec  // MsgCodec to encode and decode the message data
+	MsgPacker    packet.Packer // packs and unpacks the message packet
+	MsgCodec     packet.Codec  // encodes and decodes the message data
 }
 
-func NewTcpServer(opt TcpOption) *TcpServer {
+// NewTCPServer creates a TCPServer pointer according to opt.
+func NewTCPServer(opt TCPOption) *TCPServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
 	if opt.MsgCodec == nil {
 		opt.MsgCodec = &packet.StringCodec{}
 	}
-	return &TcpServer{
-		log:          logger.Default.WithField("scope", "server.TcpServer"),
+	return &TCPServer{
+		log:          logger.Default.WithField("scope", "server.TCPServer"),
 		rwBufferSize: opt.RWBufferSize,
 		readTimeout:  opt.ReadTimeout,
 		writeTimeout: opt.WriteTimeout,
@@ -52,7 +56,10 @@ func NewTcpServer(opt TcpOption) *TcpServer {
 	}
 }
 
-func (s *TcpServer) Serve(addr string) error {
+// Serve implements the Server Serve method.
+// Serve starts to listen TCP and keep accepting TCP connection in a loop.
+// Accepting loop will break when error occurred, and the error will be returned.
+func (s *TCPServer) Serve(addr string) error {
 	address, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return err
@@ -62,11 +69,14 @@ func (s *TcpServer) Serve(addr string) error {
 		return err
 	}
 	s.listener = lis
+	defer s.Stop() // nolint:errcheck
 
 	return s.acceptLoop()
 }
 
-func (s *TcpServer) acceptLoop() error {
+// acceptLoop accepts TCP connections in a loop, and handle connections in goroutines.
+// Returns error when error occurred.
+func (s *TCPServer) acceptLoop() error {
 	close(s.accepting)
 	for {
 		conn, err := s.listener.AcceptTCP()
@@ -81,20 +91,15 @@ func (s *TcpServer) acceptLoop() error {
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
-
-		// handle conn in a new goroutine
 		go s.handleConn(conn)
 	}
 }
 
-// handleConn
-// create a new session and save it to memory
-// read/write loop
-// route incoming message to handler
-// wait for session to close
-// remove session from memory
-func (s *TcpServer) handleConn(conn *net.TCPConn) {
-	sess := session.NewTcp(conn, s.msgPacker, s.msgCodec)
+// handleConn creates a new session according to conn,
+// handles the message through the session in different goroutines,
+// and waits until the session's closed.
+func (s *TCPServer) handleConn(conn *net.TCPConn) {
+	sess := session.NewTCP(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
 	go s.router.Loop(sess)
 	go sess.ReadLoop(s.readTimeout)
@@ -107,11 +112,12 @@ func (s *TcpServer) handleConn(conn *net.TCPConn) {
 	}
 }
 
-// Stop stops server and closes all the tcp sessions
-func (s *TcpServer) Stop() error {
+// Stop implements the Server Stop method.
+// Stop stops server by closing all the TCP sessions and the listener.
+func (s *TCPServer) Stop() error {
 	closedNum := 0
 	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-		if tcpSess, ok := sess.(*session.TcpSession); ok {
+		if tcpSess, ok := sess.(*session.TCPSession); ok {
 			tcpSess.Close()
 			closedNum++
 		}
@@ -121,10 +127,14 @@ func (s *TcpServer) Stop() error {
 	return s.listener.Close()
 }
 
-func (s *TcpServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
-	s.router.Register(msgId, handler, middlewares...)
+// AddRoute implements the Server AddRoute method.
+// AddRoute registers message handler and middlewares to the router.
+func (s *TCPServer) AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+	s.router.Register(msgID, handler, middlewares...)
 }
 
-func (s *TcpServer) Use(middlewares ...router.MiddlewareFunc) {
+// Use implements the Server Use method.
+// Use registers global middlewares to the router.
+func (s *TCPServer) Use(middlewares ...router.MiddlewareFunc) {
 	s.router.RegisterMiddleware(middlewares...)
 }

@@ -12,13 +12,13 @@ import (
 	"time"
 )
 
-func TestNewTcp(t *testing.T) {
+func TestNewTCP(t *testing.T) {
 	var sess Session
 	assert.NotPanics(t, func() {
-		sess = NewTcp(nil, nil, nil)
+		sess = NewTCP(nil, nil, nil)
 	})
 	assert.NotNil(t, sess)
-	s, ok := sess.(*TcpSession)
+	s, ok := sess.(*TCPSession)
 	assert.True(t, ok)
 	assert.NotNil(t, s.closed)
 	assert.NotNil(t, s.ackQueue)
@@ -26,8 +26,8 @@ func TestNewTcp(t *testing.T) {
 	assert.NotNil(t, s.log)
 }
 
-func TestTcpSession_Close(t *testing.T) {
-	sess := NewTcp(nil, nil, nil)
+func TestTCPSession_Close(t *testing.T) {
+	sess := NewTCP(nil, nil, nil)
 	wg := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
@@ -45,36 +45,36 @@ func TestTcpSession_Close(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestTcpSession_ID(t *testing.T) {
-	sess := NewTcp(nil, nil, nil)
+func TestTCPSession_ID(t *testing.T) {
+	sess := NewTCP(nil, nil, nil)
 	assert.NotEmpty(t, sess.id)
 	assert.Equal(t, sess.ID(), sess.id)
 }
 
-func TestTcpSession_MsgCodec(t *testing.T) {
+func TestTCPSession_MsgCodec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	codec := mock.NewMockCodec(ctrl)
 
-	sess := NewTcp(nil, nil, codec)
+	sess := NewTCP(nil, nil, codec)
 	assert.NotNil(t, sess.msgCodec)
 	assert.Equal(t, sess.msgCodec, codec)
 	assert.Equal(t, sess.MsgCodec(), sess.msgCodec)
 }
 
-func TestTcpSession_ReadLoop(t *testing.T) {
+func TestTCPSession_ReadLoop(t *testing.T) {
 	t.Run("when connection set read timeout failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
-		sess := NewTcp(p1, nil, nil)
+		sess := NewTCP(p1, nil, nil)
 		go sess.ReadLoop(time.Millisecond)
 		<-sess.closed
 	})
 	t.Run("when connection read timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		packer := &packet.DefaultPacker{}
-		sess := NewTcp(p1, packer, nil)
+		sess := NewTCP(p1, packer, nil)
 		go sess.ReadLoop(time.Millisecond * 10)
 		<-sess.closed
 		_ = p1.Close()
@@ -86,7 +86,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewTcp(nil, packer, mock.NewMockCodec(ctrl))
+		sess := NewTCP(nil, packer, mock.NewMockCodec(ctrl))
 		go sess.ReadLoop(0)
 		<-sess.closed
 	})
@@ -95,14 +95,14 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().AnyTimes().Return(uint(1))
+		msg.EXPECT().GetID().AnyTimes().Return(uint(1))
 		msg.EXPECT().GetSize().AnyTimes().Return(uint(len("unpacked")))
 		msg.EXPECT().GetData().AnyTimes().Return([]byte("unpacked"))
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
 
-		sess := NewTcp(nil, packer, mock.NewMockCodec(ctrl))
+		sess := NewTCP(nil, packer, mock.NewMockCodec(ctrl))
 		sess.reqQueue = make(chan *packet.Request) // no buffer
 		readDone := make(chan struct{})
 		go func() {
@@ -112,7 +112,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
 		expectReq := &packet.Request{
-			Id:      msg.GetId(),
+			ID:      msg.GetID(),
 			RawSize: msg.GetSize(),
 			RawData: msg.GetData(),
 		}
@@ -121,8 +121,8 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 	})
 }
 
-func TestTcpSession_RecvReq(t *testing.T) {
-	sess := NewTcp(nil, nil, nil)
+func TestTCPSession_RecvReq(t *testing.T) {
+	sess := NewTCP(nil, nil, nil)
 	req := &packet.Request{}
 	sess.reqQueue <- req
 	reqRecv, ok := <-sess.RecvReq()
@@ -136,7 +136,7 @@ func TestTcpSession_RecvReq(t *testing.T) {
 	assert.Nil(t, reqRecv)
 }
 
-func TestTcpSession_SendResp(t *testing.T) {
+func TestTCPSession_SendResp(t *testing.T) {
 	t.Run("when message encode failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -144,7 +144,7 @@ func TestTcpSession_SendResp(t *testing.T) {
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewTcp(nil, mock.NewMockPacker(ctrl), codec)
+		sess := NewTCP(nil, mock.NewMockPacker(ctrl), codec)
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "encode response data err")
@@ -160,7 +160,7 @@ func TestTcpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewTcp(nil, packer, codec)
+		sess := NewTCP(nil, packer, codec)
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "pack response data err")
@@ -176,7 +176,7 @@ func TestTcpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
 
-		sess := NewTcp(nil, packer, codec)
+		sess := NewTCP(nil, packer, codec)
 		sess.Close()                                     // close channel
 		closed, err := sess.SendResp(&packet.Response{}) // and then send resp
 		assert.NoError(t, err)
@@ -192,7 +192,7 @@ func TestTcpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
 
-		sess := NewTcp(nil, packer, codec)
+		sess := NewTCP(nil, packer, codec)
 		closed, err := sess.SendResp(&packet.Response{})
 		sess.Close()
 		assert.NoError(t, err)
@@ -200,8 +200,8 @@ func TestTcpSession_SendResp(t *testing.T) {
 	})
 }
 
-func TestTcpSession_WaitUntilClosed(t *testing.T) {
-	sess := NewTcp(nil, nil, nil)
+func TestTCPSession_WaitUntilClosed(t *testing.T) {
+	sess := NewTCP(nil, nil, nil)
 	go func() {
 		sess.Close()
 	}()
@@ -210,9 +210,9 @@ func TestTcpSession_WaitUntilClosed(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestTcpSession_WriteLoop(t *testing.T) {
+func TestTCPSession_WriteLoop(t *testing.T) {
 	t.Run("when session is already closed", func(t *testing.T) {
-		sess := NewTcp(nil, nil, nil)
+		sess := NewTCP(nil, nil, nil)
 		sess.Close()
 		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
@@ -221,7 +221,7 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 	t.Run("when set write deadline failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
-		sess := NewTcp(p1, nil, nil)
+		sess := NewTCP(p1, nil, nil)
 		sess.ackQueue <- []byte("test")
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
@@ -229,7 +229,7 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 	})
 	t.Run("when conn write timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
-		sess := NewTcp(p1, nil, nil)
+		sess := NewTCP(p1, nil, nil)
 		sess.ackQueue <- []byte("test")
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
@@ -239,7 +239,7 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 	t.Run("when conn write failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
-		sess := NewTcp(p1, nil, nil)
+		sess := NewTCP(p1, nil, nil)
 		sess.ackQueue <- []byte("test")
 		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
@@ -252,7 +252,7 @@ func TestTcpSession_WriteLoop(t *testing.T) {
 			_, err := p1.Read(buf)
 			assert.NoError(t, err)
 		}()
-		sess := NewTcp(p2, nil, nil)
+		sess := NewTCP(p2, nil, nil)
 		sess.ackQueue = make(chan []byte) // no buffer
 		writeDone := make(chan struct{})
 		go func() {

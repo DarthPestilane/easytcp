@@ -10,23 +10,29 @@ import (
 
 //go:generate mockgen -destination mock/packer_mock.go -package mock . Packer
 
-// Packer 打包/拆包
-// 1. 对数据进行打包，得到消息
-// 2. 对消息进行拆包，得到消息元数据
+// Packer is a generic interface to pack and unpack message packet.
 type Packer interface {
-	Pack(id uint, data []byte) ([]byte, error) // 打包
-	Unpack(reader io.Reader) (Message, error)  // 拆包
+	// Pack packs data into the message to be sent.
+	Pack(id uint, data []byte) ([]byte, error)
+
+	// Unpack unpacks the message packet from reader,
+	// returns the Message interface, and error if error occurred.
+	Unpack(reader io.Reader) (Message, error)
 }
 
-// DefaultPacker 默认的 Packer
-// 封包格式:
-//   size[4]id[4]data
+// DefaultPacker is the default Packer used in session.
+// DefaultPacker treats the packet with the format:
+// 	(size)(id)(data):
+// 		size: uint32 | took 4 bytes
+// 		id: uint32   | took 4 bytes
+// 		data: []byte | length is the size
 type DefaultPacker struct{}
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
-	return binary.LittleEndian
+	return binary.BigEndian
 }
 
+// Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(id uint, data []byte) ([]byte, error) {
 	buff := bytes.NewBuffer(make([]byte, 0, len(data)+4+4))
 	p := binpacker.NewPacker(d.bytesOrder(), buff)
@@ -42,6 +48,7 @@ func (d *DefaultPacker) Pack(id uint, data []byte) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// Unpack implements the Packer Unpack method.
 func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
 	p := binpacker.NewUnpacker(d.bytesOrder(), reader)
 	size, err := p.ShiftUint32()
@@ -57,7 +64,7 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (Message, error) {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 	msg := &DefaultMsg{
-		Id:   id,
+		ID:   id,
 		Size: size,
 		Data: data,
 	}

@@ -8,28 +8,30 @@ import (
 
 //go:generate mockgen -destination mock/codec_mock.go -package mock . Codec
 
-// Codec 编码解码器
-// 对原始消息的 data 进行编码和解码处理
+// Codec is a generic codec for encoding and decoding data.
 type Codec interface {
-	// Encode 编码
-	// data 为需要编码的数据, 通常是 Response 的 Data
-	// 编码后的结果，通常应当经过 Packer.Pack() 打包成待发送的消息
-	Encode(data interface{}) ([]byte, error) // 编码
+	// Encode encodes data into []byte.
+	// Returns error when error occurred.
+	Encode(data interface{}) ([]byte, error)
 
-	// Decode 解码
-	// data 为需要解码的数据, 通常是 Message.GetData() 返回的数据
-	Decode(data []byte, v interface{}) error // 解码
+	// Decode decodes data into v.
+	// Returns error when error occurred.
+	Decode(data []byte, v interface{}) error
 }
 
 var _ Codec = &StringCodec{}
 
-// StringCodec 对 string 编码成 []byte, 对 []byte 解码成 string
+// StringCodec implements the Codec interface.
+// StringCodec encodes string into []byte, and decodes data into string.
 type StringCodec struct{}
 
+// Encode implements the Codec Encode method.
 func (c *StringCodec) Encode(data interface{}) ([]byte, error) {
 	return []byte(data.(string)), nil
 }
 
+// Decode implements the Codec Decode method.
+// Parameter v should be a String pointer, or an error will return.
 func (c *StringCodec) Decode(data []byte, v interface{}) error {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.String {
@@ -39,13 +41,16 @@ func (c *StringCodec) Decode(data []byte, v interface{}) error {
 	return nil
 }
 
-// JsonCodec 使用json进行编码和解码
+// JsonCodec implements the Codec interface.
+// JsonCodec encodes and decodes data in json way.
 type JsonCodec struct{}
 
+// Encode implements the Codec Encode method.
 func (c *JsonCodec) Encode(data interface{}) ([]byte, error) {
 	return json.Marshal(data)
 }
 
+// Decode implements the Codec Decode method.
 func (c *JsonCodec) Decode(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }

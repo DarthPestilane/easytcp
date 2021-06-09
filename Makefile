@@ -17,11 +17,13 @@ lint:
 lint-fix:
 	CGO_ENABLED=0 golangci-lint run --concurrency=2 --fix
 
+coverprofile=.testCoverage.txt
+
 test:
-	CGO_ENABLED=0 go test -count=1 -cover -coverprofile=.testCoverage.txt `go list ./... | grep -v /examples/`
+	CGO_ENABLED=0 go test -count=1 -cover -coverprofile=${coverprofile} `go list ./... | grep -v /examples/`
 
 coverage:
-	CGO_ENABLED=0 go tool cover -html .testCoverage.txt
+	CGO_ENABLED=0 go tool cover -html ${coverprofile}
 
 spec: lint test
 

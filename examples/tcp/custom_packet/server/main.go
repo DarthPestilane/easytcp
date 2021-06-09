@@ -25,7 +25,7 @@ func init() {
 func main() {
 	easytcp.SetLogger(log)
 
-	s := easytcp.NewTcpServer(server.TcpOption{
+	s := easytcp.NewTCPServer(server.TCPOption{
 		// customize codec and packer
 		MsgCodec:  &fixture.JsonCodec{},
 		MsgPacker: &fixture.Packer16bit{},
@@ -64,7 +64,7 @@ func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 	}
 
 	return &packet.Response{
-		Id: fixture.MsgIdJson01Ack,
+		ID: fixture.MsgIdJson01Ack,
 		Data: &fixture.Json01Resp{
 			Success: true,
 			Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
@@ -76,7 +76,7 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 	return func(s session.Session, req *packet.Request) (resp *packet.Response, err error) {
 		var data fixture.Json01Req
 		_ = s.MsgCodec().Decode(req.RawData, &data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %+v", req.Id, req.RawSize, data)
+		log.Infof("recv request | id:(%d) size:(%d) data: %+v", req.ID, req.RawSize, data)
 
 		defer func() {
 			if err == nil {
@@ -84,7 +84,7 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 				if resp != nil {
 					msgData, _ := s.MsgCodec().Encode(resp.Data)
 					size = len(msgData)
-					log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.Id, size, resp.Data)
+					log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.ID, size, resp.Data)
 				} else {
 					log.Infof("don't send response since nil")
 				}

@@ -10,13 +10,13 @@ import (
 	"testing"
 )
 
-func TestNewUdp(t *testing.T) {
+func TestNewUDP(t *testing.T) {
 	var sess Session
 	assert.NotPanics(t, func() {
-		sess = NewUdp(nil, nil, nil, nil)
+		sess = NewUDP(nil, nil, nil, nil)
 	})
 	assert.NotNil(t, sess)
-	s, ok := sess.(*UdpSession)
+	s, ok := sess.(*UDPSession)
 	assert.True(t, ok)
 	assert.NotNil(t, s.closed)
 	assert.NotNil(t, s.ackQueue)
@@ -24,8 +24,8 @@ func TestNewUdp(t *testing.T) {
 	assert.NotNil(t, s.log)
 }
 
-func TestUdpSession_Close(t *testing.T) {
-	sess := NewUdp(nil, nil, nil, nil)
+func TestUDPSession_Close(t *testing.T) {
+	sess := NewUDP(nil, nil, nil, nil)
 	sess.Close()
 	var ok bool
 	_, ok = <-sess.closed
@@ -36,20 +36,20 @@ func TestUdpSession_Close(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestUdpSession_ID(t *testing.T) {
-	sess := NewUdp(nil, nil, nil, nil)
+func TestUDPSession_ID(t *testing.T) {
+	sess := NewUDP(nil, nil, nil, nil)
 	assert.NotEmpty(t, sess.ID())
 	assert.Equal(t, sess.id, sess.ID())
 }
 
-func TestUdpSession_MsgCodec(t *testing.T) {
-	sess := NewUdp(nil, nil, nil, &packet.JsonCodec{})
+func TestUDPSession_MsgCodec(t *testing.T) {
+	sess := NewUDP(nil, nil, nil, &packet.JsonCodec{})
 	assert.NotNil(t, sess.MsgCodec())
 	assert.Equal(t, sess.msgCodec, &packet.JsonCodec{})
 	assert.Equal(t, sess.msgCodec, sess.MsgCodec())
 }
 
-func TestUdpSession_ReadIncomingMsg(t *testing.T) {
+func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 	t.Run("when packer unpack failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -57,7 +57,7 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewUdp(nil, nil, packer, nil)
+		sess := NewUDP(nil, nil, packer, nil)
 		go func() { <-sess.reqQueue }()
 		assert.Error(t, sess.ReadIncomingMsg([]byte("test")))
 		sess.Close()
@@ -67,14 +67,14 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().Return(uint(1))
+		msg.EXPECT().GetID().Return(uint(1))
 		msg.EXPECT().GetData().Return([]byte("test"))
 		msg.EXPECT().GetSize().Return(uint(1))
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
 
-		sess := NewUdp(nil, nil, packer, nil)
+		sess := NewUDP(nil, nil, packer, nil)
 		sess.Close() // close first
 		assert.NoError(t, sess.ReadIncomingMsg([]byte("test")))
 	})
@@ -83,22 +83,22 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetId().Return(uint(1))
+		msg.EXPECT().GetID().Return(uint(1))
 		msg.EXPECT().GetData().Return([]byte("test"))
 		msg.EXPECT().GetSize().Return(uint(1))
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
 
-		sess := NewUdp(nil, nil, packer, nil)
+		sess := NewUDP(nil, nil, packer, nil)
 		go func() { <-sess.reqQueue }()
 		assert.NoError(t, sess.ReadIncomingMsg([]byte("test")))
 		sess.Close()
 	})
 }
 
-func TestUdpSession_RecvReq(t *testing.T) {
-	sess := NewUdp(nil, nil, nil, nil)
+func TestUDPSession_RecvReq(t *testing.T) {
+	sess := NewUDP(nil, nil, nil, nil)
 	go func() { sess.reqQueue <- nil }()
 	req, ok := <-sess.RecvReq()
 	assert.True(t, ok)
@@ -108,14 +108,7 @@ func TestUdpSession_RecvReq(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestUdpSession_SendResp(t *testing.T) {
-	t.Run("when session is closed", func(t *testing.T) {
-		sess := NewUdp(nil, nil, nil, nil)
-		sess.Close()
-		closed, err := sess.SendResp(&packet.Response{})
-		assert.NoError(t, err)
-		assert.True(t, closed)
-	})
+func TestUDPSession_SendResp(t *testing.T) {
 	t.Run("when encode msg failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -123,7 +116,7 @@ func TestUdpSession_SendResp(t *testing.T) {
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewUdp(nil, nil, nil, codec)
+		sess := NewUDP(nil, nil, nil, codec)
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "encode response data err")
@@ -139,13 +132,13 @@ func TestUdpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewUdp(nil, nil, packer, codec)
+		sess := NewUDP(nil, nil, packer, codec)
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "pack response data err")
 		assert.False(t, closed)
 	})
-	t.Run("when ackQueue closed", func(t *testing.T) {
+	t.Run("when ackQueue closed (session's closed)", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -155,8 +148,8 @@ func TestUdpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return([]byte("test"), nil)
 
-		sess := NewUdp(nil, nil, packer, codec)
-		close(sess.ackQueue)
+		sess := NewUDP(nil, nil, packer, codec)
+		sess.Close()
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.NoError(t, err)
 		assert.True(t, closed)
@@ -171,7 +164,7 @@ func TestUdpSession_SendResp(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return([]byte("test"), nil)
 
-		sess := NewUdp(nil, nil, packer, codec)
+		sess := NewUDP(nil, nil, packer, codec)
 		go func() { <-sess.ackQueue }()
 		closed, err := sess.SendResp(&packet.Response{})
 		assert.NoError(t, err)
@@ -179,26 +172,26 @@ func TestUdpSession_SendResp(t *testing.T) {
 	})
 }
 
-func TestUdpSession_Write(t *testing.T) {
+func TestUDPSession_Write(t *testing.T) {
 	t.Run("when conn write failed", func(t *testing.T) {
 		addr, err := net.ResolveUDPAddr("udp", "localhost:0")
 		assert.NoError(t, err)
 		conn, err := net.ListenUDP("udp", addr)
 		assert.NoError(t, err)
 
-		sess := NewUdp(conn, nil, nil, nil)
+		sess := NewUDP(conn, nil, nil, nil)
 		done := make(chan struct{})
 		go func() { sess.ackQueue <- []byte("test") }()
 		sess.Write(done)
 	})
 	t.Run("when ackQueue closed", func(t *testing.T) {
-		sess := NewUdp(nil, nil, nil, nil)
+		sess := NewUDP(nil, nil, nil, nil)
 		done := make(chan struct{})
 		go func() { close(done) }()
 		sess.Write(done)
 	})
 	t.Run("when done closed", func(t *testing.T) {
-		sess := NewUdp(nil, nil, nil, nil)
+		sess := NewUDP(nil, nil, nil, nil)
 		done := make(chan struct{})
 		go func() { close(sess.ackQueue) }()
 		sess.Write(done)

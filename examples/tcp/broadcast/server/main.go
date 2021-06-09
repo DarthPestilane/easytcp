@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	s := easytcp.NewTcpServer(server.TcpOption{})
+	s := easytcp.NewTCPServer(server.TCPOption{})
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
@@ -30,7 +30,7 @@ func main() {
 		var reqData string
 		_ = s.MsgCodec().Decode(req.RawData, &reqData)
 		session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-			if _, ok := sess.(*session.TcpSession); !ok {
+			if _, ok := sess.(*session.TCPSession); !ok {
 				// only broadcast to the same kind sessions
 				return true // next iteration
 			}
@@ -38,7 +38,7 @@ func main() {
 				return true // next iteration
 			}
 			_, err := sess.SendResp(&packet.Response{
-				Id:   fixture.MsgIdBroadCastAck,
+				ID:   fixture.MsgIdBroadCastAck,
 				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.ID()),
 			})
 			if err != nil {
@@ -46,7 +46,7 @@ func main() {
 			}
 			return true
 		})
-		return &packet.Response{Id: fixture.MsgIdBroadCastAck, Data: "broadcast done"}, nil
+		return &packet.Response{ID: fixture.MsgIdBroadCastAck, Data: "broadcast done"}, nil
 	})
 
 	go func() {
