@@ -1,0 +1,20 @@
+syntax = 'proto3';
+
+package message;
+
+option go_package = '/message';
+
+enum ID {
+  _ = 0;
+  FooReqID = 1;
+  FooRespID = 2;
+}
+
+message FooReq {
+  string Bar = 1;
+  int32 Buz = 2;
+}
+message FooResp {
+  int32 Code = 1;
+  string Message = 2;
+}

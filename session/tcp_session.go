@@ -104,7 +104,7 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 		}
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
-			s.log.Tracef("unpack incoming message err:%s", err)
+			s.log.Tracef("unpack incoming message err: %s", err)
 			break
 		}
 		req := &packet.Request{
