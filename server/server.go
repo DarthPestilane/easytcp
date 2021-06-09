@@ -18,6 +18,6 @@ type Server interface {
 	// Use registers a list of global middlewares.
 	Use(middlewares ...router.MiddlewareFunc)
 
-	// AddRoute registers a handler and middlewares for the message matches msgId.
-	AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc)
+	// AddRoute registers a handler and middlewares for the message matches msgID.
+	AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc)
 }

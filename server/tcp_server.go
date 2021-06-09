@@ -129,8 +129,8 @@ func (s *TCPServer) Stop() error {
 
 // AddRoute implements the Server AddRoute method.
 // AddRoute registers message handler and middlewares to the router.
-func (s *TCPServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
-	s.router.Register(msgId, handler, middlewares...)
+func (s *TCPServer) AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+	s.router.Register(msgID, handler, middlewares...)
 }
 
 // Use implements the Server Use method.

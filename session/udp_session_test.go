@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestNewUdp(t *testing.T) {
+func TestNewUDP(t *testing.T) {
 	var sess Session
 	assert.NotPanics(t, func() {
 		sess = NewUDP(nil, nil, nil, nil)
@@ -24,7 +24,7 @@ func TestNewUdp(t *testing.T) {
 	assert.NotNil(t, s.log)
 }
 
-func TestUdpSession_Close(t *testing.T) {
+func TestUDPSession_Close(t *testing.T) {
 	sess := NewUDP(nil, nil, nil, nil)
 	sess.Close()
 	var ok bool
@@ -36,20 +36,20 @@ func TestUdpSession_Close(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestUdpSession_ID(t *testing.T) {
+func TestUDPSession_ID(t *testing.T) {
 	sess := NewUDP(nil, nil, nil, nil)
 	assert.NotEmpty(t, sess.ID())
 	assert.Equal(t, sess.id, sess.ID())
 }
 
-func TestUdpSession_MsgCodec(t *testing.T) {
+func TestUDPSession_MsgCodec(t *testing.T) {
 	sess := NewUDP(nil, nil, nil, &packet.JsonCodec{})
 	assert.NotNil(t, sess.MsgCodec())
 	assert.Equal(t, sess.msgCodec, &packet.JsonCodec{})
 	assert.Equal(t, sess.msgCodec, sess.MsgCodec())
 }
 
-func TestUdpSession_ReadIncomingMsg(t *testing.T) {
+func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 	t.Run("when packer unpack failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -97,7 +97,7 @@ func TestUdpSession_ReadIncomingMsg(t *testing.T) {
 	})
 }
 
-func TestUdpSession_RecvReq(t *testing.T) {
+func TestUDPSession_RecvReq(t *testing.T) {
 	sess := NewUDP(nil, nil, nil, nil)
 	go func() { sess.reqQueue <- nil }()
 	req, ok := <-sess.RecvReq()
@@ -108,7 +108,7 @@ func TestUdpSession_RecvReq(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestUdpSession_SendResp(t *testing.T) {
+func TestUDPSession_SendResp(t *testing.T) {
 	t.Run("when encode msg failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -172,7 +172,7 @@ func TestUdpSession_SendResp(t *testing.T) {
 	})
 }
 
-func TestUdpSession_Write(t *testing.T) {
+func TestUDPSession_Write(t *testing.T) {
 	t.Run("when conn write failed", func(t *testing.T) {
 		addr, err := net.ResolveUDPAddr("udp", "localhost:0")
 		assert.NoError(t, err)

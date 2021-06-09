@@ -119,8 +119,8 @@ func (s *UDPServer) Stop() error {
 
 // AddRoute implements the Server AddRoute method.
 // AddRoute registers message handler and middlewares to the router.
-func (s *UDPServer) AddRoute(msgId uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
-	s.router.Register(msgId, handler, middlewares...)
+func (s *UDPServer) AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
+	s.router.Register(msgID, handler, middlewares...)
 }
 
 // Use implements the Server Use method.

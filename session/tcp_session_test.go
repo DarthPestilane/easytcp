@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestNewTcp(t *testing.T) {
+func TestNewTCP(t *testing.T) {
 	var sess Session
 	assert.NotPanics(t, func() {
 		sess = NewTCP(nil, nil, nil)
@@ -26,7 +26,7 @@ func TestNewTcp(t *testing.T) {
 	assert.NotNil(t, s.log)
 }
 
-func TestTcpSession_Close(t *testing.T) {
+func TestTCPSession_Close(t *testing.T) {
 	sess := NewTCP(nil, nil, nil)
 	wg := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
@@ -45,13 +45,13 @@ func TestTcpSession_Close(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestTcpSession_ID(t *testing.T) {
+func TestTCPSession_ID(t *testing.T) {
 	sess := NewTCP(nil, nil, nil)
 	assert.NotEmpty(t, sess.id)
 	assert.Equal(t, sess.ID(), sess.id)
 }
 
-func TestTcpSession_MsgCodec(t *testing.T) {
+func TestTCPSession_MsgCodec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -63,7 +63,7 @@ func TestTcpSession_MsgCodec(t *testing.T) {
 	assert.Equal(t, sess.MsgCodec(), sess.msgCodec)
 }
 
-func TestTcpSession_ReadLoop(t *testing.T) {
+func TestTCPSession_ReadLoop(t *testing.T) {
 	t.Run("when connection set read timeout failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
@@ -121,7 +121,7 @@ func TestTcpSession_ReadLoop(t *testing.T) {
 	})
 }
 
-func TestTcpSession_RecvReq(t *testing.T) {
+func TestTCPSession_RecvReq(t *testing.T) {
 	sess := NewTCP(nil, nil, nil)
 	req := &packet.Request{}
 	sess.reqQueue <- req
@@ -136,7 +136,7 @@ func TestTcpSession_RecvReq(t *testing.T) {
 	assert.Nil(t, reqRecv)
 }
 
-func TestTcpSession_SendResp(t *testing.T) {
+func TestTCPSession_SendResp(t *testing.T) {
 	t.Run("when message encode failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -200,7 +200,7 @@ func TestTcpSession_SendResp(t *testing.T) {
 	})
 }
 
-func TestTcpSession_WaitUntilClosed(t *testing.T) {
+func TestTCPSession_WaitUntilClosed(t *testing.T) {
 	sess := NewTCP(nil, nil, nil)
 	go func() {
 		sess.Close()
@@ -210,7 +210,7 @@ func TestTcpSession_WaitUntilClosed(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestTcpSession_WriteLoop(t *testing.T) {
+func TestTCPSession_WriteLoop(t *testing.T) {
 	t.Run("when session is already closed", func(t *testing.T) {
 		sess := NewTCP(nil, nil, nil)
 		sess.Close()

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestNewUdp(t *testing.T) {
+func TestNewUDPServer(t *testing.T) {
 	u := NewUDPServer(UDPOption{})
 	assert.NotNil(t, u.log)
 	assert.NotNil(t, u.accepting)
@@ -17,7 +17,7 @@ func TestNewUdp(t *testing.T) {
 	assert.Equal(t, u.maxBufferSize, 1024)
 }
 
-func TestUdpServer_Serve(t *testing.T) {
+func TestUDPServer_Serve(t *testing.T) {
 	t.Run("when addr is invalid", func(t *testing.T) {
 		server := NewUDPServer(UDPOption{RWBufferSize: 1024})
 		assert.Error(t, server.Serve("invalid"))
@@ -57,7 +57,7 @@ func TestUdpServer_Serve(t *testing.T) {
 	})
 }
 
-func TestUdpServer_Stop(t *testing.T) {
+func TestUDPServer_Stop(t *testing.T) {
 	server := NewUDPServer(UDPOption{})
 	go func() {
 		assert.Error(t, server.Serve("localhost:0"))

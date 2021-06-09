@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestTcpServer_Serve(t *testing.T) {
+func TestTCPServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
 	server := NewTCPServer(TCPOption{})
 	go func() {
@@ -25,7 +25,7 @@ func TestTcpServer_Serve(t *testing.T) {
 	assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
 }
 
-func TestTcpServer_acceptLoop(t *testing.T) {
+func TestTCPServer_acceptLoop(t *testing.T) {
 	server := NewTCPServer(TCPOption{
 		RWBufferSize: 1024,
 	})
@@ -48,7 +48,7 @@ func TestTcpServer_acceptLoop(t *testing.T) {
 	assert.NoError(t, server.Stop())
 }
 
-func TestTcpServer_Stop(t *testing.T) {
+func TestTCPServer_Stop(t *testing.T) {
 	server := NewTCPServer(TCPOption{})
 	go func() {
 		err := server.Serve("localhost:0")
@@ -68,7 +68,7 @@ func TestTcpServer_Stop(t *testing.T) {
 	assert.NoError(t, cli.Close())
 }
 
-func TestTcpServer_handleConn(t *testing.T) {
+func TestTCPServer_handleConn(t *testing.T) {
 	type TestReq struct {
 		Param string
 	}
