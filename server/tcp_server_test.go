@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -98,6 +99,17 @@ func TestTCPServer_handleConn(t *testing.T) {
 			Data: &TestResp{Success: true},
 		}
 		return resp, nil
+	})
+	// use middleware
+	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
+		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+			defer func() {
+				if r := recover(); r != nil {
+					assert.Fail(t, "caught panic")
+				}
+			}()
+			return next(s, req)
+		}
 	})
 
 	go func() {
