@@ -69,7 +69,6 @@ func (s *TCPServer) Serve(addr string) error {
 		return err
 	}
 	s.listener = lis
-	defer s.Stop() // nolint:errcheck
 
 	return s.acceptLoop()
 }

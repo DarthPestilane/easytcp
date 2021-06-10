@@ -1,7 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/router"
+	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
@@ -72,5 +75,64 @@ func TestUDPServer_Stop(t *testing.T) {
 	<-time.After(time.Millisecond * 10)
 
 	assert.NoError(t, server.Stop()) // stop server first
+	assert.NoError(t, cli.Close())
+}
+
+func TestUDPServer_handleIncomingMsg(t *testing.T) {
+	codec := &packet.StringCodec{}
+	packer := &packet.DefaultPacker{}
+
+	server := NewUDPServer(UDPOption{
+		MsgCodec:  codec,
+		MsgPacker: packer,
+	})
+	// use middleware
+	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
+		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+			defer func() {
+				if r := recover(); r != nil {
+					assert.Fail(t, "caught panic")
+				}
+			}()
+			return next(s, req)
+		}
+	})
+	// register route
+	server.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+		return &packet.Response{
+			ID:   2,
+			Data: "test-resp",
+		}, nil
+	})
+	go func() {
+		assert.Error(t, server.Serve("localhost:0"))
+	}()
+
+	<-server.accepting
+
+	// client
+	cli, err := net.Dial("udp", server.conn.LocalAddr().String())
+	assert.NoError(t, err)
+
+	// send req
+	b, err := codec.Encode("test-req")
+	assert.NoError(t, err)
+	msg, err := packer.Pack(1, b)
+	assert.NoError(t, err)
+	_, err = cli.Write(msg)
+	assert.NoError(t, err)
+
+	// receive resp
+	buff := make([]byte, 128)
+	n, err := cli.Read(buff)
+	assert.NoError(t, err)
+	respMsg, err := packer.Unpack(bytes.NewReader(buff[:n]))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, respMsg.GetID())
+	var resp string
+	assert.NoError(t, codec.Decode(respMsg.GetData(), &resp))
+	assert.Equal(t, resp, "test-resp")
+
+	assert.NoError(t, server.Stop())
 	assert.NoError(t, cli.Close())
 }
