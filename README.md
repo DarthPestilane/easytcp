@@ -5,8 +5,7 @@
 
 road map:
 
-- [x] tcp server
-- [x] udp server
-- [x] routing incoming message to handler through middlewares
-- [x] customize Packer and Codec
-- [x] customize logger
+- [x] TCP/UDP server
+- [x] Routing incoming message to handler through middlewares
+- [x] Customize Packer and Codec
+- [x] Customize logger
