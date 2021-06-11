@@ -15,6 +15,16 @@ type Msg16bit struct {
 	Data []byte
 }
 
+func (m *Msg16bit) Setup(id uint, data []byte) {
+	m.ID = uint16(id)
+	m.Data = data
+	m.Size = uint16(len(data))
+}
+
+func (m *Msg16bit) Duplicate() packet.Message {
+	return &Msg16bit{}
+}
+
 func (m *Msg16bit) GetID() uint {
 	return uint(m.ID)
 }

@@ -70,6 +70,16 @@ func (c *Context) Bind(v interface{}) error {
 	return c.Session.MsgCodec().Decode(c.MessageRawData(), v)
 }
 
+func (c *Context) ToResponse(id uint, data interface{}) (packet.Message, error) {
+	dataRaw, err := c.Session.MsgCodec().Encode(data)
+	if err != nil {
+		return nil, err
+	}
+	respMsg := c.Message.Duplicate()
+	respMsg.Setup(id, dataRaw)
+	return respMsg, nil
+}
+
 func newContext(sess session.Session, msg packet.Message) *Context {
 	return &Context{Session: sess, Message: msg}
 }

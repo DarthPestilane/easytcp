@@ -7,6 +7,7 @@ package mock
 import (
 	reflect "reflect"
 
+	packet "github.com/DarthPestilane/easytcp/packet"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -31,6 +32,20 @@ func NewMockMessage(ctrl *gomock.Controller) *MockMessage {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMessage) EXPECT() *MockMessageMockRecorder {
 	return m.recorder
+}
+
+// Duplicate mocks base method.
+func (m *MockMessage) Duplicate() packet.Message {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Duplicate")
+	ret0, _ := ret[0].(packet.Message)
+	return ret0
+}
+
+// Duplicate indicates an expected call of Duplicate.
+func (mr *MockMessageMockRecorder) Duplicate() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Duplicate", reflect.TypeOf((*MockMessage)(nil).Duplicate))
 }
 
 // GetData mocks base method.
@@ -73,4 +88,16 @@ func (m *MockMessage) GetSize() uint {
 func (mr *MockMessageMockRecorder) GetSize() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSize", reflect.TypeOf((*MockMessage)(nil).GetSize))
+}
+
+// Setup mocks base method.
+func (m *MockMessage) Setup(arg0 uint, arg1 []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Setup", arg0, arg1)
+}
+
+// Setup indicates an expected call of Setup.
+func (mr *MockMessageMockRecorder) Setup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Setup", reflect.TypeOf((*MockMessage)(nil).Setup), arg0, arg1)
 }
