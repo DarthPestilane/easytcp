@@ -13,15 +13,15 @@ import (
 // UDPSession represents a UDP session.
 // Implements Session interface.
 type UDPSession struct {
-	id         string               // session's id. a uuid
-	conn       *net.UDPConn         // udp connection
-	log        *logrus.Entry        // logger
-	closed     chan struct{}        // represents whether the session is closed. will be closed in Close() method
-	reqQueue   chan *packet.Request // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
-	ackQueue   chan []byte          // a non-buffer channel, pushed in SendResp(), popped in Write()
-	msgPacker  packet.Packer        // pack/unpack message packet
-	msgCodec   packet.Codec         // encode/decode message data
-	remoteAddr *net.UDPAddr         // UDP remote address, used to conn.WriteToUDP(remoteAddr)
+	id         string              // session's id. a uuid
+	conn       *net.UDPConn        // udp connection
+	log        *logrus.Entry       // logger
+	closed     chan struct{}       // represents whether the session is closed. will be closed in Close() method
+	reqQueue   chan packet.Message // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
+	ackQueue   chan []byte         // a non-buffer channel, pushed in SendResp(), popped in Write()
+	msgPacker  packet.Packer       // pack/unpack message packet
+	msgCodec   packet.Codec        // encode/decode message data
+	remoteAddr *net.UDPAddr        // UDP remote address, used to conn.WriteToUDP(remoteAddr)
 }
 
 var _ Session = &UDPSession{}
@@ -37,7 +37,7 @@ func NewUDP(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec pa
 		conn:       conn,
 		closed:     make(chan struct{}),
 		log:        logger.Default.WithField("sid", id).WithField("scope", "session.UDPSession"),
-		reqQueue:   make(chan *packet.Request),
+		reqQueue:   make(chan packet.Message),
 		ackQueue:   make(chan []byte),
 		msgPacker:  packer,
 		msgCodec:   codec,
@@ -58,8 +58,8 @@ func (s *UDPSession) MsgCodec() packet.Codec {
 }
 
 // RecvReq implements the Session RecvReq method.
-// Returns reqQueue channel which contains *packet.Request.
-func (s *UDPSession) RecvReq() <-chan *packet.Request {
+// Returns reqQueue channel which contains packet.Message.
+func (s *UDPSession) RecvReq() <-chan packet.Message {
 	return s.reqQueue
 }
 
@@ -72,28 +72,23 @@ func (s *UDPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
 	}
-	msg, err := s.msgPacker.Pack(resp.ID, data)
+	ackMsg, err := s.msgPacker.Pack(resp.ID, data)
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
-	return !s.safelyPushAckQueue(msg), nil
+	return !s.safelyPushAckQueue(ackMsg), nil
 }
 
-// ReadIncomingMsg reads and unpacks the incoming message packet inMsg,
-// then creates a packet.Request and push to reqQueue.
+// ReadIncomingMsg reads and unpacks the incoming message packet inMsg
+// to a packet.Message and push to reqQueue.
 // Returns error when unpack failed.
 func (s *UDPSession) ReadIncomingMsg(inMsg []byte) error {
-	msg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
+	reqMsg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
 	if err != nil {
 		s.log.Tracef("unpack incoming message err: %s", err)
 		return err
 	}
-	req := &packet.Request{
-		ID:      msg.GetID(),
-		RawSize: msg.GetSize(),
-		RawData: msg.GetData(),
-	}
-	s.safelyPushReqQueue(req)
+	s.safelyPushReqQueue(reqMsg)
 	return nil
 }
 
@@ -123,16 +118,16 @@ func (s *UDPSession) Close() {
 	close(s.ackQueue)
 }
 
-func (s *UDPSession) safelyPushReqQueue(req *packet.Request) {
+func (s *UDPSession) safelyPushReqQueue(reqMsg packet.Message) {
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
-	s.reqQueue <- req
+	s.reqQueue <- reqMsg
 }
 
-func (s *UDPSession) safelyPushAckQueue(msg []byte) (ok bool) {
+func (s *UDPSession) safelyPushAckQueue(ackMsg []byte) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -140,6 +135,6 @@ func (s *UDPSession) safelyPushAckQueue(msg []byte) (ok bool) {
 			s.log.Tracef("push ackQueue panics: %+v", r)
 		}
 	}()
-	s.ackQueue <- msg
+	s.ackQueue <- ackMsg
 	return ok
 }

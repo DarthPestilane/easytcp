@@ -67,9 +67,6 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().Return(uint(1))
-		msg.EXPECT().GetData().Return([]byte("test"))
-		msg.EXPECT().GetSize().Return(uint(1))
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
@@ -83,9 +80,6 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 		defer ctrl.Finish()
 
 		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().Return(uint(1))
-		msg.EXPECT().GetData().Return([]byte("test"))
-		msg.EXPECT().GetSize().Return(uint(1))
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
@@ -98,11 +92,15 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 }
 
 func TestUDPSession_RecvReq(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	msg := mock.NewMockMessage(ctrl)
+
 	sess := NewUDP(nil, nil, nil, nil)
-	go func() { sess.reqQueue <- nil }()
+	go func() { sess.reqQueue <- msg }()
 	req, ok := <-sess.RecvReq()
 	assert.True(t, ok)
-	assert.Nil(t, req)
+	assert.Equal(t, req, msg)
 	sess.Close()
 	_, ok = <-sess.RecvReq()
 	assert.False(t, ok)

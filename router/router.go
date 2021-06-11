@@ -28,7 +28,7 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-// HandlerFunc accepts Context ctx,
+// HandlerFunc accepts Context ctx pointer,
 // returns *packet.Response and error.
 type HandlerFunc func(ctx *Context) (*packet.Response, error)
 
@@ -54,8 +54,8 @@ func NewRouter() *Router {
 	}
 }
 
-// RouteLoop reads request from session.Session s in a loop way,
-// and routes the request to corresponding handler and middlewares if request is not nil.
+// RouteLoop reads message from session.Session s in a loop way,
+// and routes the message to corresponding handler and middlewares if message is not nil.
 // RouteLoop will break if session.Session s is closed.
 func (r *Router) RouteLoop(s session.Session) {
 	for {
@@ -76,24 +76,25 @@ func (r *Router) RouteLoop(s session.Session) {
 	r.log.WithField("sid", s.ID()).Tracef("loop exit")
 }
 
-// handleReq routes the packet.Request req to corresponding handler and middlewares,
+// handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
 // and call the handler functions, and send response to session.Session s if response is not nil.
 // Returns error when calling handler functions or sending response failed.
-func (r *Router) handleReq(s session.Session, req *packet.Request) error {
+func (r *Router) handleReq(s session.Session, reqMsg packet.Message) error {
 	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(req.ID); has {
+	if v, has := r.handlerMapper.Load(reqMsg.GetID()); has {
 		handler = v.(HandlerFunc)
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(req.ID); has {
+	if v, has := r.middlewaresMapper.Load(reqMsg.GetID()); has {
 		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
 	}
 
-	wrapped := r.wrapHandlers(handler, mws)
-
 	// create context
-	ctx := newContext(s, req)
+	ctx := newContext(s, reqMsg)
+
+	// create the handlers stack
+	wrapped := r.wrapHandlers(handler, mws)
 
 	// call the handlers stack now
 	resp, err := wrapped(ctx)

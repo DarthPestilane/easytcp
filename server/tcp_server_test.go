@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"runtime"
@@ -89,10 +88,10 @@ func TestTCPServer_handleConn(t *testing.T) {
 	})
 
 	// register route
-	server.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	server.AddRoute(1, func(ctx *router.Context) (*packet.Response, error) {
 		var reqData TestReq
-		assert.NoError(t, s.MsgCodec().Decode(req.RawData, &reqData))
-		assert.EqualValues(t, 1, req.ID)
+		assert.NoError(t, ctx.Bind(&reqData))
+		assert.EqualValues(t, 1, ctx.MessageID())
 		assert.Equal(t, reqData.Param, "hello test")
 		resp := &packet.Response{
 			ID:   2,
@@ -102,13 +101,13 @@ func TestTCPServer_handleConn(t *testing.T) {
 	})
 	// use middleware
 	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+		return func(ctx *router.Context) (*packet.Response, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
 				}
 			}()
-			return next(s, req)
+			return next(ctx)
 		}
 	})
 

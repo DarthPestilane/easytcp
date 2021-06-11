@@ -26,7 +26,7 @@ func main() {
 	s := easytcp.NewUDPServer(server.UDPOption{})
 
 	s.AddRoute(1, func(ctx *router.Context) (*packet.Response, error) {
-		log.Infof("recv: %s", string(ctx.Request.RawData))
+		log.Infof("recv: %s", string(ctx.MessageRawData()))
 		return &packet.Response{ID: 2, Data: "done"}, nil
 	})
 

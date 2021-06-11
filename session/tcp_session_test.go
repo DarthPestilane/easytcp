@@ -103,7 +103,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
 
 		sess := NewTCP(nil, packer, mock.NewMockCodec(ctrl))
-		sess.reqQueue = make(chan *packet.Request) // no buffer
+		sess.reqQueue = make(chan packet.Message) // no buffer
 		readDone := make(chan struct{})
 		go func() {
 			sess.ReadLoop(0)
@@ -111,23 +111,21 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		}()
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
-		expectReq := &packet.Request{
-			ID:      msg.GetID(),
-			RawSize: msg.GetSize(),
-			RawData: msg.GetData(),
-		}
-		assert.Equal(t, expectReq, req)
+		assert.Equal(t, msg, req)
 		<-readDone
 	})
 }
 
 func TestTCPSession_RecvReq(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	msg := mock.NewMockMessage(ctrl)
+
 	sess := NewTCP(nil, nil, nil)
-	req := &packet.Request{}
-	sess.reqQueue <- req
+	sess.reqQueue <- msg
 	reqRecv, ok := <-sess.RecvReq()
 	assert.True(t, ok)
-	assert.Equal(t, reqRecv, req)
+	assert.Equal(t, reqRecv, msg)
 
 	sess.Close()
 

@@ -10,7 +10,7 @@ import (
 type Session interface {
 	ID() string                                              // get session id
 	MsgCodec() packet.Codec                                  // get message codec
-	RecvReq() <-chan *packet.Request                         // fetch request from internal channel
+	RecvReq() <-chan packet.Message                          // fetch request message from internal channel
 	SendResp(resp *packet.Response) (closed bool, err error) // push resp into internal channel
 	Close()                                                  // close current session, exit corresponding goroutines
 }

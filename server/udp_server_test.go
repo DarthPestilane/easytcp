@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/session"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
@@ -88,17 +87,17 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	})
 	// use middleware
 	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+		return func(ctx *router.Context) (*packet.Response, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
 				}
 			}()
-			return next(s, req)
+			return next(ctx)
 		}
 	})
 	// register route
-	server.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	server.AddRoute(1, func(ctx *router.Context) (*packet.Response, error) {
 		return &packet.Response{
 			ID:   2,
 			Data: "test-resp",

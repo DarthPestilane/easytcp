@@ -14,15 +14,15 @@ import (
 // TCPSession represents a TCP session.
 // Implements Session interface.
 type TCPSession struct {
-	id        string               // session's ID. it's a uuid
-	conn      net.Conn             // tcp connection
-	log       *logrus.Entry        // logger
-	closeOnce sync.Once            // to make sure we can only close each session one time
-	closed    chan struct{}        // to close()
-	reqQueue  chan *packet.Request // request queue channel, pushed in ReadLoop() and popped in router.Router
-	ackQueue  chan []byte          // ack queue channel, pushed in SendResp() and popped in WriteLoop()
-	msgPacker packet.Packer        // to pack and unpack message
-	msgCodec  packet.Codec         // encode/decode message data
+	id        string              // session's ID. it's a uuid
+	conn      net.Conn            // tcp connection
+	log       *logrus.Entry       // logger
+	closeOnce sync.Once           // to make sure we can only close each session one time
+	closed    chan struct{}       // to close()
+	reqQueue  chan packet.Message // request queue channel, pushed in ReadLoop() and popped in router.Router
+	ackQueue  chan []byte         // ack queue channel, pushed in SendResp() and popped in WriteLoop()
+	msgPacker packet.Packer       // to pack and unpack message
+	msgCodec  packet.Codec        // encode/decode message data
 }
 
 var _ Session = &TCPSession{}
@@ -38,7 +38,7 @@ func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession
 		conn:      conn,
 		closed:    make(chan struct{}),
 		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
-		reqQueue:  make(chan *packet.Request, 1024),
+		reqQueue:  make(chan packet.Message, 1024),
 		ackQueue:  make(chan []byte, 1024),
 		msgPacker: packer,
 		msgCodec:  codec,
@@ -58,8 +58,8 @@ func (s *TCPSession) MsgCodec() packet.Codec {
 }
 
 // RecvReq implements the Session RecvReq method.
-// Returns reqQueue channel which contains *packet.Request.
-func (s *TCPSession) RecvReq() <-chan *packet.Request {
+// Returns reqQueue channel which contains packet.Message.
+func (s *TCPSession) RecvReq() <-chan packet.Message {
 	return s.reqQueue
 }
 
@@ -72,11 +72,11 @@ func (s *TCPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
 	if err != nil {
 		return false, fmt.Errorf("encode response data err: %s", err)
 	}
-	msg, err := s.msgPacker.Pack(resp.ID, data)
+	ackMsg, err := s.msgPacker.Pack(resp.ID, data)
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}
-	return !s.safelyPushAckQueue(msg), nil
+	return !s.safelyPushAckQueue(ackMsg), nil
 }
 
 // Close closes the session by closing all the channels.
@@ -88,8 +88,8 @@ func (s *TCPSession) Close() {
 	})
 }
 
-// ReadLoop reads TCP connection, unpacks message packet,
-// creates a packet.Request and push to reqQueue channel.
+// ReadLoop reads TCP connection, unpacks message packet
+// to a packet.Message, and push to reqQueue channel.
 // The above operations are in a loop.
 // Parameter readTimeout specified the connection reading timeout.
 // The loop will break if any error occurred, or the session is closed.
@@ -107,12 +107,7 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 			s.log.Tracef("unpack incoming message err: %s", err)
 			break
 		}
-		req := &packet.Request{
-			ID:      msg.GetID(),
-			RawSize: msg.GetSize(),
-			RawData: msg.GetData(),
-		}
-		if !s.safelyPushReqQueue(req) {
+		if !s.safelyPushReqQueue(msg) {
 			break
 		}
 	}
@@ -151,7 +146,7 @@ func (s *TCPSession) WaitUntilClosed() {
 	<-s.closed
 }
 
-func (s *TCPSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
+func (s *TCPSession) safelyPushReqQueue(reqMsg packet.Message) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -159,11 +154,11 @@ func (s *TCPSession) safelyPushReqQueue(req *packet.Request) (ok bool) {
 			s.log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
-	s.reqQueue <- req
+	s.reqQueue <- reqMsg
 	return ok
 }
 
-func (s *TCPSession) safelyPushAckQueue(msg []byte) (ok bool) {
+func (s *TCPSession) safelyPushAckQueue(ackMsg []byte) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -171,6 +166,6 @@ func (s *TCPSession) safelyPushAckQueue(msg []byte) (ok bool) {
 			s.log.Tracef("push ackQueue panics: %+v", r)
 		}
 	}()
-	s.ackQueue <- msg
+	s.ackQueue <- ackMsg
 	return ok
 }
