@@ -35,7 +35,6 @@ func (c *Context) Err() error {
 }
 
 // Value implements the context.Context Value method.
-// Value returns the value of c.storage by key.
 func (c *Context) Value(key interface{}) interface{} {
 	if keyAsString, ok := key.(string); ok {
 		val, _ := c.Get(keyAsString)
@@ -54,20 +53,22 @@ func (c *Context) Set(key string, value interface{}) {
 	c.storage.Store(key, value)
 }
 
+// MsgID returns the request message's ID.
 func (c *Context) MsgID() uint {
 	return c.reqMsg.GetID()
 }
 
+// MsgSize returns the request message's size.
 func (c *Context) MsgSize() uint {
 	return c.reqMsg.GetSize()
 }
 
+// MsgRawData returns the request message's data, which may been encoded.
 func (c *Context) MsgRawData() []byte {
 	return c.reqMsg.GetData()
 }
 
-// Bind binds the message data to v.
-// Returns error if occurred.
+// Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
 	return c.session.MsgCodec().Decode(c.MsgRawData(), v)
 }

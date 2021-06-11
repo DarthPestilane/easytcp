@@ -107,31 +107,18 @@ func TestUDPSession_RecvReq(t *testing.T) {
 }
 
 func TestUDPSession_SendResp(t *testing.T) {
-	t.Run("when encode msg failed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-
-		sess := NewUDP(nil, nil, nil, codec)
-		closed, err := sess.SendResp(&packet.Response{})
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "encode response data err")
-		assert.False(t, closed)
-	})
 	t.Run("when pack msg failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return(nil, fmt.Errorf("some err"))
+		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewUDP(nil, nil, packer, codec)
-		closed, err := sess.SendResp(&packet.Response{})
+		closed, err := sess.SendResp(message)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "pack response data err")
 		assert.False(t, closed)
@@ -140,15 +127,15 @@ func TestUDPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return([]byte("test"), nil)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("test"), nil)
 
 		sess := NewUDP(nil, nil, packer, codec)
 		sess.Close()
-		closed, err := sess.SendResp(&packet.Response{})
+		closed, err := sess.SendResp(message)
 		assert.NoError(t, err)
 		assert.True(t, closed)
 	})
@@ -156,15 +143,15 @@ func TestUDPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("test")).Return([]byte("test"), nil)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("test"), nil)
 
 		sess := NewUDP(nil, nil, packer, codec)
 		go func() { <-sess.ackQueue }()
-		closed, err := sess.SendResp(&packet.Response{})
+		closed, err := sess.SendResp(message)
 		assert.NoError(t, err)
 		assert.False(t, closed)
 	})

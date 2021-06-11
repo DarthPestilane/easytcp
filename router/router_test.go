@@ -65,7 +65,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 
 			rt := NewRouter()
 
-			rt.Register(1, func(ctx *Context) (*packet.Response, error) {
+			rt.Register(1, func(ctx *Context) (packet.Message, error) {
 				assert.EqualValues(t, ctx.MsgID(), 1)
 				assert.EqualValues(t, ctx.MsgSize(), 4)
 				assert.Equal(t, ctx.MsgRawData(), []byte("test"))
@@ -129,12 +129,12 @@ func TestRouter_Register(t *testing.T) {
 
 	h := defaultHandler
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*packet.Response, error) {
+		return func(ctx *Context) (packet.Message, error) {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*packet.Response, error) {
+		return func(ctx *Context) (packet.Message, error) {
 			return next(ctx)
 		}
 	}
@@ -166,17 +166,17 @@ func TestRouter_RegisterMiddleware(t *testing.T) {
 	assert.Len(t, rt.globalMiddlewares, 0)
 
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*packet.Response, error) {
+		return func(ctx *Context) (packet.Message, error) {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*packet.Response, error) {
+		return func(ctx *Context) (packet.Message, error) {
 			return next(ctx)
 		}
 	}
 	m3 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*packet.Response, error) {
+		return func(ctx *Context) (packet.Message, error) {
 			return next(ctx)
 		}
 	}
@@ -212,7 +212,7 @@ func TestRouter_handleReq(t *testing.T) {
 		rt := NewRouter()
 		var id uint = 1
 		rt.Register(id, defaultHandler, func(next HandlerFunc) HandlerFunc {
-			return func(ctx *Context) (*packet.Response, error) { return next(ctx) }
+			return func(ctx *Context) (packet.Message, error) { return next(ctx) }
 		})
 
 		ctrl := gomock.NewController(t)
@@ -227,7 +227,7 @@ func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := NewRouter()
 		var id uint = 1
-		rt.Register(id, func(ctx *Context) (*packet.Response, error) {
+		rt.Register(id, func(ctx *Context) (packet.Message, error) {
 			return nil, fmt.Errorf("some err")
 		})
 
@@ -244,24 +244,26 @@ func TestRouter_handleReq(t *testing.T) {
 	})
 	t.Run("when handler returns a non-nil response", func(t *testing.T) {
 		t.Run("when session send resp failed", func(t *testing.T) {
-			rt := NewRouter()
 			var id uint = 1
 
-			resp := &packet.Response{}
-			rt.Register(id, func(ctx *Context) (*packet.Response, error) {
-				return resp, nil
+			rt := NewRouter()
+
+			// register route
+			rt.Register(id, func(ctx *Context) (packet.Message, error) {
+				return &packet.DefaultMsg{}, nil
 			})
 
+			// mock
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			message := mockPacker.NewMockMessage(ctrl)
+			message.EXPECT().GetID().AnyTimes().Return(id)
+
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().SendResp(resp).Return(false, fmt.Errorf("some err"))
+			sess.EXPECT().SendResp(gomock.Any()).Return(false, fmt.Errorf("some err"))
 
-			msg := mockPacker.NewMockMessage(ctrl)
-			msg.EXPECT().GetID().AnyTimes().Return(id)
-
-			err := rt.handleReq(sess, msg)
+			err := rt.handleReq(sess, message)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "session send response err")
 		})
@@ -269,20 +271,20 @@ func TestRouter_handleReq(t *testing.T) {
 			rt := NewRouter()
 			var id uint = 1
 
-			resp := &packet.Response{}
-			rt.Register(id, func(ctx *Context) (*packet.Response, error) {
-				return resp, nil
+			rt.Register(id, func(ctx *Context) (packet.Message, error) {
+				return &packet.DefaultMsg{}, nil
 			})
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().SendResp(resp).Return(false, nil)
-			msg := mockPacker.NewMockMessage(ctrl)
-			msg.EXPECT().GetID().AnyTimes().Return(id)
+			message := mockPacker.NewMockMessage(ctrl)
+			message.EXPECT().GetID().AnyTimes().Return(id)
 
-			err := rt.handleReq(sess, msg)
+			sess := mock.NewMockSession(ctrl)
+			sess.EXPECT().SendResp(gomock.Any()).Return(false, nil)
+
+			err := rt.handleReq(sess, message)
 			assert.NoError(t, err)
 		})
 	})
@@ -301,13 +303,13 @@ func TestRouter_wrapHandlers(t *testing.T) {
 
 		middles := []MiddlewareFunc{
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*packet.Response, error) {
+				return func(ctx *Context) (packet.Message, error) {
 					result = append(result, "m1-before")
 					return next(ctx)
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*packet.Response, error) {
+				return func(ctx *Context) (packet.Message, error) {
 					result = append(result, "m2-before")
 					resp, err := next(ctx)
 					result = append(result, "m2-after")
@@ -315,22 +317,24 @@ func TestRouter_wrapHandlers(t *testing.T) {
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*packet.Response, error) {
+				return func(ctx *Context) (packet.Message, error) {
 					resp, err := next(ctx)
 					result = append(result, "m3-after")
 					return resp, err
 				}
 			},
 		}
-		var handler HandlerFunc = func(ctx *Context) (*packet.Response, error) {
+		var handler HandlerFunc = func(ctx *Context) (packet.Message, error) {
 			result = append(result, "done")
-			return &packet.Response{Data: "done"}, nil
+			msg := &packet.DefaultMsg{}
+			msg.Setup(2, []byte("done"))
+			return msg, nil
 		}
 
 		wrap := rt.wrapHandlers(handler, middles)
 		resp, err := wrap(nil)
 		assert.NoError(t, err)
-		assert.Equal(t, resp.Data, "done")
+		assert.EqualValues(t, resp.GetData(), "done")
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }

@@ -18,8 +18,10 @@ type Message interface {
 
 	// Setters
 
+	// Setup sets up the Message
 	Setup(id uint, data []byte)
 
+	// Duplicate should make an empty copy of Message.
 	Duplicate() Message
 }
 
@@ -37,10 +39,12 @@ type DefaultMsg struct {
 	Data []byte
 }
 
+// Duplicate implements the Message Duplicate method.
 func (d *DefaultMsg) Duplicate() Message {
 	return &DefaultMsg{}
 }
 
+// Setup implements the Message Setup method.
 func (d *DefaultMsg) Setup(id uint, data []byte) {
 	d.ID = uint32(id)
 	d.Data = data

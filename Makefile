@@ -19,7 +19,7 @@ lint-fix:
 coverprofile=.testCoverage.txt
 
 test:
-	CGO_ENABLED=0 go test -count=1 -covermode=atomic -coverprofile=${coverprofile} `go list ./... | grep -v /examples/`
+	CGO_ENABLED=0 go test -count=1 -covermode=set -coverprofile=${coverprofile} `go list ./... | grep -v /examples/`
 
 coverage:
 	CGO_ENABLED=0 go tool cover -html ${coverprofile}

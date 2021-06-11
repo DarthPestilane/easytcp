@@ -88,20 +88,16 @@ func TestTCPServer_handleConn(t *testing.T) {
 	})
 
 	// register route
-	server.AddRoute(1, func(ctx *router.Context) (*packet.Response, error) {
+	server.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
 		assert.EqualValues(t, 1, ctx.MsgID())
 		assert.Equal(t, reqData.Param, "hello test")
-		resp := &packet.Response{
-			ID:   2,
-			Data: &TestResp{Success: true},
-		}
-		return resp, nil
+		return ctx.Response(2, &TestResp{Success: true})
 	})
 	// use middleware
 	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(ctx *router.Context) (*packet.Response, error) {
+		return func(ctx *router.Context) (packet.Message, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
@@ -129,7 +125,12 @@ func TestTCPServer_handleConn(t *testing.T) {
 	reqData := &TestReq{Param: "hello test"}
 	reqDataByte, err := codec.Encode(reqData)
 	assert.NoError(t, err)
-	reqMsg, err := packer.Pack(1, reqDataByte)
+	msg := &packet.DefaultMsg{
+		ID:   1,
+		Size: uint32(len(reqDataByte)),
+		Data: reqDataByte,
+	}
+	reqMsg, err := packer.Pack(msg)
 	assert.NoError(t, err)
 	_, err = cli.Write(reqMsg)
 	assert.NoError(t, err)

@@ -135,31 +135,17 @@ func TestTCPSession_RecvReq(t *testing.T) {
 }
 
 func TestTCPSession_SendResp(t *testing.T) {
-	t.Run("when message encode failed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-
-		sess := NewTCP(nil, mock.NewMockPacker(ctrl), codec)
-		closed, err := sess.SendResp(&packet.Response{})
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "encode response data err")
-		assert.False(t, closed)
-	})
 	t.Run("when message pack failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
-
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return(nil, fmt.Errorf("some err"))
+		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewTCP(nil, packer, codec)
-		closed, err := sess.SendResp(&packet.Response{})
+		closed, err := sess.SendResp(message)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "pack response data err")
 		assert.False(t, closed)
@@ -168,15 +154,15 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("packed"), nil)
 
 		sess := NewTCP(nil, packer, codec)
-		sess.Close()                                     // close channel
-		closed, err := sess.SendResp(&packet.Response{}) // and then send resp
+		sess.Close()                          // close channel
+		closed, err := sess.SendResp(message) // and then send resp
 		assert.NoError(t, err)
 		assert.True(t, closed)
 	})
@@ -184,14 +170,14 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("packed"), nil)
 
 		sess := NewTCP(nil, packer, codec)
-		closed, err := sess.SendResp(&packet.Response{})
+		closed, err := sess.SendResp(message)
 		sess.Close()
 		assert.NoError(t, err)
 		assert.False(t, closed)

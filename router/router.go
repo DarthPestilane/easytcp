@@ -34,7 +34,7 @@ type HandlerFunc func(ctx *Context) (packet.Message, error)
 // A common pattern is like:
 //
 // 	var md MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-// 		return func(ctx *Context) (*packet.Response, error) {
+// 		return func(ctx *Context) (packet.Message, error) {
 // 			return next(ctx)
 // 		}
 // 	}
