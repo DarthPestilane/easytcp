@@ -9,6 +9,7 @@ import (
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -51,15 +52,9 @@ func handler(ctx *router.Context) (packet.Message, error) {
 	var data fixture.Json01Req
 	_ = ctx.Bind(&data)
 
-	panicMaker := map[bool]struct{}{
-		true:  {},
-		false: {},
-	}
-	for k := range panicMaker {
-		if !k {
-			panic("random panic here")
-		}
-		break
+	// make a random panic
+	if rand.Intn(2) == 0 {
+		panic("random panic here")
 	}
 
 	return ctx.Response(fixture.MsgIdJson01Ack, &fixture.Json01Resp{
@@ -75,12 +70,13 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 		log.Infof("recv request | id:(%d) size:(%d) data: %+v", ctx.MsgID(), ctx.MsgSize(), data)
 
 		defer func() {
-			if err == nil {
-				if resp != nil {
-					log.Infof("send response | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), resp.GetData())
-				} else {
-					log.Infof("don't send response since nil")
-				}
+			if err != nil {
+				return
+			}
+			if resp != nil {
+				log.Infof("send response | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), resp.GetData())
+			} else {
+				log.Infof("don't send response since nil")
 			}
 		}()
 		return next(ctx)

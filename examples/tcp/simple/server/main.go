@@ -50,17 +50,8 @@ func main() {
 
 func handler(ctx *router.Context) (packet.Message, error) {
 	var data string
-	_ = ctx.Bind(&data)
-
-	panicMaker := map[bool]struct{}{
-		true:  {},
-		false: {},
-	}
-	for k := range panicMaker {
-		if !k {
-			panic("random panic here")
-		}
-		break
+	if err := ctx.Bind(&data); err != nil {
+		return nil, err
 	}
 	return ctx.Response(fixture.MsgIdPingAck, data+"||pong, pong, pong")
 }
