@@ -30,34 +30,30 @@ func main() {
 	}
 }
 
-func handle(ctx *router.Context) (*packet.Response, error) {
+func handle(ctx *router.Context) (packet.Message, error) {
 	var reqData message.FooReq
 	if err := ctx.Bind(&reqData); err != nil {
 		return nil, err
 	}
-	return &packet.Response{
-		ID: uint(message.ID_FooRespID),
-		Data: &message.FooResp{
-			Code:    2,
-			Message: "success",
-		},
-	}, nil
+	return ctx.Response(uint(message.ID_FooReqID), &message.FooResp{
+		Code:    2,
+		Message: "success",
+	})
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (*packet.Response, error) {
+	return func(ctx *router.Context) (packet.Message, error) {
 		var reqData message.FooReq
 		if err := ctx.Bind(&reqData); err == nil {
-			log.Debugf("recv | id: %d; size: %d; data: %s", ctx.MessageID(), ctx.MessageSize(), reqData.String())
+			log.Debugf("recv | id: %d; size: %d; data: %s", ctx.MsgID(), ctx.MsgSize(), reqData.String())
 		}
 		resp, err := next(ctx)
 		if err != nil {
 			return resp, err
 		}
 		if resp != nil {
-			if msg, err := ctx.Session.MsgCodec().Encode(resp.Data); err == nil {
-				log.Infof("send | id: %d; size: %d; data: %s", resp.ID, len(msg), resp.Data)
-			}
+			r, _ := ctx.Get(router.RespKey)
+			log.Infof("send | id: %d; size: %d; data: %s", resp.GetID(), resp.GetSize(), r)
 		}
 		return resp, err
 	}

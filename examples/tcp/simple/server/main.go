@@ -48,7 +48,7 @@ func main() {
 	}
 }
 
-func handler(ctx *router.Context) (*packet.Response, error) {
+func handler(ctx *router.Context) (packet.Message, error) {
 	var data string
 	_ = ctx.Bind(&data)
 
@@ -62,18 +62,14 @@ func handler(ctx *router.Context) (*packet.Response, error) {
 		}
 		break
 	}
-
-	return &packet.Response{
-		ID:   fixture.MsgIdPingAck,
-		Data: data + "||pong, pong, pong",
-	}, nil
+	return ctx.Response(fixture.MsgIdPingAck, data+"||pong, pong, pong")
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (*packet.Response, error) {
+	return func(ctx *router.Context) (packet.Message, error) {
 		var data string
 		_ = ctx.Bind(&data)
-		log.Infof("recv req | id:(%d) size:(%d) data: %s", ctx.MessageID(), ctx.MessageSize(), data)
+		log.Infof("recv req | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), data)
 		return next(ctx)
 	}
 }

@@ -91,7 +91,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 	server.AddRoute(1, func(ctx *router.Context) (*packet.Response, error) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
-		assert.EqualValues(t, 1, ctx.MessageID())
+		assert.EqualValues(t, 1, ctx.MsgID())
 		assert.Equal(t, reqData.Param, "hello test")
 		resp := &packet.Response{
 			ID:   2,

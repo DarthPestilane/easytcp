@@ -47,7 +47,7 @@ func main() {
 	}
 }
 
-func handler(ctx *router.Context) (*packet.Response, error) {
+func handler(ctx *router.Context) (packet.Message, error) {
 	var data fixture.Json01Req
 	_ = ctx.Bind(&data)
 
@@ -62,28 +62,22 @@ func handler(ctx *router.Context) (*packet.Response, error) {
 		break
 	}
 
-	return &packet.Response{
-		ID: fixture.MsgIdJson01Ack,
-		Data: &fixture.Json01Resp{
-			Success: true,
-			Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
-		},
-	}, nil
+	return ctx.Response(fixture.MsgIdJson01Ack, &fixture.Json01Resp{
+		Success: true,
+		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
+	})
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp *packet.Response, err error) {
+	return func(ctx *router.Context) (resp packet.Message, err error) {
 		var data fixture.Json01Req
 		_ = ctx.Bind(&data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %+v", ctx.MessageID(), ctx.MessageSize(), data)
+		log.Infof("recv request | id:(%d) size:(%d) data: %+v", ctx.MsgID(), ctx.MsgSize(), data)
 
 		defer func() {
 			if err == nil {
-				size := 0
 				if resp != nil {
-					msgData, _ := ctx.Session.MsgCodec().Encode(resp.Data)
-					size = len(msgData)
-					log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.ID, size, resp.Data)
+					log.Infof("send response | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), resp.GetData())
 				} else {
 					log.Infof("don't send response since nil")
 				}

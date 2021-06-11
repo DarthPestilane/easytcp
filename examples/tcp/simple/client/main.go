@@ -24,11 +24,16 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg, err := packer.Pack(fixture.MsgIdPingReq, data)
+			msg := &packet.DefaultMsg{
+				ID:   uint32(fixture.MsgIdPingReq),
+				Size: uint32(len(data)),
+				Data: data,
+			}
+			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)
 			}
-			if _, err := conn.Write(msg); err != nil {
+			if _, err := conn.Write(packedMsg); err != nil {
 				panic(err)
 			}
 		}

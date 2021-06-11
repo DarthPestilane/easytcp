@@ -66,9 +66,9 @@ func TestRouter_RouteLoop(t *testing.T) {
 			rt := NewRouter()
 
 			rt.Register(1, func(ctx *Context) (*packet.Response, error) {
-				assert.EqualValues(t, ctx.MessageID(), 1)
-				assert.EqualValues(t, ctx.MessageSize(), 4)
-				assert.Equal(t, ctx.MessageRawData(), []byte("test"))
+				assert.EqualValues(t, ctx.MsgID(), 1)
+				assert.EqualValues(t, ctx.MsgSize(), 4)
+				assert.Equal(t, ctx.MsgRawData(), []byte("test"))
 				return nil, fmt.Errorf("some err")
 			})
 

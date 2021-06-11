@@ -28,9 +28,7 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-// HandlerFunc accepts Context ctx pointer,
-// returns *packet.Response and error.
-type HandlerFunc func(ctx *Context) (*packet.Response, error)
+type HandlerFunc func(ctx *Context) (packet.Message, error)
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
@@ -42,7 +40,7 @@ type HandlerFunc func(ctx *Context) (*packet.Response, error)
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var defaultHandler HandlerFunc = func(ctx *Context) (*packet.Response, error) {
+var defaultHandler HandlerFunc = func(ctx *Context) (packet.Message, error) {
 	return nil, nil
 }
 

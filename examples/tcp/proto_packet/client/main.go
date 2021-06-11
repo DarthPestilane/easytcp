@@ -36,11 +36,16 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg, err := packer.Pack(id, data)
+			msg := &packet.DefaultMsg{
+				ID:   uint32(id),
+				Size: uint32(len(data)),
+				Data: data,
+			}
+			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)
 			}
-			if _, err := conn.Write(msg); err != nil {
+			if _, err := conn.Write(packedMsg); err != nil {
 				panic(err)
 			}
 			log.Debugf("send | id: %d; size: %d; data: %s", id, len(data), req.String())

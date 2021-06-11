@@ -7,14 +7,16 @@ import (
 	"time"
 )
 
+// RespKey is the preset key to the response data before encoding.
+const RespKey = "easytcp.router.context.response"
+
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
 // Context implements the context.Context interface.
 type Context struct {
 	storage sync.Map
-
-	Session session.Session
-	Message packet.Message
+	session session.Session
+	reqMsg  packet.Message
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -52,34 +54,41 @@ func (c *Context) Set(key string, value interface{}) {
 	c.storage.Store(key, value)
 }
 
-func (c *Context) MessageID() uint {
-	return c.Message.GetID()
+func (c *Context) MsgID() uint {
+	return c.reqMsg.GetID()
 }
 
-func (c *Context) MessageSize() uint {
-	return c.Message.GetSize()
+func (c *Context) MsgSize() uint {
+	return c.reqMsg.GetSize()
 }
 
-func (c *Context) MessageRawData() []byte {
-	return c.Message.GetData()
+func (c *Context) MsgRawData() []byte {
+	return c.reqMsg.GetData()
 }
 
 // Bind binds the message data to v.
 // Returns error if occurred.
 func (c *Context) Bind(v interface{}) error {
-	return c.Session.MsgCodec().Decode(c.MessageRawData(), v)
+	return c.session.MsgCodec().Decode(c.MsgRawData(), v)
 }
 
-func (c *Context) ToResponse(id uint, data interface{}) (packet.Message, error) {
-	dataRaw, err := c.Session.MsgCodec().Encode(data)
+// SessionID returns current session's ID.
+func (c *Context) SessionID() string {
+	return c.session.ID()
+}
+
+// Response creates a response message.
+func (c *Context) Response(id uint, data interface{}) (packet.Message, error) {
+	c.Set(RespKey, data)
+	dataRaw, err := c.session.MsgCodec().Encode(data)
 	if err != nil {
 		return nil, err
 	}
-	respMsg := c.Message.Duplicate()
+	respMsg := c.reqMsg.Duplicate()
 	respMsg.Setup(id, dataRaw)
 	return respMsg, nil
 }
 
 func newContext(sess session.Session, msg packet.Message) *Context {
-	return &Context{Session: sess, Message: msg}
+	return &Context{session: sess, reqMsg: msg}
 }

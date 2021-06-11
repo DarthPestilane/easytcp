@@ -64,15 +64,11 @@ func (s *UDPSession) RecvReq() <-chan packet.Message {
 }
 
 // SendResp implements the Session SendResp method.
-// Encode and pack resp and push to ackQueue channel.
+// Pack respMsg and push to ackQueue channel.
 // It won't panic even when ackQueue channel is closed.
 // It returns error when encode or pack failed.
-func (s *UDPSession) SendResp(resp *packet.Response) (closed bool, _ error) {
-	data, err := s.msgCodec.Encode(resp.Data)
-	if err != nil {
-		return false, fmt.Errorf("encode response data err: %s", err)
-	}
-	ackMsg, err := s.msgPacker.Pack(resp.ID, data)
+func (s *UDPSession) SendResp(respMsg packet.Message) (closed bool, _ error) {
+	ackMsg, err := s.msgPacker.Pack(respMsg)
 	if err != nil {
 		return false, fmt.Errorf("pack response data err: %s", err)
 	}

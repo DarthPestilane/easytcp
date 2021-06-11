@@ -45,15 +45,15 @@ func (p *Packer16bit) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
-func (p *Packer16bit) Pack(id uint, data []byte) ([]byte, error) {
-	buff := bytes.NewBuffer(make([]byte, 0, len(data)+2+2))
-	if err := binary.Write(buff, p.bytesOrder(), uint16(len(data))); err != nil {
+func (p *Packer16bit) Pack(msg packet.Message) ([]byte, error) {
+	buff := bytes.NewBuffer(make([]byte, 0, msg.GetSize()+2+2))
+	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.GetSize())); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), uint16(id)); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.GetID())); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), data); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), msg.GetData()); err != nil {
 		return nil, fmt.Errorf("write data err: %s", err)
 	}
 	return buff.Bytes(), nil

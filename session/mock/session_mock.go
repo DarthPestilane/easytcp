@@ -89,7 +89,7 @@ func (mr *MockSessionMockRecorder) RecvReq() *gomock.Call {
 }
 
 // SendResp mocks base method.
-func (m *MockSession) SendResp(arg0 *packet.Response) (bool, error) {
+func (m *MockSession) SendResp(arg0 packet.Message) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendResp", arg0)
 	ret0, _ := ret[0].(bool)

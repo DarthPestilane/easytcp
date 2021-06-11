@@ -28,11 +28,16 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg, err := packer.Pack(fixture.MsgIdJson01Req, data)
+			msg := &fixture.Msg16bit{
+				Size: uint16(len(data)),
+				ID:   uint16(fixture.MsgIdJson01Req),
+				Data: data,
+			}
+			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)
 			}
-			if _, err := conn.Write(msg); err != nil {
+			if _, err := conn.Write(packedMsg); err != nil {
 				panic(err)
 			}
 		}

@@ -29,6 +29,7 @@ var _ Message = &DefaultMsg{}
 // DefaultMsg is of the format as:
 // 	(Size)(ID)(Data)
 // 	(4 bytes)(4 bytes)(n bytes)
+// 	Note: Size is only the size of Data.
 // DefaultMsg will be returned in DefaultPacker.Unpack() method.
 type DefaultMsg struct {
 	ID   uint32

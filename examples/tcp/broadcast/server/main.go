@@ -22,31 +22,37 @@ func init() {
 }
 
 func main() {
-	s := easytcp.NewTCPServer(server.TCPOption{})
+	s := easytcp.NewTCPServer(server.TCPOption{
+		MsgPacker: &packet.DefaultPacker{},
+		MsgCodec:  &packet.StringCodec{},
+	})
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (*packet.Response, error) {
+	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (packet.Message, error) {
 		var reqData string
 		_ = ctx.Bind(&reqData)
-		session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-			if _, ok := sess.(*session.TCPSession); !ok {
-				// only broadcast to the same kind sessions
+
+		// broadcasting
+		go session.Sessions().Range(func(id string, sess session.Session) (next bool) {
+			if _, ok := sess.(*session.TCPSession); !ok { // only broadcast to the same kind sessions
 				return true // next iteration
 			}
-			if ctx.Session.ID() == id {
+			if ctx.SessionID() == id {
 				return true // next iteration
 			}
-			_, err := sess.SendResp(&packet.Response{
-				ID:   fixture.MsgIdBroadCastAck,
-				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session.ID()),
-			})
+			msg, err := ctx.Response(fixture.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.SessionID()))
 			if err != nil {
+				log.Errorf("create response err: %s", err)
+				return true
+			}
+			if _, err := sess.SendResp(msg); err != nil {
 				log.Errorf("broadcast err: %s", err)
 			}
 			return true
 		})
-		return &packet.Response{ID: fixture.MsgIdBroadCastAck, Data: "broadcast done"}, nil
+
+		return ctx.Response(fixture.MsgIdBroadCastAck, "broadcast done")
 	})
 
 	go func() {
@@ -65,8 +71,15 @@ func main() {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (*packet.Response, error) {
-		log.Infof("recv request | %s", ctx.MessageRawData())
+	return func(ctx *router.Context) (resp packet.Message, err error) {
+		log.Infof("recv request | %s", ctx.MsgRawData())
+		defer func() {
+			if err != nil || resp == nil {
+				return
+			}
+			r, _ := ctx.Get(router.RespKey)
+			log.Infof("send response | id: %d; size: %d; data: %s", resp.GetID(), resp.GetSize(), r)
+		}()
 		return next(ctx)
 	}
 }

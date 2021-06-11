@@ -22,8 +22,9 @@ func init() {
 
 func main() {
 	senderClient()
-	readerClient(1)
-	readerClient(2)
+	for i := 0; i < 10; i++ {
+		readerClient(i)
+	}
 
 	select {}
 }
@@ -43,8 +44,14 @@ func senderClient() {
 		for {
 			time.Sleep(time.Second)
 			data, _ := codec.Encode(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
-			msg, _ := packer.Pack(fixture.MsgIdBroadCastReq, data)
-			if _, err := conn.Write(msg); err != nil {
+			msg := &packet.DefaultMsg{
+				ID:   uint32(fixture.MsgIdBroadCastReq),
+				Size: uint32(len(data)),
+				Data: data,
+			}
+
+			packedMsg, _ := packer.Pack(msg)
+			if _, err := conn.Write(packedMsg); err != nil {
 				log.Error(err)
 				return
 			}
