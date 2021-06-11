@@ -12,15 +12,15 @@ import (
 	"testing"
 )
 
-func TestNew(t *testing.T) {
-	rt := New()
+func TestNewRouter(t *testing.T) {
+	rt := NewRouter()
 	assert.NotNil(t, rt.log)
 	assert.NotNil(t, rt.globalMiddlewares)
 }
 
-func TestRouter_Loop(t *testing.T) {
+func TestRouter_RouteLoop(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
-		rt := New()
+		rt := NewRouter()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -30,10 +30,10 @@ func TestRouter_Loop(t *testing.T) {
 		close(reqCh)
 		sess.EXPECT().RecvReq().Return(reqCh)
 		sess.EXPECT().ID().Times(2).Return("test-session-id")
-		rt.Loop(sess) // should return
+		rt.RouteLoop(sess) // should return
 	})
 	t.Run("when received a nil request", func(t *testing.T) {
-		rt := New()
+		rt := NewRouter()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -48,14 +48,14 @@ func TestRouter_Loop(t *testing.T) {
 		sess.EXPECT().ID().Times(2).Return("test session id")
 		loopDone := make(chan struct{})
 		go func() {
-			rt.Loop(sess) // should not call to handler
+			rt.RouteLoop(sess) // should not call to handler
 			close(loopDone)
 		}()
 		<-loopDone
 	})
 	t.Run("when received a non-nil request", func(t *testing.T) {
 		t.Run("when handler returns error", func(t *testing.T) {
-			rt := New()
+			rt := NewRouter()
 
 			rt.Register(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 				assert.EqualValues(t, req.ID, 1)
@@ -76,13 +76,13 @@ func TestRouter_Loop(t *testing.T) {
 			sess.EXPECT().ID().MaxTimes(3).Return("test session id")
 			loopDone := make(chan struct{})
 			go func() {
-				rt.Loop(sess) // should not call to handler
+				rt.RouteLoop(sess) // should not call to handler
 				close(loopDone)
 			}()
 			<-loopDone
 		})
 		t.Run("when handler returns no error", func(t *testing.T) {
-			rt := New()
+			rt := NewRouter()
 
 			rt.Register(1, defaultHandler)
 			ctrl := gomock.NewController(t)
@@ -98,7 +98,7 @@ func TestRouter_Loop(t *testing.T) {
 			sess.EXPECT().ID().Times(2).Return("test session id")
 			loopDone := make(chan struct{})
 			go func() {
-				rt.Loop(sess) // should not call to handler
+				rt.RouteLoop(sess) // should not call to handler
 				close(loopDone)
 			}()
 			<-loopDone
@@ -107,7 +107,7 @@ func TestRouter_Loop(t *testing.T) {
 }
 
 func TestRouter_Register(t *testing.T) {
-	rt := New()
+	rt := NewRouter()
 
 	var id uint = 1
 
@@ -147,7 +147,7 @@ func TestRouter_Register(t *testing.T) {
 }
 
 func TestRouter_RegisterMiddleware(t *testing.T) {
-	rt := New()
+	rt := NewRouter()
 
 	rt.RegisterMiddleware()
 	assert.Len(t, rt.globalMiddlewares, 0)
@@ -186,7 +186,7 @@ func TestRouter_RegisterMiddleware(t *testing.T) {
 
 func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
-		rt := New()
+		rt := NewRouter()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -195,7 +195,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.Nil(t, rt.handleReq(sess, &packet.Request{ID: 1}))
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
-		rt := New()
+		rt := NewRouter()
 		var id uint = 1
 		rt.Register(id, defaultHandler, func(next HandlerFunc) HandlerFunc {
 			return func(s session.Session, req *packet.Request) (*packet.Response, error) { return next(s, req) }
@@ -208,7 +208,7 @@ func TestRouter_handleReq(t *testing.T) {
 		assert.Nil(t, rt.handleReq(sess, &packet.Request{ID: id}))
 	})
 	t.Run("when handler returns error", func(t *testing.T) {
-		rt := New()
+		rt := NewRouter()
 		var id uint = 1
 		rt.Register(id, func(s session.Session, req *packet.Request) (*packet.Response, error) {
 			return nil, fmt.Errorf("some err")
@@ -224,7 +224,7 @@ func TestRouter_handleReq(t *testing.T) {
 	})
 	t.Run("when handler returns a non-nil response", func(t *testing.T) {
 		t.Run("when session send resp failed", func(t *testing.T) {
-			rt := New()
+			rt := NewRouter()
 			var id uint = 1
 
 			resp := &packet.Response{}
@@ -242,7 +242,7 @@ func TestRouter_handleReq(t *testing.T) {
 			assert.Contains(t, err.Error(), "session send response err")
 		})
 		t.Run("when session send resp without error", func(t *testing.T) {
-			rt := New()
+			rt := NewRouter()
 			var id uint = 1
 
 			resp := &packet.Response{}
@@ -262,7 +262,7 @@ func TestRouter_handleReq(t *testing.T) {
 }
 
 func TestRouter_wrapHandlers(t *testing.T) {
-	rt := New()
+	rt := NewRouter()
 	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
 		wrap := rt.wrapHandlers(nil, nil)
 		resp, err := wrap(nil, nil)

@@ -53,7 +53,7 @@ func NewUDPServer(opt UDPOption) *UDPServer {
 		maxBufferSize: opt.MaxBufferSize,
 		accepting:     make(chan struct{}),
 		stopped:       make(chan struct{}),
-		router:        router.New(),
+		router:        router.NewRouter(),
 	}
 }
 
@@ -102,7 +102,7 @@ func (s *UDPServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess := session.NewUDP(s.conn, addr, s.msgPacker, s.msgCodec)
 	defer func() { s.log.WithField("sid", sess.ID()).Tracef("session closed") }()
 
-	go s.router.Loop(sess)
+	go s.router.RouteLoop(sess)
 	if err := sess.ReadIncomingMsg(msg); err != nil {
 		return
 	}

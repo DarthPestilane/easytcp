@@ -46,18 +46,18 @@ var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*
 	return nil, nil
 }
 
-// New creates a new Router pointer.
-func New() *Router {
+// NewRouter creates a new Router pointer.
+func NewRouter() *Router {
 	return &Router{
 		log:               logger.Default.WithField("scope", "router.Router"),
 		globalMiddlewares: make([]MiddlewareFunc, 0),
 	}
 }
 
-// Loop reads request from session.Session s in a loop way,
+// RouteLoop reads request from session.Session s in a loop way,
 // and routes the request to corresponding handler and middlewares if request is not nil.
-// Loop will break if session.Session s is closed.
-func (r *Router) Loop(s session.Session) {
+// RouteLoop will break if session.Session s is closed.
+func (r *Router) RouteLoop(s session.Session) {
 	for {
 		req, ok := <-s.RecvReq()
 		if !ok {

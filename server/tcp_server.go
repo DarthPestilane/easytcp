@@ -52,7 +52,7 @@ func NewTCPServer(opt TCPOption) *TCPServer {
 		msgPacker:    opt.MsgPacker,
 		msgCodec:     opt.MsgCodec,
 		accepting:    make(chan struct{}),
-		router:       router.New(),
+		router:       router.NewRouter(),
 	}
 }
 
@@ -100,7 +100,7 @@ func (s *TCPServer) acceptLoop() error {
 func (s *TCPServer) handleConn(conn *net.TCPConn) {
 	sess := session.NewTCP(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
-	go s.router.Loop(sess)
+	go s.router.RouteLoop(sess)
 	go sess.ReadLoop(s.readTimeout)
 	go sess.WriteLoop(s.writeTimeout)
 	sess.WaitUntilClosed()

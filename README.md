@@ -7,5 +7,9 @@ road map:
 
 - [x] TCP/UDP server
 - [x] Routing incoming message to handler through middlewares
-- [x] Customize Packer and Codec
+- [x] Customize `Packer` to pack and unpack message packet, and `Codec` to encode and decode message data
 - [x] Customize logger
+
+todo:
+
+- Refactor `Session`, `Request` and `Response` into a `context` thing in router's `HandlerFunc` ?
