@@ -28,21 +28,21 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-// HandlerFunc accepts session.Session s and *packet.Request req as parameters,
+// HandlerFunc accepts Context ctx,
 // returns *packet.Response and error.
-type HandlerFunc func(s session.Session, req *packet.Request) (*packet.Response, error)
+type HandlerFunc func(ctx *Context) (*packet.Response, error)
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
 //
 // 	var md MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-// 		return func(s session.Session, req *packet.Request) (*packet.Response, error) {
-// 			return next(s, req)
+// 		return func(ctx *Context) (*packet.Response, error) {
+// 			return next(ctx)
 // 		}
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var defaultHandler HandlerFunc = func(s session.Session, req *packet.Request) (*packet.Response, error) {
+var defaultHandler HandlerFunc = func(ctx *Context) (*packet.Response, error) {
 	return nil, nil
 }
 
@@ -85,15 +85,18 @@ func (r *Router) handleReq(s session.Session, req *packet.Request) error {
 		handler = v.(HandlerFunc)
 	}
 
-	var middles = r.globalMiddlewares
+	var mws = r.globalMiddlewares
 	if v, has := r.middlewaresMapper.Load(req.ID); has {
-		middles = append(middles, v.([]MiddlewareFunc)...) // append to global ones
+		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
 	}
 
-	wrapped := r.wrapHandlers(handler, middles)
+	wrapped := r.wrapHandlers(handler, mws)
+
+	// create context
+	ctx := newContext(s, req)
 
 	// call the handlers stack now
-	resp, err := wrapped(s, req)
+	resp, err := wrapped(ctx)
 	if err != nil {
 		return fmt.Errorf("handler err: %s", err)
 	}

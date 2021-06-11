@@ -8,7 +8,6 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
-	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -49,9 +48,9 @@ func main() {
 	}
 }
 
-func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
+func handler(ctx *router.Context) (*packet.Response, error) {
 	var data string
-	_ = s.MsgCodec().Decode(req.RawData, &data)
+	_ = ctx.Bind(&data)
 
 	panicMaker := map[bool]struct{}{
 		true:  {},
@@ -71,11 +70,11 @@ func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	return func(ctx *router.Context) (*packet.Response, error) {
 		var data string
-		_ = s.MsgCodec().Decode(req.RawData, &data)
-		log.Infof("recv req | id:(%d) size:(%d) data: %s", req.ID, req.RawSize, data)
-		return next(s, req)
+		_ = ctx.Bind(&data)
+		log.Infof("recv req | id:(%d) size:(%d) data: %s", ctx.MessageID(), ctx.MessageSize(), data)
+		return next(ctx)
 	}
 }
 

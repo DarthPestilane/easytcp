@@ -26,20 +26,20 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(fixture.MsgIdBroadCastReq, func(s session.Session, req *packet.Request) (*packet.Response, error) {
+	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (*packet.Response, error) {
 		var reqData string
-		_ = s.MsgCodec().Decode(req.RawData, &reqData)
+		_ = ctx.Bind(&reqData)
 		session.Sessions().Range(func(id string, sess session.Session) (next bool) {
 			if _, ok := sess.(*session.TCPSession); !ok {
 				// only broadcast to the same kind sessions
 				return true // next iteration
 			}
-			if s.ID() == id {
+			if ctx.Session.ID() == id {
 				return true // next iteration
 			}
 			_, err := sess.SendResp(&packet.Response{
 				ID:   fixture.MsgIdBroadCastAck,
-				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, s.ID()),
+				Data: fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session.ID()),
 			})
 			if err != nil {
 				log.Errorf("broadcast err: %s", err)
@@ -65,8 +65,8 @@ func main() {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s session.Session, req *packet.Request) (*packet.Response, error) {
-		log.Infof("recv request | %s", req.RawData)
-		return next(s, req)
+	return func(ctx *router.Context) (*packet.Response, error) {
+		log.Infof("recv request | %s", ctx.MessageRawData())
+		return next(ctx)
 	}
 }

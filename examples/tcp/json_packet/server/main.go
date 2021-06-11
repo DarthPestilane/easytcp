@@ -8,7 +8,6 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
-	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -48,9 +47,9 @@ func main() {
 	}
 }
 
-func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
+func handler(ctx *router.Context) (*packet.Response, error) {
 	var data fixture.Json01Req
-	_ = s.MsgCodec().Decode(req.RawData, &data)
+	_ = ctx.Bind(&data)
 
 	panicMaker := map[bool]struct{}{
 		true:  {},
@@ -73,16 +72,16 @@ func handler(s session.Session, req *packet.Request) (*packet.Response, error) {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(s session.Session, req *packet.Request) (resp *packet.Response, err error) {
+	return func(ctx *router.Context) (resp *packet.Response, err error) {
 		var data fixture.Json01Req
-		_ = s.MsgCodec().Decode(req.RawData, &data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %+v", req.ID, req.RawSize, data)
+		_ = ctx.Bind(&data)
+		log.Infof("recv request | id:(%d) size:(%d) data: %+v", ctx.MessageID(), ctx.MessageSize(), data)
 
 		defer func() {
 			if err == nil {
 				size := 0
 				if resp != nil {
-					msgData, _ := s.MsgCodec().Encode(resp.Data)
+					msgData, _ := ctx.Session.MsgCodec().Encode(resp.Data)
 					size = len(msgData)
 					log.Infof("send response | id:(%d) size:(%d) data: %+v", resp.ID, size, resp.Data)
 				} else {
@@ -90,6 +89,6 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 				}
 			}
 		}()
-		return next(s, req)
+		return next(ctx)
 	}
 }

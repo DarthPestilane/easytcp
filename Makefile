@@ -2,14 +2,13 @@
 
 ldflags = -ldflags="-s -w"
 
+default: build
+
 build:
+	CGO_ENABLED=0 go build ${ldflags} -v `go list ./... | grep -v /examples/`
+
+build-all:
 	CGO_ENABLED=0 go build ${ldflags} -v ./...
-
-build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${ldflags} -v ./...
-
-install:
-	CGO_ENABLED=0 go get -v -insecure -t -d
 
 lint:
 	CGO_ENABLED=0 golangci-lint run --concurrency=2
