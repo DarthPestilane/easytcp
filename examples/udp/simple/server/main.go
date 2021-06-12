@@ -6,8 +6,8 @@ import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
-	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -25,9 +25,9 @@ func main() {
 	// go printGoroutineNum()
 	s := easytcp.NewUDPServer(server.UDPOption{})
 
-	s.AddRoute(1, func(s session.Session, req *packet.Request) (*packet.Response, error) {
-		log.Infof("recv: %s", string(req.RawData))
-		return &packet.Response{ID: 2, Data: "done"}, nil
+	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
+		log.Infof("recv: %s", string(ctx.MsgRawData()))
+		return ctx.Response(2, "done")
 	})
 
 	go func() {

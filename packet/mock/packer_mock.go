@@ -36,18 +36,18 @@ func (m *MockPacker) EXPECT() *MockPackerMockRecorder {
 }
 
 // Pack mocks base method.
-func (m *MockPacker) Pack(arg0 uint, arg1 []byte) ([]byte, error) {
+func (m *MockPacker) Pack(arg0 packet.Message) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pack", arg0, arg1)
+	ret := m.ctrl.Call(m, "Pack", arg0)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Pack indicates an expected call of Pack.
-func (mr *MockPackerMockRecorder) Pack(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockPackerMockRecorder) Pack(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pack", reflect.TypeOf((*MockPacker)(nil).Pack), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pack", reflect.TypeOf((*MockPacker)(nil).Pack), arg0)
 }
 
 // Unpack mocks base method.

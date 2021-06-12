@@ -12,4 +12,6 @@ road map:
 
 todo:
 
-- Refactor `Session`, `Request` and `Response` into a `context` thing in router's `HandlerFunc` ?
+- [ ] Refactor `Session`, `Request` and `Response` into a `context` thing in router's `HandlerFunc` ?
+    - [x] Introduce `context` to contain session and message
+    - [x] refactor session's SendResp and RecvReq methods, do the pack and unpack there

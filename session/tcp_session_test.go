@@ -21,7 +21,7 @@ func TestNewTCP(t *testing.T) {
 	s, ok := sess.(*TCPSession)
 	assert.True(t, ok)
 	assert.NotNil(t, s.closed)
-	assert.NotNil(t, s.ackQueue)
+	assert.NotNil(t, s.respQueue)
 	assert.NotNil(t, s.reqQueue)
 	assert.NotNil(t, s.log)
 }
@@ -41,7 +41,7 @@ func TestTCPSession_Close(t *testing.T) {
 	assert.False(t, ok)
 	_, ok = <-sess.reqQueue
 	assert.False(t, ok)
-	_, ok = <-sess.ackQueue
+	_, ok = <-sess.respQueue
 	assert.False(t, ok)
 }
 
@@ -103,7 +103,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
 
 		sess := NewTCP(nil, packer, mock.NewMockCodec(ctrl))
-		sess.reqQueue = make(chan *packet.Request) // no buffer
+		sess.reqQueue = make(chan packet.Message) // no buffer
 		readDone := make(chan struct{})
 		go func() {
 			sess.ReadLoop(0)
@@ -111,23 +111,21 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		}()
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
-		expectReq := &packet.Request{
-			ID:      msg.GetID(),
-			RawSize: msg.GetSize(),
-			RawData: msg.GetData(),
-		}
-		assert.Equal(t, expectReq, req)
+		assert.Equal(t, msg, req)
 		<-readDone
 	})
 }
 
 func TestTCPSession_RecvReq(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	msg := mock.NewMockMessage(ctrl)
+
 	sess := NewTCP(nil, nil, nil)
-	req := &packet.Request{}
-	sess.reqQueue <- req
+	sess.reqQueue <- msg
 	reqRecv, ok := <-sess.RecvReq()
 	assert.True(t, ok)
-	assert.Equal(t, reqRecv, req)
+	assert.Equal(t, reqRecv, msg)
 
 	sess.Close()
 
@@ -137,66 +135,31 @@ func TestTCPSession_RecvReq(t *testing.T) {
 }
 
 func TestTCPSession_SendResp(t *testing.T) {
-	t.Run("when message encode failed", func(t *testing.T) {
+	t.Run("when safelyPushRespQueue failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-
-		sess := NewTCP(nil, mock.NewMockPacker(ctrl), codec)
-		closed, err := sess.SendResp(&packet.Response{})
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "encode response data err")
-		assert.False(t, closed)
-	})
-	t.Run("when message pack failed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
-
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewTCP(nil, packer, codec)
-		closed, err := sess.SendResp(&packet.Response{})
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "pack response data err")
-		assert.False(t, closed)
+		sess.Close()                            // close channel
+		assert.Error(t, sess.SendResp(message)) // and then send resp
 	})
-	t.Run("when safelyPushAckQueue failed", func(t *testing.T) {
+	t.Run("when safelyPushRespQueue succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
+		message := mock.NewMockMessage(ctrl)
 		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
-
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
 
 		sess := NewTCP(nil, packer, codec)
-		sess.Close()                                     // close channel
-		closed, err := sess.SendResp(&packet.Response{}) // and then send resp
-		assert.NoError(t, err)
-		assert.True(t, closed)
-	})
-	t.Run("when safelyPushAckQueue succeed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encoded"), nil)
-
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any(), []byte("encoded")).Return([]byte("packed"), nil)
-
-		sess := NewTCP(nil, packer, codec)
-		closed, err := sess.SendResp(&packet.Response{})
+		sess.respQueue = make(chan packet.Message) // no buffer
+		go func() { <-sess.respQueue }()
+		assert.NoError(t, sess.SendResp(message))
 		sess.Close()
-		assert.NoError(t, err)
-		assert.False(t, closed)
 	})
 }
 
@@ -218,54 +181,68 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
+	t.Run("when pack response message failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		message := mock.NewMockMessage(ctrl)
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
+
+		sess := NewTCP(nil, packer, nil)
+		go sess.WriteLoop(0)
+		time.Sleep(time.Millisecond * 5)
+		sess.respQueue <- message
+		time.Sleep(time.Millisecond * 5)
+		sess.Close() // should break the write loop
+		assert.True(t, true)
+	})
 	t.Run("when set write deadline failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		message := mock.NewMockMessage(ctrl)
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
+
 		p1, _ := net.Pipe()
 		_ = p1.Close()
-		sess := NewTCP(p1, nil, nil)
-		sess.ackQueue <- []byte("test")
+		sess := NewTCP(p1, packer, nil)
+		sess.respQueue <- message
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
 	t.Run("when conn write timeout", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		message := mock.NewMockMessage(ctrl)
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
+
 		p1, _ := net.Pipe()
-		sess := NewTCP(p1, nil, nil)
-		sess.ackQueue <- []byte("test")
+		sess := NewTCP(p1, packer, nil)
+		sess.respQueue <- message
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 		_ = p1.Close()
 	})
 	t.Run("when conn write failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		message := mock.NewMockMessage(ctrl)
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
+
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
-		sess := NewTCP(p1, nil, nil)
-		sess.ackQueue <- []byte("test")
+		sess := NewTCP(p1, packer, nil)
+		sess.respQueue <- message
 		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
-	})
-	t.Run("it should return when session closed", func(t *testing.T) {
-		p1, p2 := net.Pipe()
-		go func() {
-			buf := make([]byte, 8)
-			_, err := p1.Read(buf)
-			assert.NoError(t, err)
-		}()
-		sess := NewTCP(p2, nil, nil)
-		sess.ackQueue = make(chan []byte) // no buffer
-		writeDone := make(chan struct{})
-		go func() {
-			sess.WriteLoop(0)
-			writeDone <- struct{}{}
-		}()
-		sess.ackQueue <- []byte("test")
-		<-time.After(time.Millisecond * 100)
-		sess.Close()
-		_, ok := <-sess.closed
-		assert.False(t, ok)
-		<-writeDone
-		assert.NoError(t, p1.Close())
-		assert.NoError(t, p2.Close())
 	})
 }

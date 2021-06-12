@@ -18,7 +18,13 @@ func main() {
 
 	go func() {
 		for {
-			msgSend, _ := packer.Pack(1, []byte("hello"))
+			data := []byte("hello")
+			msg := &packet.DefaultMsg{
+				ID:   1,
+				Size: uint32(len(data)),
+				Data: data,
+			}
+			msgSend, _ := packer.Pack(msg)
 			if _, err := conn.Write(msgSend); err != nil {
 				panic(err)
 			}

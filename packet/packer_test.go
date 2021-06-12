@@ -8,14 +8,20 @@ import (
 )
 
 func TestDefaultPacker_Pack(t *testing.T) {
-	p := &DefaultPacker{}
 	id := uint32(123)
 	data := []byte("hello")
 	size := uint32(len(data))
-	msg, err := p.Pack(uint(id), data)
+	rawMsg := &DefaultMsg{
+		ID:   id,
+		Size: size,
+		Data: data,
+	}
+
+	p := &DefaultPacker{}
+	packedMsg, err := p.Pack(rawMsg)
 	assert.NoError(t, err)
 
-	unpacker := binpacker.NewUnpacker(p.bytesOrder(), bytes.NewReader(msg))
+	unpacker := binpacker.NewUnpacker(p.bytesOrder(), bytes.NewReader(packedMsg))
 	size2, err := unpacker.ShiftUint32()
 	assert.NoError(t, err)
 	assert.Equal(t, size, size2)
