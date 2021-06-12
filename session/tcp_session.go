@@ -20,7 +20,7 @@ type TCPSession struct {
 	closeOnce sync.Once           // to make sure we can only close each session one time
 	closed    chan struct{}       // to close()
 	reqQueue  chan packet.Message // request queue channel, pushed in ReadLoop() and popped in router.Router
-	ackQueue  chan []byte         // ack queue channel, pushed in SendResp() and popped in WriteLoop()
+	respQueue chan packet.Message // response queue channel, pushed in SendResp() and popped in WriteLoop()
 	msgPacker packet.Packer       // to pack and unpack message
 	msgCodec  packet.Codec        // encode/decode message data
 }
@@ -39,7 +39,7 @@ func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession
 		closed:    make(chan struct{}),
 		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
 		reqQueue:  make(chan packet.Message, 1024),
-		ackQueue:  make(chan []byte, 1024),
+		respQueue: make(chan packet.Message, 1024),
 		msgPacker: packer,
 		msgCodec:  codec,
 	}
@@ -64,15 +64,12 @@ func (s *TCPSession) RecvReq() <-chan packet.Message {
 }
 
 // SendResp implements the Session SendResp method.
-// Pack respMsg and push to ackQueue channel.
-// It won't panic even when ackQueue channel is closed.
-// It returns error when encode or pack failed.
-func (s *TCPSession) SendResp(respMsg packet.Message) (closed bool, _ error) {
-	ackMsg, err := s.msgPacker.Pack(respMsg)
-	if err != nil {
-		return false, fmt.Errorf("pack response data err: %s", err)
+// If respQueue is closed, returns false.
+func (s *TCPSession) SendResp(respMsg packet.Message) error {
+	if !s.safelyPushRespQueue(respMsg) {
+		return fmt.Errorf("session's closed")
 	}
-	return !s.safelyPushAckQueue(ackMsg), nil
+	return nil
 }
 
 // Close closes the session by closing all the channels.
@@ -80,7 +77,7 @@ func (s *TCPSession) Close() {
 	s.closeOnce.Do(func() {
 		close(s.closed)
 		close(s.reqQueue)
-		close(s.ackQueue)
+		close(s.respQueue)
 	})
 }
 
@@ -111,16 +108,22 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 	s.Close()
 }
 
-// WriteLoop fetches message from ackQueue channel and writes to TCP connection.
+// WriteLoop fetches message from respQueue channel and writes to TCP connection.
 // The above operations are in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop will break if any error occurred, or the session is closed.
 // After loop ended, this session will be closed.
 func (s *TCPSession) WriteLoop(writeTimeout time.Duration) {
 	for {
-		msg, ok := <-s.ackQueue
+		respMsg, ok := <-s.respQueue
 		if !ok {
 			break
+		}
+		// pack message
+		ackMsg, err := s.msgPacker.Pack(respMsg)
+		if err != nil {
+			s.log.Tracef("pack response message err: %s", err)
+			continue
 		}
 		if writeTimeout > 0 {
 			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
@@ -128,7 +131,7 @@ func (s *TCPSession) WriteLoop(writeTimeout time.Duration) {
 				break
 			}
 		}
-		if _, err := s.conn.Write(msg); err != nil {
+		if _, err := s.conn.Write(ackMsg); err != nil {
 			s.log.Tracef("conn write err: %s", err)
 			break
 		}
@@ -154,14 +157,14 @@ func (s *TCPSession) safelyPushReqQueue(reqMsg packet.Message) (ok bool) {
 	return ok
 }
 
-func (s *TCPSession) safelyPushAckQueue(ackMsg []byte) (ok bool) {
+func (s *TCPSession) safelyPushRespQueue(respMsg packet.Message) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			s.log.Tracef("push ackQueue panics: %+v", r)
+			s.log.Tracef("push respQueue panics: %+v", r)
 		}
 	}()
-	s.ackQueue <- ackMsg
+	s.respQueue <- respMsg
 	return ok
 }

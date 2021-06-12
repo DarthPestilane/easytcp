@@ -14,5 +14,4 @@ todo:
 
 - [ ] Refactor `Session`, `Request` and `Response` into a `context` thing in router's `HandlerFunc` ?
     - [x] Introduce `context` to contain session and message
-    - [ ] refactor session's SendResp and RecvReq methods, do the pack and unpack there
-- [ ] Bind `Server` to `Session`, so we don't need to assign codec and packer to each session.
+    - [x] refactor session's SendResp and RecvReq methods, do the pack and unpack there

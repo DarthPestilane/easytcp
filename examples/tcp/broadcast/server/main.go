@@ -46,7 +46,7 @@ func main() {
 				log.Errorf("create response err: %s", err)
 				return true
 			}
-			if _, err := sess.SendResp(msg); err != nil {
+			if err := sess.SendResp(msg); err != nil {
 				log.Errorf("broadcast err: %s", err)
 			}
 			return true

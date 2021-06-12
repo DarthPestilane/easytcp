@@ -261,11 +261,10 @@ func TestRouter_handleReq(t *testing.T) {
 			message.EXPECT().GetID().AnyTimes().Return(id)
 
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().SendResp(gomock.Any()).Return(false, fmt.Errorf("some err"))
+			sess.EXPECT().SendResp(gomock.Any()).Return(fmt.Errorf("some err"))
 
 			err := rt.handleReq(sess, message)
 			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "session send response err")
 		})
 		t.Run("when session send resp without error", func(t *testing.T) {
 			rt := NewRouter()
@@ -282,7 +281,7 @@ func TestRouter_handleReq(t *testing.T) {
 			message.EXPECT().GetID().AnyTimes().Return(id)
 
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().SendResp(gomock.Any()).Return(false, nil)
+			sess.EXPECT().SendResp(gomock.Any()).Return(nil)
 
 			err := rt.handleReq(sess, message)
 			assert.NoError(t, err)

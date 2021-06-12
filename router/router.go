@@ -102,8 +102,8 @@ func (r *Router) handleReq(s session.Session, reqMsg packet.Message) error {
 	if resp == nil {
 		return nil
 	}
-	if _, err := s.SendResp(resp); err != nil {
-		return fmt.Errorf("session send response err: %s", err)
+	if err := s.SendResp(resp); err != nil {
+		return fmt.Errorf("send response err: %s", err)
 	}
 	return nil
 }

@@ -104,6 +104,7 @@ func (s *UDPServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 
 	go s.router.RouteLoop(sess)
 	if err := sess.ReadIncomingMsg(msg); err != nil {
+		s.log.WithField("sid", sess.ID()).Tracef("read incoming message err: %s", err)
 		return
 	}
 	sess.Write(s.stopped)

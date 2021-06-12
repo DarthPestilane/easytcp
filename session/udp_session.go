@@ -18,7 +18,7 @@ type UDPSession struct {
 	log        *logrus.Entry       // logger
 	closed     chan struct{}       // represents whether the session is closed. will be closed in Close() method
 	reqQueue   chan packet.Message // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
-	ackQueue   chan []byte         // a non-buffer channel, pushed in SendResp(), popped in Write()
+	respQueue  chan packet.Message // a non-buffer channel, pushed in SendResp(), popped in Write()
 	msgPacker  packet.Packer       // pack/unpack message packet
 	msgCodec   packet.Codec        // encode/decode message data
 	remoteAddr *net.UDPAddr        // UDP remote address, used to conn.WriteToUDP(remoteAddr)
@@ -38,7 +38,7 @@ func NewUDP(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec pa
 		closed:     make(chan struct{}),
 		log:        logger.Default.WithField("sid", id).WithField("scope", "session.UDPSession"),
 		reqQueue:   make(chan packet.Message),
-		ackQueue:   make(chan []byte),
+		respQueue:  make(chan packet.Message),
 		msgPacker:  packer,
 		msgCodec:   codec,
 		remoteAddr: addr,
@@ -64,15 +64,12 @@ func (s *UDPSession) RecvReq() <-chan packet.Message {
 }
 
 // SendResp implements the Session SendResp method.
-// Pack respMsg and push to ackQueue channel.
-// It won't panic even when ackQueue channel is closed.
-// It returns error when encode or pack failed.
-func (s *UDPSession) SendResp(respMsg packet.Message) (closed bool, _ error) {
-	ackMsg, err := s.msgPacker.Pack(respMsg)
-	if err != nil {
-		return false, fmt.Errorf("pack response data err: %s", err)
+// If respQueue channel is closed, returns false.
+func (s *UDPSession) SendResp(respMsg packet.Message) error {
+	if !s.safelyPushRespQueue(respMsg) {
+		return fmt.Errorf("session's closed")
 	}
-	return !s.safelyPushAckQueue(ackMsg), nil
+	return nil
 }
 
 // ReadIncomingMsg reads and unpacks the incoming message packet inMsg
@@ -81,25 +78,29 @@ func (s *UDPSession) SendResp(respMsg packet.Message) (closed bool, _ error) {
 func (s *UDPSession) ReadIncomingMsg(inMsg []byte) error {
 	reqMsg, err := s.msgPacker.Unpack(bytes.NewReader(inMsg))
 	if err != nil {
-		s.log.Tracef("unpack incoming message err: %s", err)
-		return err
+		return fmt.Errorf("unpack incoming message err: %s", err)
 	}
 	s.safelyPushReqQueue(reqMsg)
 	return nil
 }
 
 // Write writes the message to a UDP peer.
-// Will stop as soon as <-done or ackQueue closed,
+// Will stop as soon as <-done or respQueue closed,
 // or when connection failed to write.
 func (s *UDPSession) Write(done <-chan struct{}) {
 	select {
 	case <-done:
 		return
-	case msg, ok := <-s.ackQueue:
+	case respMsg, ok := <-s.respQueue:
 		if !ok {
 			return
 		}
-		if _, err := s.conn.WriteToUDP(msg, s.remoteAddr); err != nil {
+		ackMsg, err := s.msgPacker.Pack(respMsg)
+		if err != nil {
+			s.log.Tracef("pack response message err: %s", err)
+			return
+		}
+		if _, err := s.conn.WriteToUDP(ackMsg, s.remoteAddr); err != nil {
 			s.log.Tracef("conn write err: %s", err)
 			return
 		}
@@ -111,7 +112,7 @@ func (s *UDPSession) Write(done <-chan struct{}) {
 func (s *UDPSession) Close() {
 	close(s.closed)
 	close(s.reqQueue)
-	close(s.ackQueue)
+	close(s.respQueue)
 }
 
 func (s *UDPSession) safelyPushReqQueue(reqMsg packet.Message) {
@@ -123,14 +124,14 @@ func (s *UDPSession) safelyPushReqQueue(reqMsg packet.Message) {
 	s.reqQueue <- reqMsg
 }
 
-func (s *UDPSession) safelyPushAckQueue(ackMsg []byte) (ok bool) {
+func (s *UDPSession) safelyPushRespQueue(respMsg packet.Message) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			s.log.Tracef("push ackQueue panics: %+v", r)
+			s.log.Tracef("push respQueue panics: %+v", r)
 		}
 	}()
-	s.ackQueue <- ackMsg
+	s.respQueue <- respMsg
 	return ok
 }
