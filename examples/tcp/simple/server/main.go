@@ -31,7 +31,17 @@ func main() {
 		WriteTimeout: time.Second * 10,
 	})
 
-	s.AddRoute(fixture.MsgIdPingReq, handler, fixture.RecoverMiddleware(log), logMiddleware)
+	// register global middlewares
+	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
+
+	// register a route
+	s.AddRoute(fixture.MsgIdPingReq, func(ctx *router.Context) (packet.Message, error) {
+		var data string
+		if err := ctx.Bind(&data); err != nil {
+			return nil, err
+		}
+		return ctx.Response(fixture.MsgIdPingAck, "pong, pong, pong")
+	})
 
 	go func() {
 		log.Infof("serving at %s", fixture.ServerAddr)
@@ -48,19 +58,17 @@ func main() {
 	}
 }
 
-func handler(ctx *router.Context) (packet.Message, error) {
-	var data string
-	if err := ctx.Bind(&data); err != nil {
-		return nil, err
-	}
-	return ctx.Response(fixture.MsgIdPingAck, data+"||pong, pong, pong")
-}
-
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (packet.Message, error) {
+	return func(ctx *router.Context) (resp packet.Message, err error) {
 		var data string
 		_ = ctx.Bind(&data)
-		log.Infof("recv req | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), data)
+		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), data)
+		defer func() {
+			if err != nil || resp == nil {
+				return
+			}
+			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), ctx.Value(router.RespKey))
+		}()
 		return next(ctx)
 	}
 }

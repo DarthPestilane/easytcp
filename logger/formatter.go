@@ -14,7 +14,7 @@ type TextFormatter struct {
 func NewTextFormatter() *TextFormatter {
 	return &TextFormatter{
 		WithColor:  true,
-		TimeFormat: "2006-01-02T15:04:05.000Z07:00",
+		TimeFormat: "2006-01-02T15:04:05.000000Z07:00",
 	}
 }
 
