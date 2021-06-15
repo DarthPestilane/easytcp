@@ -26,6 +26,9 @@ type StringCodec struct{}
 
 // Encode implements the Codec Encode method.
 func (c *StringCodec) Encode(data interface{}) ([]byte, error) {
+	if _, ok := data.(string); !ok {
+		return nil, fmt.Errorf("data must be a string")
+	}
 	return []byte(data.(string)), nil
 }
 

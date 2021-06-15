@@ -10,6 +10,10 @@ func TestStringCodec_Encode(t *testing.T) {
 	b, err := c.Encode("hello")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("hello"), b)
+
+	b, err = c.Encode(true)
+	assert.Error(t, err)
+	assert.Nil(t, b)
 }
 
 func TestStringCodec_Decode(t *testing.T) {
