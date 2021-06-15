@@ -3,7 +3,6 @@ package packet
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 )
 
 //go:generate mockgen -destination mock/codec_mock.go -package mock . Codec
@@ -33,11 +32,10 @@ func (c *StringCodec) Encode(data interface{}) ([]byte, error) {
 // Decode implements the Codec Decode method.
 // Parameter v should be a String pointer, or an error will return.
 func (c *StringCodec) Decode(data []byte, v interface{}) error {
-	vv := reflect.ValueOf(v)
-	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.String {
+	if _, ok := v.(*string); !ok {
 		return fmt.Errorf("v must be a string pointer")
 	}
-	vv.Elem().SetString(string(data))
+	*v.(*string) = string(data)
 	return nil
 }
 
