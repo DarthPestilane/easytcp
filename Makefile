@@ -31,6 +31,10 @@ coverage:
 .PHONY: spec
 spec: lint test
 
+.PHONY: bench
+bench:
+	CGO_ENABLED=0 go test -bench=. -run=none -benchmem `go list ./... | grep -v /examples/`
+
 .PHONY: tidy
 tidy:
 	go mod tidy
