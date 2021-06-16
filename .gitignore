@@ -1,5 +1,6 @@
-.idea
-vender
+.idea/
+vender/
 
 *.exe
 .testCoverage.txt
+*.test
