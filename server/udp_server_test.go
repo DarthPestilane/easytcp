@@ -11,9 +11,12 @@ import (
 )
 
 func TestNewUDPServer(t *testing.T) {
-	u := NewUDPServer(UDPOption{})
+	u := NewUDPServer(UDPOption{
+		MsgCodec: &packet.StringCodec{},
+	})
 	assert.NotNil(t, u.log)
 	assert.NotNil(t, u.accepting)
+	assert.NotNil(t, u.stopped)
 	assert.Equal(t, u.msgPacker, &packet.DefaultPacker{})
 	assert.Equal(t, u.msgCodec, &packet.StringCodec{})
 	assert.Equal(t, u.maxBufferSize, 1024)

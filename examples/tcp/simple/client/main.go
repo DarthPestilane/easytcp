@@ -14,17 +14,12 @@ func main() {
 		panic(err)
 	}
 	log := logger.Default
-	codec := &packet.StringCodec{}
 	packer := &packet.DefaultPacker{}
 	go func() {
 		// write loop
 		for {
 			time.Sleep(time.Second)
-			data := "ping, ping, ping"
-			rawData, err := codec.Encode("ping, ping, ping")
-			if err != nil {
-				panic(err)
-			}
+			rawData := []byte("ping, ping, ping")
 			msg := &packet.DefaultMsg{
 				ID:   uint32(fixture.MsgIdPingReq),
 				Size: uint32(len(rawData)),
@@ -37,7 +32,7 @@ func main() {
 			if _, err := conn.Write(packedMsg); err != nil {
 				panic(err)
 			}
-			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), data)
+			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), rawData)
 		}
 	}()
 	go func() {
@@ -47,11 +42,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			var data string
-			if err := codec.Decode(msg.GetData(), &data); err != nil {
-				panic(err)
-			}
-			log.Infof("rec <<< | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), data)
+			log.Infof("rec <<< | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), msg.GetData())
 		}
 	}()
 	select {}

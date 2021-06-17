@@ -41,9 +41,6 @@ func NewTCPServer(opt TCPOption) *TCPServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
-	if opt.MsgCodec == nil {
-		opt.MsgCodec = &packet.StringCodec{}
-	}
 	return &TCPServer{
 		log:          logger.Default.WithField("scope", "server.TCPServer"),
 		rwBufferSize: opt.RWBufferSize,

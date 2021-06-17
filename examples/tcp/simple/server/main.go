@@ -29,6 +29,8 @@ func main() {
 		RWBufferSize: 1024 * 1024,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
+		MsgPacker:    &packet.DefaultPacker{}, // with default packer
+		MsgCodec:     nil,                     // without codec
 	})
 
 	// register global middlewares
@@ -36,10 +38,6 @@ func main() {
 
 	// register a route
 	s.AddRoute(fixture.MsgIdPingReq, func(ctx *router.Context) (packet.Message, error) {
-		var data string
-		if err := ctx.Bind(&data); err != nil {
-			return nil, err
-		}
 		return ctx.Response(fixture.MsgIdPingAck, "pong, pong, pong")
 	})
 
@@ -60,9 +58,7 @@ func main() {
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 	return func(ctx *router.Context) (resp packet.Message, err error) {
-		var data string
-		_ = ctx.Bind(&data)
-		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), data)
+		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
 		defer func() {
 			if err != nil || resp == nil {
 				return
