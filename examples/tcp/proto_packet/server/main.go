@@ -19,7 +19,8 @@ func init() {
 
 func main() {
 	srv := easytcp.NewTCPServer(server.TCPOption{
-		MsgCodec: &fixture.ProtoCodec{},
+		MsgPacker: &packet.DefaultPacker{},
+		MsgCodec:  &fixture.ProtoCodec{},
 	})
 
 	srv.AddRoute(uint(message.ID_FooReqID), handle, logMiddleware)

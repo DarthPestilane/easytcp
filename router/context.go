@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
 	"sync"
@@ -70,7 +71,11 @@ func (c *Context) MsgRawData() []byte {
 
 // Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
-	return c.session.MsgCodec().Decode(c.MsgRawData(), v)
+	codec := c.session.MsgCodec()
+	if codec == nil {
+		return fmt.Errorf("message codec is nil")
+	}
+	return codec.Decode(c.MsgRawData(), v)
 }
 
 // SessionID returns current session's ID.
@@ -81,9 +86,24 @@ func (c *Context) SessionID() string {
 // Response creates a response message.
 func (c *Context) Response(id uint, data interface{}) (packet.Message, error) {
 	c.Set(RespKey, data)
-	dataRaw, err := c.session.MsgCodec().Encode(data)
-	if err != nil {
-		return nil, err
+	var dataRaw []byte
+	if codec := c.session.MsgCodec(); codec == nil {
+		switch v := data.(type) {
+		case []byte:
+			dataRaw = v
+		case string:
+			dataRaw = []byte(v)
+		case fmt.Stringer:
+			dataRaw = []byte(v.String())
+		default:
+			return nil, fmt.Errorf("data should be []byte, string or Stringer")
+		}
+	} else {
+		var err error
+		dataRaw, err = c.session.MsgCodec().Encode(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	respMsg := c.reqMsg.Duplicate()
 	respMsg.Setup(id, dataRaw)

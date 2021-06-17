@@ -14,10 +14,8 @@ import (
 func BenchmarkTCP(b *testing.B) {
 	muteLog()
 	packer := &packet.DefaultPacker{}
-	codec := &packet.StringCodec{}
 	s := NewTCPServer(TCPOption{
 		MsgPacker: packer,
-		MsgCodec:  codec,
 	})
 	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
 		return ctx.Response(2, "bench done")
@@ -33,11 +31,7 @@ func BenchmarkTCP(b *testing.B) {
 		panic(err)
 	}
 
-	data := "bench me" // request data
-	rawData, err := codec.Encode(data)
-	if err != nil {
-		panic(err)
-	}
+	rawData := []byte("bench me")
 	msg := &packet.DefaultMsg{
 		ID:   1,
 		Size: uint32(len(rawData)),
@@ -54,11 +48,9 @@ func BenchmarkTCP(b *testing.B) {
 func BenchmarkUDP(b *testing.B) {
 	muteLog()
 	packer := &packet.DefaultPacker{}
-	codec := &packet.StringCodec{}
 	s := NewUDPServer(UDPOption{
 		MaxBufferSize: 100,
 		MsgPacker:     packer,
-		MsgCodec:      codec,
 	})
 	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
 		return ctx.Response(2, "bench done")
@@ -72,11 +64,7 @@ func BenchmarkUDP(b *testing.B) {
 		panic(err)
 	}
 
-	data := "bench me"
-	rawData, err := codec.Encode(data)
-	if err != nil {
-		panic(err)
-	}
+	rawData := []byte("bench me")
 	msg := &packet.DefaultMsg{
 		ID:   1,
 		Size: uint32(len(rawData)),

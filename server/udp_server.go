@@ -42,9 +42,6 @@ func NewUDPServer(opt UDPOption) *UDPServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
-	if opt.MsgCodec == nil {
-		opt.MsgCodec = &packet.StringCodec{}
-	}
 	return &UDPServer{
 		log:           logger.Default.WithField("scope", "server.UDPServer"),
 		rwBufferSize:  opt.RWBufferSize,

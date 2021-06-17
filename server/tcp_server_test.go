@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+func TestNewTCPServer(t *testing.T) {
+	s := NewTCPServer(TCPOption{
+		RWBufferSize: 0,
+		ReadTimeout:  0,
+		WriteTimeout: 0,
+		MsgCodec:     &packet.JsonCodec{},
+	})
+	assert.NotNil(t, s.log)
+	assert.NotNil(t, s.accepting)
+	assert.Equal(t, s.msgPacker, &packet.DefaultPacker{})
+	assert.Equal(t, s.msgCodec, &packet.JsonCodec{})
+}
+
 func TestTCPServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
 	server := NewTCPServer(TCPOption{})
