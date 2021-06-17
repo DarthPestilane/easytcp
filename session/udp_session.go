@@ -26,11 +26,11 @@ type UDPSession struct {
 
 var _ Session = &UDPSession{}
 
-// NewUDP creates a new UDPSession.
+// NewUDPSession creates a new UDPSession.
 // Parameter conn is the UDP connection, addr will be used as remote UDP peer address to write to,
 // packer and codec will be used to pack/unpack and encode/decode message.
 // Returns a UDPSession pointer.
-func NewUDP(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec packet.Codec) *UDPSession {
+func NewUDPSession(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, codec packet.Codec) *UDPSession {
 	id := uuid.NewString()
 	return &UDPSession{
 		id:         id,

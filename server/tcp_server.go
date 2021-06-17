@@ -95,7 +95,7 @@ func (s *TCPServer) acceptLoop() error {
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
 func (s *TCPServer) handleConn(conn *net.TCPConn) {
-	sess := session.NewTCP(conn, s.msgPacker, s.msgCodec)
+	sess := session.NewTCPSession(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
 	go s.router.RouteLoop(sess)
 	go sess.ReadLoop(s.readTimeout)

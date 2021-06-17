@@ -27,11 +27,11 @@ type TCPSession struct {
 
 var _ Session = &TCPSession{}
 
-// NewTCP creates a new TCPSession.
+// NewTCPSession creates a new TCPSession.
 // Parameter conn is the TCP connection,
 // packer and codec will be used to pack/unpack and encode/decode message.
 // Returns a TCPSession pointer.
-func NewTCP(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession {
+func NewTCPSession(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession {
 	id := uuid.NewString()
 	return &TCPSession{
 		id:        id,

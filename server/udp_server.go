@@ -96,7 +96,7 @@ func (s *UDPServer) acceptLoop() error {
 // And starts routing the message to the handler.
 // Session will close after finishing writing, or the server's closed.
 func (s *UDPServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
-	sess := session.NewUDP(s.conn, addr, s.msgPacker, s.msgCodec)
+	sess := session.NewUDPSession(s.conn, addr, s.msgPacker, s.msgCodec)
 	defer func() { s.log.WithField("sid", sess.ID()).Tracef("session closed") }()
 
 	go s.router.RouteLoop(sess)
