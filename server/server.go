@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/DarthPestilane/easytcp/router"
 )
 
@@ -21,3 +22,5 @@ type Server interface {
 	// AddRoute registers a handler and middlewares for the message matches msgID.
 	AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc)
 }
+
+var errServerStopped = fmt.Errorf("server stopped")

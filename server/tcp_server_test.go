@@ -29,7 +29,7 @@ func TestTCPServer_Serve(t *testing.T) {
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "accept err")
+		assert.Equal(t, err, errServerStopped)
 	}()
 	<-server.accepting
 	err := server.Stop()
@@ -66,7 +66,7 @@ func TestTCPServer_Stop(t *testing.T) {
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "accept err")
+		assert.Equal(t, err, errServerStopped)
 	}()
 
 	<-server.accepting
@@ -123,7 +123,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "accept err")
+		assert.Equal(t, err, errServerStopped)
 	}()
 	defer func() { assert.NoError(t, server.Stop()) }()
 

@@ -21,8 +21,9 @@ type TCPServer struct {
 	log          *logrus.Entry
 	msgPacker    packet.Packer
 	msgCodec     packet.Codec
-	accepting    chan struct{}
 	router       *router.Router
+	accepting    chan struct{}
+	stopped      chan struct{}
 }
 
 var _ Server = &TCPServer{}
@@ -48,8 +49,9 @@ func NewTCPServer(opt TCPOption) *TCPServer {
 		writeTimeout: opt.WriteTimeout,
 		msgPacker:    opt.MsgPacker,
 		msgCodec:     opt.MsgCodec,
-		accepting:    make(chan struct{}),
 		router:       router.NewRouter(),
+		accepting:    make(chan struct{}),
+		stopped:      make(chan struct{}),
 	}
 }
 
@@ -77,6 +79,17 @@ func (s *TCPServer) acceptLoop() error {
 	for {
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
+			select {
+			case <-s.stopped:
+				return errServerStopped
+			default:
+			}
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				tempDelay := time.Millisecond * 5
+				s.log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
 			return fmt.Errorf("accept err: %s", err)
 		}
 		if s.rwBufferSize > 0 {
@@ -120,6 +133,7 @@ func (s *TCPServer) Stop() error {
 		return true
 	})
 	s.log.Tracef("%d session(s) closed", closedNum)
+	close(s.stopped)
 	return s.listener.Close()
 }
 
