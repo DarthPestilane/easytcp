@@ -8,6 +8,7 @@ import (
 	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"net"
+	"time"
 )
 
 // UDPServer is a server for UDP connections.
@@ -19,9 +20,9 @@ type UDPServer struct {
 	log           *logrus.Entry
 	msgPacker     packet.Packer
 	msgCodec      packet.Codec
+	router        *router.Router
 	accepting     chan struct{}
 	stopped       chan struct{}
-	router        *router.Router
 }
 
 var _ Server = &UDPServer{}
@@ -48,9 +49,9 @@ func NewUDPServer(opt UDPOption) *UDPServer {
 		msgPacker:     opt.MsgPacker,
 		msgCodec:      opt.MsgCodec,
 		maxBufferSize: opt.MaxBufferSize,
+		router:        router.NewRouter(),
 		accepting:     make(chan struct{}),
 		stopped:       make(chan struct{}),
-		router:        router.NewRouter(),
 	}
 }
 
@@ -86,6 +87,15 @@ func (s *UDPServer) acceptLoop() error {
 	for {
 		n, remoteAddr, err := s.conn.ReadFromUDP(buff)
 		if err != nil {
+			if isStopped(s.stopped) {
+				return errServerStopped
+			}
+			if isTempErr(err) {
+				tempDelay := time.Millisecond * 5
+				s.log.Tracef("read conn err: %s; retrying in %v", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
 			return fmt.Errorf("read conn err: %s", err)
 		}
 		go s.handleIncomingMsg(buff[:n], remoteAddr)
