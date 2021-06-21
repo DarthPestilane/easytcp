@@ -6,6 +6,8 @@ import (
 	"net"
 )
 
+//go:generate mockgen -destination mock/net/net.go -package mock_net net Listener,Error
+
 // Server is a generic network server.
 type Server interface {
 	// Serve starts to serving at the addr.

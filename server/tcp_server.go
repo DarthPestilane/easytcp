@@ -17,7 +17,7 @@ type TCPServer struct {
 	rwBufferSize int
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-	listener     *net.TCPListener
+	listener     net.Listener
 	log          *logrus.Entry
 	msgPacker    packet.Packer
 	msgCodec     packet.Codec
@@ -77,7 +77,7 @@ func (s *TCPServer) Serve(addr string) error {
 func (s *TCPServer) acceptLoop() error {
 	close(s.accepting)
 	for {
-		conn, err := s.listener.AcceptTCP()
+		conn, err := s.listener.Accept()
 		if err != nil {
 			if isStopped(s.stopped) {
 				return errServerStopped
@@ -91,10 +91,10 @@ func (s *TCPServer) acceptLoop() error {
 			return fmt.Errorf("accept err: %s", err)
 		}
 		if s.rwBufferSize > 0 {
-			if err := conn.SetReadBuffer(s.rwBufferSize); err != nil {
+			if err := conn.(*net.TCPConn).SetReadBuffer(s.rwBufferSize); err != nil {
 				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
-			if err := conn.SetWriteBuffer(s.rwBufferSize); err != nil {
+			if err := conn.(*net.TCPConn).SetWriteBuffer(s.rwBufferSize); err != nil {
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
@@ -105,7 +105,7 @@ func (s *TCPServer) acceptLoop() error {
 // handleConn creates a new session according to conn,
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
-func (s *TCPServer) handleConn(conn *net.TCPConn) {
+func (s *TCPServer) handleConn(conn net.Conn) {
 	sess := session.NewTCPSession(conn, s.msgPacker, s.msgCodec)
 	session.Sessions().Add(sess)
 	go s.router.RouteLoop(sess)

@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
+	mock_net "github.com/DarthPestilane/easytcp/server/mock/net"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"runtime"
@@ -39,26 +42,65 @@ func TestTCPServer_Serve(t *testing.T) {
 }
 
 func TestTCPServer_acceptLoop(t *testing.T) {
-	server := NewTCPServer(TCPOption{
-		RWBufferSize: 1024,
+	t.Run("when everything's fine", func(t *testing.T) {
+		server := NewTCPServer(TCPOption{
+			RWBufferSize: 1024,
+		})
+		address, err := net.ResolveTCPAddr("tcp", "localhost:0")
+		assert.NoError(t, err)
+		lis, err := net.ListenTCP("tcp", address)
+		assert.NoError(t, err)
+		server.listener = lis
+		go func() {
+			err := server.acceptLoop()
+			assert.Error(t, err)
+		}()
+
+		<-server.accepting
+
+		// client
+		cli, err := net.Dial("tcp", lis.Addr().String())
+		assert.NoError(t, err)
+		assert.NoError(t, cli.Close())
+		assert.NoError(t, server.Stop())
 	})
-	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	assert.NoError(t, err)
-	lis, err := net.ListenTCP("tcp", address)
-	assert.NoError(t, err)
-	server.listener = lis
-	go func() {
-		err := server.acceptLoop()
-		assert.Error(t, err)
-	}()
+	t.Run("when accept returns a non-temporary error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	<-server.accepting
+		server := NewTCPServer(TCPOption{})
 
-	// client
-	cli, err := net.Dial("tcp", lis.Addr().String())
-	assert.NoError(t, err)
-	assert.NoError(t, cli.Close())
-	assert.NoError(t, server.Stop())
+		listen := mock_net.NewMockListener(ctrl)
+		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
+		server.listener = listen
+		go func() {
+			assert.Error(t, server.acceptLoop())
+		}()
+		<-server.accepting
+	})
+	t.Run("when accept returns a temporary error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		server := NewTCPServer(TCPOption{})
+
+		tempErr := mock_net.NewMockError(ctrl)
+		tempErr.EXPECT().Error().MinTimes(1).Return("some err")
+		i := 0
+		tempErr.EXPECT().Temporary().MinTimes(1).DoAndReturn(func() bool {
+			defer func() { i++ }()
+			return i == 0 // returns true for the first time
+		})
+
+		listen := mock_net.NewMockListener(ctrl)
+		listen.EXPECT().Accept().MinTimes(1).Return(nil, tempErr)
+		server.listener = listen
+		go func() {
+			assert.Error(t, server.acceptLoop())
+		}()
+		<-server.accepting
+		time.Sleep(time.Millisecond * 20)
+	})
 }
 
 func TestTCPServer_Stop(t *testing.T) {
