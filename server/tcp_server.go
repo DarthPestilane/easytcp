@@ -79,12 +79,10 @@ func (s *TCPServer) acceptLoop() error {
 	for {
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
-			select {
-			case <-s.stopped:
+			if isStopped(s.stopped) {
 				return errServerStopped
-			default:
 			}
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+			if isTempErr(err) {
 				tempDelay := time.Millisecond * 5
 				s.log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)

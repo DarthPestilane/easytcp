@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp/router"
+	"net"
 )
 
 // Server is a generic network server.
@@ -24,3 +25,17 @@ type Server interface {
 }
 
 var errServerStopped = fmt.Errorf("server stopped")
+
+func isStopped(stopChan <-chan struct{}) bool {
+	select {
+	case <-stopChan:
+		return true
+	default:
+		return false
+	}
+}
+
+func isTempErr(err error) bool {
+	ne, ok := err.(net.Error)
+	return ok && ne.Temporary()
+}
