@@ -12,11 +12,11 @@ func SetLogger(log *logrus.Logger) {
 }
 
 // NewTCPServer creates a new server.TCPServer according to opt.
-func NewTCPServer(opt server.TCPOption) *server.TCPServer {
+func NewTCPServer(opt *server.TCPOption) *server.TCPServer {
 	return server.NewTCPServer(opt)
 }
 
 // NewUDPServer creates a new server.UDPServer according to opt.
-func NewUDPServer(opt server.UDPOption) *server.UDPServer {
+func NewUDPServer(opt *server.UDPOption) *server.UDPServer {
 	return server.NewUDPServer(opt)
 }

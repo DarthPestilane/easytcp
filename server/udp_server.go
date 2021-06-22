@@ -36,7 +36,7 @@ type UDPOption struct {
 }
 
 // NewUDPServer creates a UDPServer pointer according to opt.
-func NewUDPServer(opt UDPOption) *UDPServer {
+func NewUDPServer(opt *UDPOption) *UDPServer {
 	if opt.MaxBufferSize <= 0 {
 		opt.MaxBufferSize = 1024
 	}

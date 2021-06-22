@@ -14,7 +14,7 @@ import (
 func BenchmarkTCP(b *testing.B) {
 	muteLog()
 	packer := &packet.DefaultPacker{}
-	s := NewTCPServer(TCPOption{
+	s := NewTCPServer(&TCPOption{
 		MsgPacker: packer,
 	})
 	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
@@ -48,7 +48,7 @@ func BenchmarkTCP(b *testing.B) {
 func BenchmarkUDP(b *testing.B) {
 	muteLog()
 	packer := &packet.DefaultPacker{}
-	s := NewUDPServer(UDPOption{
+	s := NewUDPServer(&UDPOption{
 		MaxBufferSize: 100,
 		MsgPacker:     packer,
 	})

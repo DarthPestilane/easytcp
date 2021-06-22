@@ -14,11 +14,11 @@ import (
 )
 
 func TestNewTCPServer(t *testing.T) {
-	s := NewTCPServer(TCPOption{
-		RWBufferSize: 0,
-		ReadTimeout:  0,
-		WriteTimeout: 0,
-		MsgCodec:     &packet.JsonCodec{},
+	s := NewTCPServer(&TCPOption{
+		SocketRWBufferSize: 0,
+		ReadTimeout:        0,
+		WriteTimeout:       0,
+		MsgCodec:           &packet.JsonCodec{},
 	})
 	assert.NotNil(t, s.log)
 	assert.NotNil(t, s.accepting)
@@ -28,7 +28,7 @@ func TestNewTCPServer(t *testing.T) {
 
 func TestTCPServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
-	server := NewTCPServer(TCPOption{})
+	server := NewTCPServer(&TCPOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -43,8 +43,8 @@ func TestTCPServer_Serve(t *testing.T) {
 
 func TestTCPServer_acceptLoop(t *testing.T) {
 	t.Run("when everything's fine", func(t *testing.T) {
-		server := NewTCPServer(TCPOption{
-			RWBufferSize: 1024,
+		server := NewTCPServer(&TCPOption{
+			SocketRWBufferSize: 1024,
 		})
 		address, err := net.ResolveTCPAddr("tcp", "localhost:0")
 		assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		server := NewTCPServer(TCPOption{})
+		server := NewTCPServer(&TCPOption{})
 
 		listen := mock_net.NewMockListener(ctrl)
 		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
@@ -82,7 +82,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		server := NewTCPServer(TCPOption{})
+		server := NewTCPServer(&TCPOption{})
 
 		tempErr := mock_net.NewMockError(ctrl)
 		tempErr.EXPECT().Error().MinTimes(1).Return("some err")
@@ -104,7 +104,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 }
 
 func TestTCPServer_Stop(t *testing.T) {
-	server := NewTCPServer(TCPOption{})
+	server := NewTCPServer(&TCPOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -136,10 +136,12 @@ func TestTCPServer_handleConn(t *testing.T) {
 	packer := &packet.DefaultPacker{}
 
 	// server
-	server := NewTCPServer(TCPOption{
-		RWBufferSize: 1024,
-		MsgCodec:     codec,
-		MsgPacker:    packer,
+	server := NewTCPServer(&TCPOption{
+		SocketRWBufferSize: 1024,
+		MsgCodec:           codec,
+		MsgPacker:          packer,
+		ReadBufferSize:     -1,
+		WriteBufferSize:    -1,
 	})
 
 	// register route

@@ -18,7 +18,7 @@ func init() {
 }
 
 func main() {
-	srv := easytcp.NewTCPServer(server.TCPOption{
+	srv := easytcp.NewTCPServer(&server.TCPOption{
 		MsgPacker: &packet.DefaultPacker{},
 		MsgCodec:  &fixture.ProtoCodec{},
 	})

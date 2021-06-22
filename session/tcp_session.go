@@ -27,21 +27,28 @@ type TCPSession struct {
 
 var _ Session = &TCPSession{}
 
+type TCPSessionOption struct {
+	Packer          packet.Packer
+	Codec           packet.Codec
+	ReadBufferSize  int
+	WriteBufferSize int
+}
+
 // NewTCPSession creates a new TCPSession.
 // Parameter conn is the TCP connection,
-// packer and codec will be used to pack/unpack and encode/decode message.
+// opt includes packer, codec, and channel size.
 // Returns a TCPSession pointer.
-func NewTCPSession(conn net.Conn, packer packet.Packer, codec packet.Codec) *TCPSession {
+func NewTCPSession(conn net.Conn, opt *TCPSessionOption) *TCPSession {
 	id := uuid.NewString()
 	return &TCPSession{
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
 		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
-		reqQueue:  make(chan packet.Message, 1024),
-		respQueue: make(chan packet.Message, 1024),
-		msgPacker: packer,
-		msgCodec:  codec,
+		reqQueue:  make(chan packet.Message, opt.ReadBufferSize),
+		respQueue: make(chan packet.Message, opt.WriteBufferSize),
+		msgPacker: opt.Packer,
+		msgCodec:  opt.Codec,
 	}
 }
 
