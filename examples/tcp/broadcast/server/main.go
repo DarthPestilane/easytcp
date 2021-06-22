@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	s := easytcp.NewTCPServer(server.TCPOption{
+	s := easytcp.NewTCPServer(&server.TCPOption{
 		MsgPacker: &packet.DefaultPacker{},
 		MsgCodec:  &packet.StringCodec{},
 	})

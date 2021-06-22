@@ -14,44 +14,56 @@ import (
 // TCPServer is a server for TCP connections.
 // TCPServer implements the Server interface.
 type TCPServer struct {
-	rwBufferSize int
-	readTimeout  time.Duration
-	writeTimeout time.Duration
-	listener     net.Listener
-	log          *logrus.Entry
-	msgPacker    packet.Packer
-	msgCodec     packet.Codec
-	router       *router.Router
-	accepting    chan struct{}
-	stopped      chan struct{}
+	socketRWBufferSize int
+	writeBufferSize    int
+	readBufferSize     int
+	readTimeout        time.Duration
+	writeTimeout       time.Duration
+	listener           net.Listener
+	log                *logrus.Entry
+	msgPacker          packet.Packer
+	msgCodec           packet.Codec
+	router             *router.Router
+	accepting          chan struct{}
+	stopped            chan struct{}
 }
 
 var _ Server = &TCPServer{}
 
 // TCPOption is the option for TCPServer.
 type TCPOption struct {
-	RWBufferSize int           // RWBufferSize is socket read write buffer
-	ReadTimeout  time.Duration // sets the timeout for connection read
-	WriteTimeout time.Duration // sets the timeout for connection write
-	MsgPacker    packet.Packer // packs and unpacks the message packet
-	MsgCodec     packet.Codec  // encodes and decodes the message data
+	SocketRWBufferSize int           // sets the socket read write buffer
+	ReadTimeout        time.Duration // sets the timeout for connection read
+	WriteTimeout       time.Duration // sets the timeout for connection write
+	MsgPacker          packet.Packer // packs and unpacks the message packet
+	MsgCodec           packet.Codec  // encodes and decodes the message data
+	WriteBufferSize    int           // sets the write channel buffer size
+	ReadBufferSize     int           // sets the read channel buffer size
 }
 
 // NewTCPServer creates a TCPServer pointer according to opt.
-func NewTCPServer(opt TCPOption) *TCPServer {
+func NewTCPServer(opt *TCPOption) *TCPServer {
 	if opt.MsgPacker == nil {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
+	if opt.WriteBufferSize < 0 {
+		opt.WriteBufferSize = 1024
+	}
+	if opt.ReadBufferSize < 0 {
+		opt.ReadBufferSize = 1024
+	}
 	return &TCPServer{
-		log:          logger.Default.WithField("scope", "server.TCPServer"),
-		rwBufferSize: opt.RWBufferSize,
-		readTimeout:  opt.ReadTimeout,
-		writeTimeout: opt.WriteTimeout,
-		msgPacker:    opt.MsgPacker,
-		msgCodec:     opt.MsgCodec,
-		router:       router.NewRouter(),
-		accepting:    make(chan struct{}),
-		stopped:      make(chan struct{}),
+		log:                logger.Default.WithField("scope", "server.TCPServer"),
+		socketRWBufferSize: opt.SocketRWBufferSize,
+		writeBufferSize:    opt.WriteBufferSize,
+		readBufferSize:     opt.ReadBufferSize,
+		readTimeout:        opt.ReadTimeout,
+		writeTimeout:       opt.WriteTimeout,
+		msgPacker:          opt.MsgPacker,
+		msgCodec:           opt.MsgCodec,
+		router:             router.NewRouter(),
+		accepting:          make(chan struct{}),
+		stopped:            make(chan struct{}),
 	}
 }
 
@@ -90,11 +102,11 @@ func (s *TCPServer) acceptLoop() error {
 			}
 			return fmt.Errorf("accept err: %s", err)
 		}
-		if s.rwBufferSize > 0 {
-			if err := conn.(*net.TCPConn).SetReadBuffer(s.rwBufferSize); err != nil {
+		if s.socketRWBufferSize > 0 {
+			if err := conn.(*net.TCPConn).SetReadBuffer(s.socketRWBufferSize); err != nil {
 				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
-			if err := conn.(*net.TCPConn).SetWriteBuffer(s.rwBufferSize); err != nil {
+			if err := conn.(*net.TCPConn).SetWriteBuffer(s.socketRWBufferSize); err != nil {
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}
@@ -106,7 +118,12 @@ func (s *TCPServer) acceptLoop() error {
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
 func (s *TCPServer) handleConn(conn net.Conn) {
-	sess := session.NewTCPSession(conn, s.msgPacker, s.msgCodec)
+	sess := session.NewTCPSession(conn, &session.TCPSessionOption{
+		Packer:          s.msgPacker,
+		Codec:           s.msgCodec,
+		ReadBufferSize:  s.readBufferSize,
+		WriteBufferSize: s.writeBufferSize,
+	})
 	session.Sessions().Add(sess)
 	go s.router.RouteLoop(sess)
 	go sess.ReadLoop(s.readTimeout)

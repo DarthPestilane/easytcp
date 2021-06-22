@@ -25,7 +25,7 @@ func init() {
 func main() {
 	easytcp.SetLogger(log)
 
-	s := easytcp.NewTCPServer(server.TCPOption{
+	s := easytcp.NewTCPServer(&server.TCPOption{
 		// customize codec and packer
 		MsgCodec:  &fixture.JsonCodec{},
 		MsgPacker: &fixture.Packer16bit{},

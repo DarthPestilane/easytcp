@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewUDPServer(t *testing.T) {
-	u := NewUDPServer(UDPOption{
+	u := NewUDPServer(&UDPOption{
 		MsgCodec: &packet.StringCodec{},
 	})
 	assert.NotNil(t, u.log)
@@ -24,7 +24,7 @@ func TestNewUDPServer(t *testing.T) {
 
 func TestUDPServer_Serve(t *testing.T) {
 	t.Run("when addr is invalid", func(t *testing.T) {
-		server := NewUDPServer(UDPOption{RWBufferSize: 1024})
+		server := NewUDPServer(&UDPOption{RWBufferSize: 1024})
 		assert.Error(t, server.Serve("invalid"))
 
 		// when address is in use
@@ -32,12 +32,12 @@ func TestUDPServer_Serve(t *testing.T) {
 			_ = server.Serve("localhost:0")
 		}()
 		<-server.accepting
-		server2 := NewUDPServer(UDPOption{RWBufferSize: 1024})
+		server2 := NewUDPServer(&UDPOption{RWBufferSize: 1024})
 		assert.Error(t, server2.Serve(server.conn.LocalAddr().String()))
 
 	})
 	t.Run("when ReadFromUDP failed", func(t *testing.T) {
-		server := NewUDPServer(UDPOption{})
+		server := NewUDPServer(&UDPOption{})
 		go func() {
 			assert.Error(t, server.Serve("localhost:0"))
 		}()
@@ -45,7 +45,7 @@ func TestUDPServer_Serve(t *testing.T) {
 		_ = server.conn.Close()
 	})
 	t.Run("when ReadFromUDP succeed", func(t *testing.T) {
-		server := NewUDPServer(UDPOption{})
+		server := NewUDPServer(&UDPOption{})
 		go func() {
 			assert.Error(t, server.Serve("localhost:0"))
 		}()
@@ -63,7 +63,7 @@ func TestUDPServer_Serve(t *testing.T) {
 }
 
 func TestUDPServer_Stop(t *testing.T) {
-	server := NewUDPServer(UDPOption{})
+	server := NewUDPServer(&UDPOption{})
 	go func() {
 		assert.Error(t, server.Serve("localhost:0"))
 	}()
@@ -84,7 +84,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	codec := &packet.StringCodec{}
 	packer := &packet.DefaultPacker{}
 
-	server := NewUDPServer(UDPOption{
+	server := NewUDPServer(&UDPOption{
 		MsgCodec:  codec,
 		MsgPacker: packer,
 	})
