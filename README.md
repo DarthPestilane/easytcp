@@ -58,19 +58,55 @@ func main() {
 }
 ```
 
-There more detailed examples in [examples/tcp](./examples/tcp)
+There are more detailed examples in [examples/tcp](./examples/tcp)
 
 ## API
 
 ### Architecture
 
-### Sever
+### Routing
+
+EasyTCP considers every message has a `ID` segment.
+A message will be routed, according to it's id, to the handler through middelwares.
+
+#### Register a route
+
+```go
+s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
+	// handle the request via ctx
+	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+
+	// do things...
+
+	// return response
+	return ctx.Response(respID, []byte("copy that"))
+})
+```
+
+#### Using middleware
+
+```go
+// register global middlewares.
+// global middlewares are priorer than per-route middlewares, they will be invoked first
+s.Use(recoverMiddleware, logMiddleware, ...)
+
+// register middlewares for one route
+s.AddRoute(reqID, handler, middleware1, middleware2)
+
+// a middleware looks like:
+var exampleMiddleware router.MiddlewareFunc = func(next router.HandlerFunc) router.HandlerFunc {
+	return func(ctx *router.Context) (resp packet.Message, err error) {
+		// do things before...
+		resp, err := next(ctx)
+		// do things after...
+		return resp, err
+	}
+}
+```
 
 ### Packer
 
 ### Codec
-
-### Routing
 
 ## Contribute
 
