@@ -88,7 +88,7 @@ func (s *UDPServer) acceptLoop() error {
 		n, remoteAddr, err := s.conn.ReadFromUDP(buff)
 		if err != nil {
 			if isStopped(s.stopped) {
-				return errServerStopped
+				return ErrServerStopped
 			}
 			if isTempErr(err) {
 				tempDelay := time.Millisecond * 5
