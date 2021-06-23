@@ -199,6 +199,29 @@ func (p *Packer16bit) Unpack(reader io.Reader) (packet.Message, error) {
 
 ### Codec
 
+A Codec is to encode and decode message data. The Codec is optional, EasyTCP won't encode/decode message data if Codec is not set.
+We can set Codec when creating the server.
+
+```go
+s := easytcp.NewTCPServer(&server.TCPOption{
+	MsgCodec: &packet.JsonCodec{}, // this is optional. The JsonCodec is a built-in codec
+})
+```
+
+Since we set the codec, we may want to decode the request data in route handler.
+
+```go
+s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
+	var reqData map[string]interface{}
+	if err := ctx.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
+		// handle error...
+	}
+	fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", ctx.MsgID(), ctx.MsgSize(), reqData)
+	respData := map[string]string{"key": "value"}
+	return ctx.Response(respID, respData)
+})
+```
+
 ## Contribute
 
 Check out a new branch for the job, and make sure git action passed.
