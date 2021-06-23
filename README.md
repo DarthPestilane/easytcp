@@ -5,11 +5,22 @@
 
 ## Introduction
 
-`EasyTCP` is a light-weight TCP framework written in Go (Golang), helps you build a TCP server easily and fast.
+`EasyTCP` is a light-weight TCP framework written in Go (Golang), features with:
+
+- Non-invasive design
+- Pipelined middlewares for route handler
+- Customizable message packer and codec
+- Handy functions to handle request data and send response
+
+`EasyTCP` helps you build a TCP server easily and fast.
 
 ## Install
 
-To install `EasyTCP` package, you need to install Go and set your Go workspace first.
+This package, so far, has been tested in
+
+- go1.14.x
+- go1.15.x
+- go1.16.x
 
 Use the below Go command to install EasyTCP.
 
@@ -36,7 +47,7 @@ func main() {
 
 	// add a route to message id
 	s.AddRoute(uint(1001), func(ctx *router.Context) (packet.Message, error) {
-		fmt.Printf("message received <<< id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
 		return ctx.Response(uint(1002), []byte("copy that"))
 	})
 
@@ -46,6 +57,8 @@ func main() {
 	}
 }
 ```
+
+There more detailed examples in [examples/tcp](./examples/tcp)
 
 ## API
 
