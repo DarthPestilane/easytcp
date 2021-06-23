@@ -130,7 +130,7 @@ type FooResp struct {
 	unknownFields protoimpl.UnknownFields
 
 	Code    int32  `protobuf:"varint,1,opt,name=Code,proto3" json:"Code,omitempty"`
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=Message,proto3" json:"Message,omitempty"`
 }
 
 func (x *FooResp) Reset() {
