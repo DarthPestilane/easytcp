@@ -1,5 +1,6 @@
 .idea/
 vender/
+demo/
 
 *.exe
 .testCoverage.txt

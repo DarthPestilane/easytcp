@@ -92,7 +92,7 @@ func (s *TCPServer) acceptLoop() error {
 		conn, err := s.listener.Accept()
 		if err != nil {
 			if isStopped(s.stopped) {
-				return errServerStopped
+				return ErrServerStopped
 			}
 			if isTempErr(err) {
 				tempDelay := time.Millisecond * 5
