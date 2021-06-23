@@ -24,7 +24,7 @@ func TestNewUDPServer(t *testing.T) {
 
 func TestUDPServer_Serve(t *testing.T) {
 	t.Run("when addr is invalid", func(t *testing.T) {
-		server := NewUDPServer(&UDPOption{RWBufferSize: 1024})
+		server := NewUDPServer(&UDPOption{SocketRWBufferSize: 1024})
 		assert.Error(t, server.Serve("invalid"))
 
 		// when address is in use
@@ -32,7 +32,7 @@ func TestUDPServer_Serve(t *testing.T) {
 			_ = server.Serve("localhost:0")
 		}()
 		<-server.accepting
-		server2 := NewUDPServer(&UDPOption{RWBufferSize: 1024})
+		server2 := NewUDPServer(&UDPOption{SocketRWBufferSize: 1024})
 		assert.Error(t, server2.Serve(server.conn.LocalAddr().String()))
 
 	})

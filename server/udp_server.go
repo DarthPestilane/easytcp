@@ -29,10 +29,10 @@ var _ Server = &UDPServer{}
 
 // UDPOption is the option for UDPServer.
 type UDPOption struct {
-	MaxBufferSize int
-	RWBufferSize  int
-	MsgPacker     packet.Packer
-	MsgCodec      packet.Codec
+	MaxBufferSize      int           // sets the max buffer size when read UDP connection, 1024 will be used if < 0.
+	SocketRWBufferSize int           // sets the socket read/write buffer.
+	MsgPacker          packet.Packer // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	MsgCodec           packet.Codec  // encodes and decodes message data, can be nil.
 }
 
 // NewUDPServer creates a UDPServer pointer according to opt.
@@ -45,7 +45,7 @@ func NewUDPServer(opt *UDPOption) *UDPServer {
 	}
 	return &UDPServer{
 		log:           logger.Default.WithField("scope", "server.UDPServer"),
-		rwBufferSize:  opt.RWBufferSize,
+		rwBufferSize:  opt.SocketRWBufferSize,
 		msgPacker:     opt.MsgPacker,
 		msgCodec:      opt.MsgCodec,
 		maxBufferSize: opt.MaxBufferSize,

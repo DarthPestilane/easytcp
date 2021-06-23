@@ -35,10 +35,10 @@ type TCPOption struct {
 	SocketRWBufferSize int           // sets the socket read write buffer
 	ReadTimeout        time.Duration // sets the timeout for connection read
 	WriteTimeout       time.Duration // sets the timeout for connection write
-	MsgPacker          packet.Packer // packs and unpacks the message packet
-	MsgCodec           packet.Codec  // encodes and decodes the message data
-	WriteBufferSize    int           // sets the write channel buffer size
-	ReadBufferSize     int           // sets the read channel buffer size
+	MsgPacker          packet.Packer // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	MsgCodec           packet.Codec  // encodes and decodes the message data, can be nil
+	WriteBufferSize    int           // sets the write channel buffer size, 1024 will be used if < 0.
+	ReadBufferSize     int           // sets the read channel buffer size, 1024 will be used if < 0.
 }
 
 // NewTCPServer creates a TCPServer pointer according to opt.
