@@ -69,6 +69,18 @@ Above is the server side example. There are client and more detailed examples in
 EasyTCP considers every message has a `ID` segment.
 A message will be routed, according to it's id, to the handler through middelwares.
 
+```sh
+# request flow:
+
++----------+    +--------------+    +--------------+    +---------+
+| request  |--->|              |--->|              |--->|         |
++----------+    |              |    |              |    |         |
+                | middleware 1 |    | middleware 2 |    | handler |
++----------+    |              |    |              |    |         |
+| response |<---|              |<---|              |<---|         |
++----------+    +--------------+    +--------------+    +---------+
+```
+
 #### Register a route
 
 ```go
