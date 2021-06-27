@@ -62,8 +62,6 @@ Above is the server side example. There are client and more detailed examples in
 
 ## API
 
-### Architecture
-
 ### Routing
 
 EasyTCP considers every message has a `ID` segment.
@@ -236,4 +234,4 @@ s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
 
 ## Contribute
 
-Check out a new branch for the job, and make sure git action passed.
+Check out a new branch for the job, and make sure github action passed.
