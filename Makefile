@@ -1,4 +1,4 @@
-ldflags = -ldflags="-s -w"
+ldflags = -ldflags="-s"
 coverprofile=.testCoverage.txt
 pkgs=`go list ./... | grep -v /examples/`
 
