@@ -62,6 +62,30 @@ func main() {
 
 Above is the server side example. There are client and more detailed examples in [examples/tcp](./examples/tcp)
 
+## Architecture
+
+```
+accepting connection:
+
++------------+    +-------------------+    +----------------+
+|            |    |                   |    |                |
+|            |    |                   |    |                |
+| tcp server |--->| accept connection |--->| create session |
+|            |    |                   |    |                |
+|            |    |                   |    |                |
++------------+    +-------------------+    +----------------+
+
+in session:
+
++------------------+    +-----------------------+    +----------------------------------+
+| read connection  |--->| unpack packet payload |--->|                                  |
++------------------+    +-----------------------+    |                                  |
+                                                     | router (middlewares and handler) |
++------------------+    +-----------------------+    |                                  |
+| write connection |<---| pack packet payload   |<---|                                  |
++------------------+    +-----------------------+    +----------------------------------+
+```
+
 ## API
 
 ### Routing
@@ -70,7 +94,7 @@ EasyTCP considers every message has a `ID` segment.
 A message will be routed, according to it's id, to the handler through middelwares.
 
 ```
-# request flow:
+request flow:
 
 +----------+    +--------------+    +--------------+    +---------+
 | request  |--->|              |--->|              |--->|         |
@@ -128,8 +152,9 @@ s := easytcp.NewTCPServer(&server.TCPOption{
 
 We can set our own Packer or EasyTCP uses [`DefaultPacker`](./packet/packer.go).
 
-The `DefaultPacker` considers packet's payload as a `ID|Size|Data` format.
-This may not covery most cases, fortunately, we can create our own Packer.
+The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format.
+
+This may not covery some particular cases, fortunately, we can create our own Packer.
 
 ```go
 // Msg16bit implements packet.Message
@@ -233,6 +258,9 @@ s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
 	return ctx.Response(respID, respData)
 })
 ```
+
+Codec's encoding will be invoked before message packed,
+and decoding should be invoked in the route handler which is after message unpacked.
 
 ## Contribute
 
