@@ -65,15 +65,15 @@ func TestContext_Bind(t *testing.T) {
 
 		message := &packet.MessageEntry{
 			ID:   1,
-			Data: []byte("test"),
+			Data: []byte(`{"data":"test"}`),
 		}
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().Return(&packet.StringCodec{})
+		sess.EXPECT().MsgCodec().Return(&packet.JsonCodec{})
 
 		c := newContext(sess, message)
-		var data string
+		data := make(map[string]string)
 		assert.NoError(t, c.Bind(&data))
-		assert.EqualValues(t, data, "test")
+		assert.EqualValues(t, data["data"], "test")
 	})
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		ctrl := gomock.NewController(t)

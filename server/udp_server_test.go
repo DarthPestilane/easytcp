@@ -12,13 +12,13 @@ import (
 
 func TestNewUDPServer(t *testing.T) {
 	u := NewUDPServer(&UDPOption{
-		MsgCodec: &packet.StringCodec{},
+		MsgCodec: &packet.JsonCodec{},
 	})
 	assert.NotNil(t, u.log)
 	assert.NotNil(t, u.accepting)
 	assert.NotNil(t, u.stopped)
 	assert.Equal(t, u.msgPacker, &packet.DefaultPacker{})
-	assert.Equal(t, u.msgCodec, &packet.StringCodec{})
+	assert.Equal(t, u.msgCodec, &packet.JsonCodec{})
 	assert.Equal(t, u.maxBufferSize, 1024)
 }
 
@@ -81,11 +81,9 @@ func TestUDPServer_Stop(t *testing.T) {
 }
 
 func TestUDPServer_handleIncomingMsg(t *testing.T) {
-	codec := &packet.StringCodec{}
 	packer := &packet.DefaultPacker{}
 
 	server := NewUDPServer(&UDPOption{
-		MsgCodec:  codec,
 		MsgPacker: packer,
 	})
 	// use middleware
@@ -114,7 +112,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	assert.NoError(t, err)
 
 	// send req
-	b, err := codec.Encode("test-req")
+	b := []byte("test-req")
 	assert.NoError(t, err)
 
 	msg, err := packer.Pack(&packet.MessageEntry{
@@ -132,9 +130,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	respMsg, err := packer.Unpack(bytes.NewReader(buff[:n]))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, respMsg.ID)
-	var resp string
-	assert.NoError(t, codec.Decode(respMsg.Data, &resp))
-	assert.Equal(t, resp, "test-resp")
+	assert.Equal(t, respMsg.Data, []byte("test-resp"))
 
 	assert.NoError(t, server.Stop())
 	assert.NoError(t, cli.Close())

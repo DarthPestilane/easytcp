@@ -11,12 +11,10 @@ import (
 )
 
 var log *logrus.Logger
-var codec packet.Codec
 var packer packet.Packer
 
 func init() {
 	log = logger.Default
-	codec = &packet.StringCodec{}
 	packer = &packet.DefaultPacker{}
 }
 
@@ -43,7 +41,7 @@ func senderClient() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			data, _ := codec.Encode(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
+			data := []byte(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
 			msg := &packet.MessageEntry{
 				ID:   fixture.MsgIdBroadCastReq,
 				Data: data,
