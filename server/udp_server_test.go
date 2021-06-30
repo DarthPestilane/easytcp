@@ -90,7 +90,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	})
 	// use middleware
 	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(ctx *router.Context) (packet.Message, error) {
+		return func(ctx *router.Context) (*packet.MessageEntry, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
@@ -100,7 +100,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 		}
 	})
 	// register route
-	server.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
+	server.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		return ctx.Response(2, "test-resp")
 	})
 	go func() {
@@ -117,9 +117,8 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	b, err := codec.Encode("test-req")
 	assert.NoError(t, err)
 
-	msg, err := packer.Pack(&packet.DefaultMsg{
+	msg, err := packer.Pack(&packet.MessageEntry{
 		ID:   1,
-		Size: uint32(len(b)),
 		Data: b,
 	})
 	assert.NoError(t, err)
@@ -132,9 +131,9 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	assert.NoError(t, err)
 	respMsg, err := packer.Unpack(bytes.NewReader(buff[:n]))
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, respMsg.GetID())
+	assert.EqualValues(t, 2, respMsg.ID)
 	var resp string
-	assert.NoError(t, codec.Decode(respMsg.GetData(), &resp))
+	assert.NoError(t, codec.Decode(respMsg.Data, &resp))
 	assert.Equal(t, resp, "test-resp")
 
 	assert.NoError(t, server.Stop())

@@ -14,15 +14,15 @@ import (
 // TCPSession represents a TCP session.
 // Implements Session interface.
 type TCPSession struct {
-	id        string              // session's ID. it's a uuid
-	conn      net.Conn            // tcp connection
-	log       *logrus.Entry       // logger
-	closeOnce sync.Once           // to make sure we can only close each session one time
-	closed    chan struct{}       // to close()
-	reqQueue  chan packet.Message // request queue channel, pushed in ReadLoop() and popped in router.Router
-	respQueue chan packet.Message // response queue channel, pushed in SendResp() and popped in WriteLoop()
-	msgPacker packet.Packer       // to pack and unpack message
-	msgCodec  packet.Codec        // encode/decode message data
+	id        string                    // session's ID. it's a uuid
+	conn      net.Conn                  // tcp connection
+	log       *logrus.Entry             // logger
+	closeOnce sync.Once                 // to make sure we can only close each session one time
+	closed    chan struct{}             // to close()
+	reqQueue  chan *packet.MessageEntry // request queue channel, pushed in ReadLoop() and popped in router.Router
+	respQueue chan *packet.MessageEntry // response queue channel, pushed in SendResp() and popped in WriteLoop()
+	msgPacker packet.Packer             // to pack and unpack message
+	msgCodec  packet.Codec              // encode/decode message data
 }
 
 var _ Session = &TCPSession{}
@@ -45,8 +45,8 @@ func NewTCPSession(conn net.Conn, opt *TCPSessionOption) *TCPSession {
 		conn:      conn,
 		closed:    make(chan struct{}),
 		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
-		reqQueue:  make(chan packet.Message, opt.ReadBufferSize),
-		respQueue: make(chan packet.Message, opt.WriteBufferSize),
+		reqQueue:  make(chan *packet.MessageEntry, opt.ReadBufferSize),
+		respQueue: make(chan *packet.MessageEntry, opt.WriteBufferSize),
 		msgPacker: opt.Packer,
 		msgCodec:  opt.Codec,
 	}
@@ -66,13 +66,13 @@ func (s *TCPSession) MsgCodec() packet.Codec {
 
 // RecvReq implements the Session RecvReq method.
 // Returns reqQueue channel which contains packet.Message.
-func (s *TCPSession) RecvReq() <-chan packet.Message {
+func (s *TCPSession) RecvReq() <-chan *packet.MessageEntry {
 	return s.reqQueue
 }
 
 // SendResp implements the Session SendResp method.
 // If respQueue is closed, returns false.
-func (s *TCPSession) SendResp(respMsg packet.Message) error {
+func (s *TCPSession) SendResp(respMsg *packet.MessageEntry) error {
 	if !s.safelyPushRespQueue(respMsg) {
 		return fmt.Errorf("session's closed")
 	}
@@ -152,7 +152,7 @@ func (s *TCPSession) WaitUntilClosed() {
 	<-s.closed
 }
 
-func (s *TCPSession) safelyPushReqQueue(reqMsg packet.Message) (ok bool) {
+func (s *TCPSession) safelyPushReqQueue(reqMsg *packet.MessageEntry) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
@@ -164,7 +164,7 @@ func (s *TCPSession) safelyPushReqQueue(reqMsg packet.Message) (ok bool) {
 	return ok
 }
 
-func (s *TCPSession) safelyPushRespQueue(respMsg packet.Message) (ok bool) {
+func (s *TCPSession) safelyPushRespQueue(respMsg *packet.MessageEntry) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {

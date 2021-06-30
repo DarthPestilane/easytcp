@@ -29,7 +29,7 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (packet.Message, error) {
+	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		var reqData string
 		_ = ctx.Bind(&reqData)
 
@@ -71,14 +71,14 @@ func main() {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp packet.Message, err error) {
-		log.Infof("recv request | %s", ctx.MsgRawData())
+	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
+		log.Infof("recv request | %s", ctx.MsgData())
 		defer func() {
 			if err != nil || resp == nil {
 				return
 			}
 			r, _ := ctx.Get(router.RespKey)
-			log.Infof("send response | id: %d; size: %d; data: %s", resp.GetID(), resp.GetSize(), r)
+			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
 		}()
 		return next(ctx)
 	}

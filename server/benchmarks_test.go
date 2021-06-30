@@ -17,7 +17,7 @@ func BenchmarkTCP(b *testing.B) {
 	s := NewTCPServer(&TCPOption{
 		MsgPacker: packer,
 	})
-	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
+	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		return ctx.Response(2, "bench done")
 	})
 	go s.Serve(":0") // nolint
@@ -32,9 +32,8 @@ func BenchmarkTCP(b *testing.B) {
 	}
 
 	rawData := []byte("bench me")
-	msg := &packet.DefaultMsg{
+	msg := &packet.MessageEntry{
 		ID:   1,
-		Size: uint32(len(rawData)),
 		Data: rawData,
 	}
 	packedMsg, err := packer.Pack(msg)
@@ -52,7 +51,7 @@ func BenchmarkUDP(b *testing.B) {
 		MaxBufferSize: 100,
 		MsgPacker:     packer,
 	})
-	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
+	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		return ctx.Response(2, "bench done")
 	})
 	go s.Serve(":0") // nolint
@@ -65,9 +64,8 @@ func BenchmarkUDP(b *testing.B) {
 	}
 
 	rawData := []byte("bench me")
-	msg := &packet.DefaultMsg{
+	msg := &packet.MessageEntry{
 		ID:   1,
-		Size: uint32(len(rawData)),
 		Data: rawData,
 	}
 	packedMsg, err := packer.Pack(msg)

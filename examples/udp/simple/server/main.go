@@ -25,8 +25,8 @@ func main() {
 	// go printGoroutineNum()
 	s := easytcp.NewUDPServer(&server.UDPOption{})
 
-	s.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
-		log.Infof("recv: %s", string(ctx.MsgRawData()))
+	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
+		log.Infof("recv: %s", string(ctx.MsgData()))
 		return ctx.Response(2, "done")
 	})
 

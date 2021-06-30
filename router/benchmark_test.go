@@ -9,7 +9,7 @@ import (
 func BenchmarkRouter(b *testing.B) {
 	rt := NewRouter()
 	rt.Register(1, defaultHandler)
-	msg := &packet.DefaultMsg{ID: 1}
+	msg := &packet.MessageEntry{ID: 1}
 	for i := 0; i < b.N; i++ {
 		if err := rt.handleReq(nil, msg); err != nil {
 			panic(err)

@@ -28,7 +28,7 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-type HandlerFunc func(ctx *Context) (packet.Message, error)
+type HandlerFunc func(ctx *Context) (*packet.MessageEntry, error)
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
@@ -40,7 +40,7 @@ type HandlerFunc func(ctx *Context) (packet.Message, error)
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var defaultHandler HandlerFunc = func(ctx *Context) (packet.Message, error) {
+var defaultHandler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error) {
 	return nil, nil
 }
 
@@ -77,14 +77,14 @@ func (r *Router) RouteLoop(s session.Session) {
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
 // and call the handler functions, and send response to session.Session s if response is not nil.
 // Returns error when calling handler functions or sending response failed.
-func (r *Router) handleReq(s session.Session, reqMsg packet.Message) error {
+func (r *Router) handleReq(s session.Session, reqMsg *packet.MessageEntry) error {
 	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(reqMsg.GetID()); has {
+	if v, has := r.handlerMapper.Load(reqMsg.ID); has {
 		handler = v.(HandlerFunc)
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(reqMsg.GetID()); has {
+	if v, has := r.middlewaresMapper.Load(reqMsg.ID); has {
 		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
 	}
 

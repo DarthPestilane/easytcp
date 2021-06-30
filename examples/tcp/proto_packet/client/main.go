@@ -36,11 +36,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg := &packet.DefaultMsg{
-				ID:   uint32(id),
-				Size: uint32(len(data)),
-				Data: data,
-			}
+			msg := &packet.MessageEntry{ID: id, Data: data}
 			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)
@@ -59,9 +55,9 @@ func main() {
 			panic(err)
 		}
 		var respData message.FooResp
-		if err := codec.Decode(msg.GetData(), &respData); err != nil {
+		if err := codec.Decode(msg.Data, &respData); err != nil {
 			panic(err)
 		}
-		log.Infof("recv | id: %d; size: %d; data: %s", msg.GetID(), msg.GetSize(), respData.String())
+		log.Infof("recv | id: %d; size: %d; data: %s", msg.ID, len(msg.Data), respData.String())
 	}
 }

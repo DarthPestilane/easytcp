@@ -94,16 +94,16 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		msg := mock.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().AnyTimes().Return(uint(1))
-		msg.EXPECT().GetSize().AnyTimes().Return(uint(len("unpacked")))
-		msg.EXPECT().GetData().AnyTimes().Return([]byte("unpacked"))
+		msg := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("unpacked"),
+		}
 
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
 
 		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		sess.reqQueue = make(chan packet.Message) // no buffer
+		sess.reqQueue = make(chan *packet.MessageEntry) // no buffer
 		readDone := make(chan struct{})
 		go func() {
 			sess.ReadLoop(0)
@@ -119,7 +119,10 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 func TestTCPSession_RecvReq(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	msg := mock.NewMockMessage(ctrl)
+	msg := &packet.MessageEntry{
+		ID:   1,
+		Data: []byte("test"),
+	}
 
 	sess := NewTCPSession(nil, &TCPSessionOption{})
 	go func() { sess.reqQueue <- msg }()
@@ -139,7 +142,10 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
@@ -151,12 +157,15 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
 		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: codec})
-		sess.respQueue = make(chan packet.Message) // no buffer
+		sess.respQueue = make(chan *packet.MessageEntry) // no buffer
 		go func() { <-sess.respQueue }()
 		assert.NoError(t, sess.SendResp(message))
 		sess.Close()
@@ -185,7 +194,10 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
@@ -201,7 +213,10 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
@@ -217,7 +232,10 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
@@ -233,7 +251,10 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 

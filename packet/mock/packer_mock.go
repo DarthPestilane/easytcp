@@ -36,7 +36,7 @@ func (m *MockPacker) EXPECT() *MockPackerMockRecorder {
 }
 
 // Pack mocks base method.
-func (m *MockPacker) Pack(arg0 packet.Message) ([]byte, error) {
+func (m *MockPacker) Pack(arg0 *packet.MessageEntry) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Pack", arg0)
 	ret0, _ := ret[0].([]byte)
@@ -51,10 +51,10 @@ func (mr *MockPackerMockRecorder) Pack(arg0 interface{}) *gomock.Call {
 }
 
 // Unpack mocks base method.
-func (m *MockPacker) Unpack(arg0 io.Reader) (packet.Message, error) {
+func (m *MockPacker) Unpack(arg0 io.Reader) (*packet.MessageEntry, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unpack", arg0)
-	ret0, _ := ret[0].(packet.Message)
+	ret0, _ := ret[0].(*packet.MessageEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

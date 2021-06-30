@@ -19,9 +19,8 @@ func main() {
 	go func() {
 		for {
 			data := []byte("hello")
-			msg := &packet.DefaultMsg{
+			msg := &packet.MessageEntry{
 				ID:   1,
-				Size: uint32(len(data)),
 				Data: data,
 			}
 			msgSend, _ := packer.Pack(msg)
@@ -39,6 +38,6 @@ func main() {
 			panic(err)
 		}
 		msg, _ := packer.Unpack(bytes.NewReader(buff[:n]))
-		fmt.Printf("recv: %s\n", msg.GetData())
+		fmt.Printf("recv: %s\n", msg.Data)
 	}
 }

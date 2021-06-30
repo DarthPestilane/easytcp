@@ -13,15 +13,15 @@ import (
 // UDPSession represents a UDP session.
 // Implements Session interface.
 type UDPSession struct {
-	id         string              // session's id. a uuid
-	conn       *net.UDPConn        // udp connection
-	log        *logrus.Entry       // logger
-	closed     chan struct{}       // represents whether the session is closed. will be closed in Close() method
-	reqQueue   chan packet.Message // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
-	respQueue  chan packet.Message // a non-buffer channel, pushed in SendResp(), popped in Write()
-	msgPacker  packet.Packer       // pack/unpack message packet
-	msgCodec   packet.Codec        // encode/decode message data
-	remoteAddr *net.UDPAddr        // UDP remote address, used to conn.WriteToUDP(remoteAddr)
+	id         string                    // session's id. a uuid
+	conn       *net.UDPConn              // udp connection
+	log        *logrus.Entry             // logger
+	closed     chan struct{}             // represents whether the session is closed. will be closed in Close() method
+	reqQueue   chan *packet.MessageEntry // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
+	respQueue  chan *packet.MessageEntry // a non-buffer channel, pushed in SendResp(), popped in Write()
+	msgPacker  packet.Packer             // pack/unpack message packet
+	msgCodec   packet.Codec              // encode/decode message data
+	remoteAddr *net.UDPAddr              // UDP remote address, used to conn.WriteToUDP(remoteAddr)
 }
 
 var _ Session = &UDPSession{}
@@ -37,8 +37,8 @@ func NewUDPSession(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, c
 		conn:       conn,
 		closed:     make(chan struct{}),
 		log:        logger.Default.WithField("sid", id).WithField("scope", "session.UDPSession"),
-		reqQueue:   make(chan packet.Message),
-		respQueue:  make(chan packet.Message),
+		reqQueue:   make(chan *packet.MessageEntry),
+		respQueue:  make(chan *packet.MessageEntry),
 		msgPacker:  packer,
 		msgCodec:   codec,
 		remoteAddr: addr,
@@ -59,13 +59,13 @@ func (s *UDPSession) MsgCodec() packet.Codec {
 
 // RecvReq implements the Session RecvReq method.
 // Returns reqQueue channel which contains packet.Message.
-func (s *UDPSession) RecvReq() <-chan packet.Message {
+func (s *UDPSession) RecvReq() <-chan *packet.MessageEntry {
 	return s.reqQueue
 }
 
 // SendResp implements the Session SendResp method.
 // If respQueue channel is closed, returns false.
-func (s *UDPSession) SendResp(respMsg packet.Message) error {
+func (s *UDPSession) SendResp(respMsg *packet.MessageEntry) error {
 	if !s.safelyPushRespQueue(respMsg) {
 		return fmt.Errorf("session's closed")
 	}
@@ -115,7 +115,7 @@ func (s *UDPSession) Close() {
 	close(s.respQueue)
 }
 
-func (s *UDPSession) safelyPushReqQueue(reqMsg packet.Message) {
+func (s *UDPSession) safelyPushReqQueue(reqMsg *packet.MessageEntry) {
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Tracef("push reqQueue panics: %+v", r)
@@ -124,7 +124,7 @@ func (s *UDPSession) safelyPushReqQueue(reqMsg packet.Message) {
 	s.reqQueue <- reqMsg
 }
 
-func (s *UDPSession) safelyPushRespQueue(respMsg packet.Message) (ok bool) {
+func (s *UDPSession) safelyPushRespQueue(respMsg *packet.MessageEntry) (ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {

@@ -44,9 +44,8 @@ func senderClient() {
 		for {
 			time.Sleep(time.Second)
 			data, _ := codec.Encode(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
-			msg := &packet.DefaultMsg{
-				ID:   uint32(fixture.MsgIdBroadCastReq),
-				Size: uint32(len(data)),
+			msg := &packet.MessageEntry{
+				ID:   fixture.MsgIdBroadCastReq,
 				Data: data,
 			}
 
@@ -66,7 +65,7 @@ func senderClient() {
 				log.Error(err)
 				return
 			}
-			log.Infof("sender | recv ack | %s", msg.GetData())
+			log.Infof("sender | recv ack | %s", msg.Data)
 		}
 	}()
 }
@@ -85,7 +84,7 @@ func readerClient(id int) {
 				log.Error(err)
 				return
 			}
-			log.Debugf("reader %03d | recv broadcast | %s", id, msg.GetData())
+			log.Debugf("reader %03d | recv broadcast | %s", id, msg.Data)
 		}
 	}()
 }

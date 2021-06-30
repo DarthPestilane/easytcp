@@ -8,12 +8,11 @@ import (
 )
 
 func TestDefaultPacker_Pack(t *testing.T) {
-	id := uint32(123)
+	id := uint(123)
 	data := []byte("hello")
 	size := uint32(len(data))
-	rawMsg := &DefaultMsg{
+	rawMsg := &MessageEntry{
 		ID:   id,
-		Size: size,
 		Data: data,
 	}
 
@@ -28,7 +27,7 @@ func TestDefaultPacker_Pack(t *testing.T) {
 
 	id2, err := unpacker.ShiftUint32()
 	assert.NoError(t, err)
-	assert.Equal(t, id, id2)
+	assert.EqualValues(t, id, id2)
 
 	data2, err := unpacker.ShiftBytes(uint64(size))
 	assert.NoError(t, err)
@@ -36,20 +35,20 @@ func TestDefaultPacker_Pack(t *testing.T) {
 }
 
 func TestDefaultPacker_Unpack(t *testing.T) {
-	id := uint32(123)
+	id := uint(123)
 	data := []byte("hello")
-	size := uint32(len(data))
+	size := len(data)
 
 	p := &DefaultPacker{}
 	buff := bytes.NewBuffer(nil)
 	packer := binpacker.NewPacker(p.bytesOrder(), buff)
-	err := packer.PushUint32(size).PushUint32(id).PushBytes(data).Error()
+	err := packer.PushUint32(uint32(size)).PushUint32(uint32(id)).PushBytes(data).Error()
 	assert.NoError(t, err)
 
 	msg, err := p.Unpack(buff)
 	assert.NoError(t, err)
-	assert.IsType(t, &DefaultMsg{}, msg)
-	assert.EqualValues(t, msg.GetSize(), size)
-	assert.EqualValues(t, msg.GetID(), id)
-	assert.Equal(t, msg.GetData(), data)
+	assert.IsType(t, &MessageEntry{}, msg)
+	assert.Len(t, msg.Data, size)
+	assert.EqualValues(t, msg.ID, id)
+	assert.Equal(t, msg.Data, data)
 }

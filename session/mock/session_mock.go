@@ -75,10 +75,10 @@ func (mr *MockSessionMockRecorder) MsgCodec() *gomock.Call {
 }
 
 // RecvReq mocks base method.
-func (m *MockSession) RecvReq() <-chan packet.Message {
+func (m *MockSession) RecvReq() <-chan *packet.MessageEntry {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvReq")
-	ret0, _ := ret[0].(<-chan packet.Message)
+	ret0, _ := ret[0].(<-chan *packet.MessageEntry)
 	return ret0
 }
 
@@ -89,7 +89,7 @@ func (mr *MockSessionMockRecorder) RecvReq() *gomock.Call {
 }
 
 // SendResp mocks base method.
-func (m *MockSession) SendResp(arg0 packet.Message) error {
+func (m *MockSession) SendResp(arg0 *packet.MessageEntry) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendResp", arg0)
 	ret0, _ := ret[0].(error)

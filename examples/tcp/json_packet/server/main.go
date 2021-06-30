@@ -27,7 +27,7 @@ func main() {
 
 	s := easytcp.NewTCPServer(&server.TCPOption{
 		// customize codec and packer
-		MsgCodec:  &fixture.JsonCodec{},
+		MsgCodec:  &packet.JsonCodec{},
 		MsgPacker: &fixture.Packer16bit{},
 	})
 
@@ -48,7 +48,7 @@ func main() {
 	}
 }
 
-func handler(ctx *router.Context) (packet.Message, error) {
+func handler(ctx *router.Context) (*packet.MessageEntry, error) {
 	var data fixture.Json01Req
 	_ = ctx.Bind(&data)
 
@@ -64,17 +64,17 @@ func handler(ctx *router.Context) (packet.Message, error) {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp packet.Message, err error) {
-		var data fixture.Json01Req
-		_ = ctx.Bind(&data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %+v", ctx.MsgID(), ctx.MsgSize(), data)
+	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
+		// var data fixture.Json01Req
+		// _ = ctx.Bind(&data)
+		log.Infof("recv request | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 
 		defer func() {
 			if err != nil {
 				return
 			}
 			if resp != nil {
-				log.Infof("send response | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), resp.GetData())
+				log.Infof("send response | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 			} else {
 				log.Infof("don't send response since nil")
 			}

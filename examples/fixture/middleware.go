@@ -9,7 +9,7 @@ import (
 
 func RecoverMiddleware(log *logrus.Logger) router.MiddlewareFunc {
 	return func(next router.HandlerFunc) router.HandlerFunc {
-		return func(ctx *router.Context) (packet.Message, error) {
+		return func(ctx *router.Context) (*packet.MessageEntry, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					log.WithField("sid", ctx.SessionID()).Errorf("PANIC | %+v | %s", r, debug.Stack())

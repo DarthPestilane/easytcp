@@ -31,7 +31,7 @@ func main() {
 	}
 }
 
-func handle(ctx *router.Context) (packet.Message, error) {
+func handle(ctx *router.Context) (*packet.MessageEntry, error) {
 	var reqData message.FooReq
 	if err := ctx.Bind(&reqData); err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func handle(ctx *router.Context) (packet.Message, error) {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (packet.Message, error) {
+	return func(ctx *router.Context) (*packet.MessageEntry, error) {
 		var reqData message.FooReq
 		if err := ctx.Bind(&reqData); err == nil {
 			log.Debugf("recv | id: %d; size: %d; data: %s", ctx.MsgID(), ctx.MsgSize(), reqData.String())
@@ -54,7 +54,7 @@ func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
 		}
 		if resp != nil {
 			r, _ := ctx.Get(router.RespKey)
-			log.Infof("send | id: %d; size: %d; data: %s", resp.GetID(), resp.GetSize(), r)
+			log.Infof("send | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
 		}
 		return resp, err
 	}
