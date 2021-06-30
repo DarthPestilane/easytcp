@@ -20,9 +20,8 @@ func main() {
 		for {
 			time.Sleep(time.Second)
 			rawData := []byte("ping, ping, ping")
-			msg := &packet.DefaultMsg{
-				ID:   uint32(fixture.MsgIdPingReq),
-				Size: uint32(len(rawData)),
+			msg := &packet.MessageEntry{
+				ID:   fixture.MsgIdPingReq,
 				Data: rawData,
 			}
 			packedMsg, err := packer.Pack(msg)
@@ -32,7 +31,7 @@ func main() {
 			if _, err := conn.Write(packedMsg); err != nil {
 				panic(err)
 			}
-			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), rawData)
+			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", msg.ID, len(rawData), rawData)
 		}
 	}()
 	go func() {
@@ -42,7 +41,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			log.Infof("rec <<< | id:(%d) size:(%d) data: %s", msg.GetID(), msg.GetSize(), msg.GetData())
+			log.Infof("rec <<< | id:(%d) size:(%d) data: %s", msg.ID, len(msg.Data), msg.Data)
 		}
 	}()
 	select {}

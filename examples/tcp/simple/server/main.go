@@ -39,7 +39,7 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
-	s.AddRoute(fixture.MsgIdPingReq, func(ctx *router.Context) (packet.Message, error) {
+	s.AddRoute(fixture.MsgIdPingReq, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		return ctx.Response(fixture.MsgIdPingAck, "pong, pong, pong")
 	})
 
@@ -59,13 +59,13 @@ func main() {
 }
 
 func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp packet.Message, err error) {
-		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
+		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 		defer func() {
 			if err != nil || resp == nil {
 				return
 			}
-			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.GetID(), resp.GetSize(), ctx.Value(router.RespKey))
+			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
 		return next(ctx)
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/logger"
+	"github.com/DarthPestilane/easytcp/packet"
 	"net"
 	"time"
 )
@@ -13,7 +14,7 @@ func main() {
 		panic(err)
 	}
 	log := logger.Default
-	codec := &fixture.JsonCodec{}
+	codec := &packet.JsonCodec{}
 	packer := &fixture.Packer16bit{}
 	go func() {
 		// write loop
@@ -28,9 +29,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg := &fixture.Msg16bit{
-				Size: uint16(len(data)),
-				ID:   uint16(fixture.MsgIdJson01Req),
+			msg := &packet.MessageEntry{
+				ID:   fixture.MsgIdJson01Req,
 				Data: data,
 			}
 			packedMsg, err := packer.Pack(msg)
@@ -49,11 +49,11 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			var data fixture.Json01Resp
-			if err := codec.Decode(msg.GetData(), &data); err != nil {
-				panic(err)
-			}
-			log.Infof("ack received | id:(%d) size:(%d) data: %+v", msg.GetID(), msg.GetSize(), data)
+			// var data fixture.Json01Resp
+			// if err := codec.Decode(msg.Data, &data); err != nil {
+			// 	panic(err)
+			// }
+			log.Infof("ack received | id:(%d) size:(%d) data: %s", msg.ID, len(msg.Data), msg.Data)
 		}
 	}()
 	select {}

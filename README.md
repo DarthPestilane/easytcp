@@ -48,8 +48,8 @@ func main() {
 	s := easytcp.NewTCPServer(&server.TCPOption{})
 
 	// add a route to message id
-	s.AddRoute(uint(1001), func(ctx *router.Context) (packet.Message, error) {
-		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+	s.AddRoute(uint(1001), func(ctx *router.Context) (*packet.MessageEntry, error) {
+		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 		return ctx.Response(uint(1002), []byte("copy that"))
 	})
 
@@ -108,9 +108,9 @@ request flow:
 #### Register a route
 
 ```go
-s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
+s.AddRoute(reqID, func(ctx *router.Context) (*packet.MessageEntry, error) {
 	// handle the request via ctx
-	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 
 	// do things...
 
@@ -131,7 +131,7 @@ s.AddRoute(reqID, handler, middleware1, middleware2)
 
 // a middleware looks like:
 var exampleMiddleware router.MiddlewareFunc = func(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp packet.Message, err error) {
+	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
 		// do things before...
 		resp, err := next(ctx)
 		// do things after...
@@ -157,58 +157,30 @@ The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` form
 This may not covery some particular cases, fortunately, we can create our own Packer.
 
 ```go
-// Msg16bit implements packet.Message
-type Msg16bit struct {
-	Size uint16
-	ID   uint16
-	Data []byte
-}
-
-func (m *Msg16bit) Setup(id uint, data []byte) {
-	m.ID = uint16(id)
-	m.Data = data
-	m.Size = uint16(len(data))
-}
-
-func (m *Msg16bit) Duplicate() packet.Message {
-	return &Msg16bit{}
-}
-
-func (m *Msg16bit) GetID() uint {
-	return uint(m.ID)
-}
-
-func (m *Msg16bit) GetSize() uint {
-	return uint(m.Size)
-}
-
-func (m *Msg16bit) GetData() []byte {
-	return m.Data
-}
-
-// Packer16bit is a custom packer, implements packet.Packer
-// packet format: size[2]id[2]data
+// Packer16bit is a custom packer, implements packet.Packer interafce.
+// THe Packet format is `size[2]id[2]data`
 type Packer16bit struct{}
 
 func (p *Packer16bit) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
-func (p *Packer16bit) Pack(msg packet.Message) ([]byte, error) {
-	buff := bytes.NewBuffer(make([]byte, 0, 2+2+msg.GetSize()))
-	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.GetSize())); err != nil {
+func (p *Packer16bit) Pack(msg *packet.MessageEntry) ([]byte, error) {
+	size := len(msg.Data) // without id
+	buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
+	if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.GetID())); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.ID)); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), msg.GetData()); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), msg.Data); err != nil {
 		return nil, fmt.Errorf("write data err: %s", err)
 	}
 	return buff.Bytes(), nil
 }
 
-func (p *Packer16bit) Unpack(reader io.Reader) (packet.Message, error) {
+func (p *Packer16bit) Unpack(reader io.Reader) (*packet.MessageEntry, error) {
 	sizeBuff := make([]byte, 2)
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
@@ -225,11 +197,8 @@ func (p *Packer16bit) Unpack(reader io.Reader) (packet.Message, error) {
 	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
-	msg := &Msg16bit{
-		Size: size,
-		ID:   id,
-		Data: data,
-	}
+
+	msg := &packet.MessageEntry{ID: uint(id), Data: data}
 	return msg, nil
 }
 ```
@@ -248,7 +217,7 @@ s := easytcp.NewTCPServer(&server.TCPOption{
 Since we set the codec, we may want to decode the request data in route handler.
 
 ```go
-s.AddRoute(reqID, func(ctx *router.Context) (packet.Message, error) {
+s.AddRoute(reqID, func(ctx *router.Context) (*packet.MessageEntry, error) {
 	var reqData map[string]interface{}
 	if err := ctx.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
 		// handle error...

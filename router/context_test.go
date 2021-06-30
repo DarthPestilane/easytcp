@@ -63,23 +63,26 @@ func TestContext_Bind(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mockPacker.NewMockMessage(ctrl)
-		message.EXPECT().GetData().Return([]byte("test"))
-
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte(`{"data":"test"}`),
+		}
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().Return(&packet.StringCodec{})
+		sess.EXPECT().MsgCodec().Return(&packet.JsonCodec{})
 
 		c := newContext(sess, message)
-		var data string
+		data := make(map[string]string)
 		assert.NoError(t, c.Bind(&data))
-		assert.EqualValues(t, data, "test")
+		assert.EqualValues(t, data["data"], "test")
 	})
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mockPacker.NewMockMessage(ctrl)
-
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		sess := mock.NewMockSession(ctrl)
 		sess.EXPECT().MsgCodec().Return(nil)
 
@@ -113,7 +116,10 @@ func TestContext_Response(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := mockPacker.NewMockMessage(ctrl)
+			message := &packet.MessageEntry{
+				ID:   1,
+				Data: []byte("test"),
+			}
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
 
@@ -126,35 +132,35 @@ func TestContext_Response(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := &packet.DefaultMsg{}
+			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, "data")
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.GetData(), []byte("data"))
-			assert.EqualValues(t, respMsg.GetID(), 1)
+			assert.Equal(t, respMsg.Data, []byte("data"))
+			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := &packet.DefaultMsg{}
+			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []byte("data"))
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.GetData(), []byte("data"))
-			assert.EqualValues(t, respMsg.GetID(), 1)
+			assert.Equal(t, respMsg.Data, []byte("data"))
+			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := &packet.DefaultMsg{}
+			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
 
@@ -162,16 +168,15 @@ func TestContext_Response(t *testing.T) {
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, data)
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.GetData(), []byte(data.String()))
-			assert.EqualValues(t, respMsg.GetID(), 1)
+			assert.Equal(t, respMsg.Data, []byte(data.String()))
+			assert.EqualValues(t, respMsg.ID, 1)
 		})
 	})
 	t.Run("when encode failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mockPacker.NewMockMessage(ctrl)
-
+		message := &packet.MessageEntry{}
 		codec := mockPacker.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
@@ -186,11 +191,10 @@ func TestContext_Response(t *testing.T) {
 	t.Run("when succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-
-		message := mockPacker.NewMockMessage(ctrl)
-		message.EXPECT().Duplicate().Return(message)
-		message.EXPECT().Setup(gomock.Any(), gomock.Any()).Return()
-
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		codec := mockPacker.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 

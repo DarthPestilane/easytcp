@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp/packet"
-	mockPacker "github.com/DarthPestilane/easytcp/packet/mock"
 	"github.com/DarthPestilane/easytcp/session/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		reqCh := make(chan packet.Message)
+		reqCh := make(chan *packet.MessageEntry)
 		close(reqCh)
 		sess.EXPECT().RecvReq().Return(reqCh)
 		sess.EXPECT().ID().Times(2).Return("test-session-id")
@@ -38,7 +37,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		reqCh := make(chan packet.Message)
+		reqCh := make(chan *packet.MessageEntry)
 		go func() {
 			reqCh <- nil
 			close(reqCh)
@@ -58,21 +57,21 @@ func TestRouter_RouteLoop(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			msg := mockPacker.NewMockMessage(ctrl)
-			msg.EXPECT().GetID().AnyTimes().Return(uint(1))
-			msg.EXPECT().GetData().AnyTimes().Return([]byte("test"))
-			msg.EXPECT().GetSize().AnyTimes().Return(uint(4))
+			msg := &packet.MessageEntry{
+				ID:   1,
+				Data: []byte("test"),
+			}
 
 			rt := NewRouter()
 
-			rt.Register(1, func(ctx *Context) (packet.Message, error) {
+			rt.Register(1, func(ctx *Context) (*packet.MessageEntry, error) {
 				assert.EqualValues(t, ctx.MsgID(), 1)
 				assert.EqualValues(t, ctx.MsgSize(), 4)
-				assert.Equal(t, ctx.MsgRawData(), []byte("test"))
+				assert.Equal(t, ctx.MsgData(), []byte("test"))
 				return nil, fmt.Errorf("some err")
 			})
 
-			reqCh := make(chan packet.Message)
+			reqCh := make(chan *packet.MessageEntry)
 			go func() {
 				reqCh <- msg
 				close(reqCh)
@@ -91,14 +90,16 @@ func TestRouter_RouteLoop(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			msg := mockPacker.NewMockMessage(ctrl)
-			msg.EXPECT().GetID().AnyTimes().Return(uint(1))
+			msg := &packet.MessageEntry{
+				ID:   1,
+				Data: []byte("test"),
+			}
 
 			rt := NewRouter()
 
 			rt.Register(1, defaultHandler)
 
-			reqCh := make(chan packet.Message)
+			reqCh := make(chan *packet.MessageEntry)
 			go func() {
 				reqCh <- msg
 				close(reqCh)
@@ -129,12 +130,12 @@ func TestRouter_Register(t *testing.T) {
 
 	h := defaultHandler
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (packet.Message, error) {
+		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (packet.Message, error) {
+		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
 		}
 	}
@@ -166,17 +167,17 @@ func TestRouter_RegisterMiddleware(t *testing.T) {
 	assert.Len(t, rt.globalMiddlewares, 0)
 
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (packet.Message, error) {
+		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (packet.Message, error) {
+		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
 		}
 	}
 	m3 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (packet.Message, error) {
+		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
 		}
 	}
@@ -196,14 +197,15 @@ func TestRouter_RegisterMiddleware(t *testing.T) {
 
 func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
-
 		rt := NewRouter()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		msg := mockPacker.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().AnyTimes().Return(uint(1))
+		msg := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		sess := mock.NewMockSession(ctrl)
 
 		assert.Nil(t, rt.handleReq(sess, msg))
@@ -212,22 +214,24 @@ func TestRouter_handleReq(t *testing.T) {
 		rt := NewRouter()
 		var id uint = 1
 		rt.Register(id, defaultHandler, func(next HandlerFunc) HandlerFunc {
-			return func(ctx *Context) (packet.Message, error) { return next(ctx) }
+			return func(ctx *Context) (*packet.MessageEntry, error) { return next(ctx) }
 		})
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		msg := mockPacker.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().AnyTimes().Return(id)
+		msg := &packet.MessageEntry{
+			ID:   id,
+			Data: []byte("test"),
+		}
 
 		assert.Nil(t, rt.handleReq(sess, msg))
 	})
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := NewRouter()
 		var id uint = 1
-		rt.Register(id, func(ctx *Context) (packet.Message, error) {
+		rt.Register(id, func(ctx *Context) (*packet.MessageEntry, error) {
 			return nil, fmt.Errorf("some err")
 		})
 
@@ -235,8 +239,10 @@ func TestRouter_handleReq(t *testing.T) {
 		defer ctrl.Finish()
 
 		sess := mock.NewMockSession(ctrl)
-		msg := mockPacker.NewMockMessage(ctrl)
-		msg.EXPECT().GetID().AnyTimes().Return(id)
+		msg := &packet.MessageEntry{
+			ID:   id,
+			Data: []byte("test"),
+		}
 
 		err := rt.handleReq(sess, msg)
 		assert.Error(t, err)
@@ -249,16 +255,18 @@ func TestRouter_handleReq(t *testing.T) {
 			rt := NewRouter()
 
 			// register route
-			rt.Register(id, func(ctx *Context) (packet.Message, error) {
-				return &packet.DefaultMsg{}, nil
+			rt.Register(id, func(ctx *Context) (*packet.MessageEntry, error) {
+				return &packet.MessageEntry{}, nil
 			})
 
 			// mock
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := mockPacker.NewMockMessage(ctrl)
-			message.EXPECT().GetID().AnyTimes().Return(id)
+			message := &packet.MessageEntry{
+				ID:   id,
+				Data: []byte("test"),
+			}
 
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().SendResp(gomock.Any()).Return(fmt.Errorf("some err"))
@@ -270,15 +278,17 @@ func TestRouter_handleReq(t *testing.T) {
 			rt := NewRouter()
 			var id uint = 1
 
-			rt.Register(id, func(ctx *Context) (packet.Message, error) {
-				return &packet.DefaultMsg{}, nil
+			rt.Register(id, func(ctx *Context) (*packet.MessageEntry, error) {
+				return &packet.MessageEntry{}, nil
 			})
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			message := mockPacker.NewMockMessage(ctrl)
-			message.EXPECT().GetID().AnyTimes().Return(id)
+			message := &packet.MessageEntry{
+				ID:   id,
+				Data: []byte("test"),
+			}
 
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().SendResp(gomock.Any()).Return(nil)
@@ -302,13 +312,13 @@ func TestRouter_wrapHandlers(t *testing.T) {
 
 		middles := []MiddlewareFunc{
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (packet.Message, error) {
+				return func(ctx *Context) (*packet.MessageEntry, error) {
 					result = append(result, "m1-before")
 					return next(ctx)
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (packet.Message, error) {
+				return func(ctx *Context) (*packet.MessageEntry, error) {
 					result = append(result, "m2-before")
 					resp, err := next(ctx)
 					result = append(result, "m2-after")
@@ -316,24 +326,26 @@ func TestRouter_wrapHandlers(t *testing.T) {
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (packet.Message, error) {
+				return func(ctx *Context) (*packet.MessageEntry, error) {
 					resp, err := next(ctx)
 					result = append(result, "m3-after")
 					return resp, err
 				}
 			},
 		}
-		var handler HandlerFunc = func(ctx *Context) (packet.Message, error) {
+		var handler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error) {
 			result = append(result, "done")
-			msg := &packet.DefaultMsg{}
-			msg.Setup(2, []byte("done"))
+			msg := &packet.MessageEntry{
+				ID:   2,
+				Data: []byte("done"),
+			}
 			return msg, nil
 		}
 
 		wrap := rt.wrapHandlers(handler, middles)
 		resp, err := wrap(nil)
 		assert.NoError(t, err)
-		assert.EqualValues(t, resp.GetData(), "done")
+		assert.EqualValues(t, resp.Data, "done")
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }

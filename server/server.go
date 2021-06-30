@@ -26,6 +26,7 @@ type Server interface {
 	AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc)
 }
 
+// ErrServerStopped is used when server stopped.
 var ErrServerStopped = fmt.Errorf("server stopped")
 
 func isStopped(stopChan <-chan struct{}) bool {

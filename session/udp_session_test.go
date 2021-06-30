@@ -66,8 +66,10 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		msg := mock.NewMockMessage(ctrl)
-
+		msg := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
 
@@ -79,8 +81,10 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		msg := mock.NewMockMessage(ctrl)
-
+		msg := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(msg, nil)
 
@@ -92,9 +96,10 @@ func TestUDPSession_ReadIncomingMsg(t *testing.T) {
 }
 
 func TestUDPSession_RecvReq(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	msg := mock.NewMockMessage(ctrl)
+	msg := &packet.MessageEntry{
+		ID:   1,
+		Data: []byte("test"),
+	}
 
 	sess := NewUDPSession(nil, nil, nil, nil)
 	go func() { sess.reqQueue <- msg }()
@@ -111,7 +116,10 @@ func TestUDPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
@@ -123,7 +131,10 @@ func TestUDPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
@@ -151,7 +162,10 @@ func TestUDPSession_Write(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
@@ -165,7 +179,10 @@ func TestUDPSession_Write(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := mock.NewMockMessage(ctrl)
+		message := &packet.MessageEntry{
+			ID:   1,
+			Data: []byte("test"),
+		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 

@@ -12,13 +12,13 @@ import (
 
 func TestNewUDPServer(t *testing.T) {
 	u := NewUDPServer(&UDPOption{
-		MsgCodec: &packet.StringCodec{},
+		MsgCodec: &packet.JsonCodec{},
 	})
 	assert.NotNil(t, u.log)
 	assert.NotNil(t, u.accepting)
 	assert.NotNil(t, u.stopped)
 	assert.Equal(t, u.msgPacker, &packet.DefaultPacker{})
-	assert.Equal(t, u.msgCodec, &packet.StringCodec{})
+	assert.Equal(t, u.msgCodec, &packet.JsonCodec{})
 	assert.Equal(t, u.maxBufferSize, 1024)
 }
 
@@ -81,16 +81,14 @@ func TestUDPServer_Stop(t *testing.T) {
 }
 
 func TestUDPServer_handleIncomingMsg(t *testing.T) {
-	codec := &packet.StringCodec{}
 	packer := &packet.DefaultPacker{}
 
 	server := NewUDPServer(&UDPOption{
-		MsgCodec:  codec,
 		MsgPacker: packer,
 	})
 	// use middleware
 	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(ctx *router.Context) (packet.Message, error) {
+		return func(ctx *router.Context) (*packet.MessageEntry, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
@@ -100,7 +98,7 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 		}
 	})
 	// register route
-	server.AddRoute(1, func(ctx *router.Context) (packet.Message, error) {
+	server.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
 		return ctx.Response(2, "test-resp")
 	})
 	go func() {
@@ -114,12 +112,11 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	assert.NoError(t, err)
 
 	// send req
-	b, err := codec.Encode("test-req")
+	b := []byte("test-req")
 	assert.NoError(t, err)
 
-	msg, err := packer.Pack(&packet.DefaultMsg{
+	msg, err := packer.Pack(&packet.MessageEntry{
 		ID:   1,
-		Size: uint32(len(b)),
 		Data: b,
 	})
 	assert.NoError(t, err)
@@ -132,10 +129,8 @@ func TestUDPServer_handleIncomingMsg(t *testing.T) {
 	assert.NoError(t, err)
 	respMsg, err := packer.Unpack(bytes.NewReader(buff[:n]))
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, respMsg.GetID())
-	var resp string
-	assert.NoError(t, codec.Decode(respMsg.GetData(), &resp))
-	assert.Equal(t, resp, "test-resp")
+	assert.EqualValues(t, 2, respMsg.ID)
+	assert.Equal(t, respMsg.Data, []byte("test-resp"))
 
 	assert.NoError(t, server.Stop())
 	assert.NoError(t, cli.Close())
