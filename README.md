@@ -49,7 +49,7 @@ func main() {
 
 	// add a route to message id
 	s.AddRoute(uint(1001), func(ctx *router.Context) (*packet.MessageEntry, error) {
-		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 		return ctx.Response(uint(1002), []byte("copy that"))
 	})
 
@@ -110,7 +110,7 @@ request flow:
 ```go
 s.AddRoute(reqID, func(ctx *router.Context) (*packet.MessageEntry, error) {
 	// handle the request via ctx
-	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgRawData())
+	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 
 	// do things...
 
