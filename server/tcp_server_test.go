@@ -73,10 +73,12 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		listen := mock_net.NewMockListener(ctrl)
 		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
 		server.listener = listen
+		done := make(chan struct{})
 		go func() {
 			assert.Error(t, server.acceptLoop())
+			close(done)
 		}()
-		<-server.accepting
+		<-done
 	})
 	t.Run("when accept returns a temporary error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
