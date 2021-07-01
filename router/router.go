@@ -152,12 +152,13 @@ func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 }
 
 // PrintHandlers prints registered route handlers to console.
-func (r *Router) PrintHandlers() {
-	fmt.Println("[EASYTCP ROUTES]")
+func (r *Router) PrintHandlers(addr string) {
+	fmt.Println("")
 	r.handlerMapper.Range(func(key, value interface{}) bool {
 		id := key.(uint)
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
-		fmt.Printf("  %6d --> %s\n", id, handlerName)
+		fmt.Printf("[EASYTCP ROUTES] %6d --> %s\n", id, handlerName)
 		return true
 	})
+	fmt.Printf("[EASYTCP ROUTES] Serving at: %s\n", addr)
 }

@@ -43,7 +43,6 @@ func main() {
 	})
 
 	go func() {
-		log.Infof("serving at %s", fixture.ServerAddr)
 		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}

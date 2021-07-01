@@ -25,7 +25,6 @@ func main() {
 
 	srv.AddRoute(uint(message.ID_FooReqID), handle, logMiddleware)
 
-	log.Infof("serve at %s", fixture.ServerAddr)
 	if err := srv.Serve(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
 	}
