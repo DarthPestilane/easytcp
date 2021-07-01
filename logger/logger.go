@@ -6,9 +6,6 @@ import (
 	"os"
 )
 
-// Log is the instance of Logger interface.
-var Log Logger = newLogger()
-
 // Logger is the generic interface for log recording.
 type Logger interface {
 	Errorf(format string, args ...interface{})
@@ -22,6 +19,9 @@ type DefaultLogger struct {
 }
 
 var _ Logger = &DefaultLogger{}
+
+// Log is the instance of Logger interface.
+var Log Logger = newLogger()
 
 func newLogger() *DefaultLogger {
 	return &DefaultLogger{

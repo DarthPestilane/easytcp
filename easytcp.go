@@ -3,11 +3,10 @@ package easytcp
 import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/server"
-	"github.com/sirupsen/logrus"
 )
 
 // SetLogger sets the logger for package.
-func SetLogger(log *logrus.Logger) {
+func SetLogger(log logger.Logger) {
 	logger.Log = log
 }
 
