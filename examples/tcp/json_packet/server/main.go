@@ -33,7 +33,6 @@ func main() {
 	s.AddRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
-		log.Infof("serve at %s", fixture.ServerAddr)
 		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}

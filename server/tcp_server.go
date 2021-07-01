@@ -81,7 +81,7 @@ func (s *TCPServer) Serve(addr string) error {
 	}
 	s.listener = lis
 	if s.printRoutes {
-		s.router.PrintHandlers()
+		s.router.PrintHandlers(fmt.Sprintf("tcp://%s", s.listener.Addr()))
 	}
 	return s.acceptLoop()
 }
