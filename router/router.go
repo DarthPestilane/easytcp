@@ -5,6 +5,8 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
+	"github.com/olekukonko/tablewriter"
+	"os"
 	"reflect"
 	"runtime"
 	"sync"
@@ -153,12 +155,16 @@ func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 
 // PrintHandlers prints registered route handlers to console.
 func (r *Router) PrintHandlers(addr string) {
-	fmt.Println("")
+	fmt.Printf("\n[EASYTCP ROUTE TABLE]:\n")
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "Handler"})
+	table.SetAutoFormatHeaders(false)
 	r.handlerMapper.Range(func(key, value interface{}) bool {
 		id := key.(uint)
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
-		fmt.Printf("[EASYTCP ROUTES] %6d --> %s\n", id, handlerName)
+		table.Append([]string{fmt.Sprintf("%d", id), handlerName})
 		return true
 	})
-	fmt.Printf("[EASYTCP] Serving at: %s\n", addr)
+	table.Render()
+	fmt.Printf("[EASYTCP] Serving at: %s\n\n", addr)
 }

@@ -348,3 +348,18 @@ func TestRouter_wrapHandlers(t *testing.T) {
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }
+
+func TestRouter_PrintHandlers(t *testing.T) {
+	t.Run("when there's no route registered", func(t *testing.T) {
+		rt := NewRouter()
+		rt.PrintHandlers("localhost")
+	})
+	t.Run("when there are routes registered", func(t *testing.T) {
+		rt := NewRouter()
+		rt.Register(1234, defaultHandler)
+		rt.Register(12345, defaultHandler)
+		rt.Register(123456, defaultHandler)
+		rt.Register(12345678, defaultHandler)
+		rt.PrintHandlers("localhost")
+	})
+}
