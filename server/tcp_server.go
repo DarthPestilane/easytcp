@@ -18,6 +18,7 @@ type TCPServer struct {
 	readBufferSize     int
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
+	printRoutes        bool
 	listener           net.Listener
 	msgPacker          packet.Packer
 	msgCodec           packet.Codec
@@ -37,6 +38,7 @@ type TCPOption struct {
 	MsgCodec           packet.Codec  // encodes and decodes the message data, can be nil
 	WriteBufferSize    int           // sets the write channel buffer size, 1024 will be used if < 0.
 	ReadBufferSize     int           // sets the read channel buffer size, 1024 will be used if < 0.
+	DontPrintRoutes    bool          // whether to print registered route handlers to the console.
 }
 
 // NewTCPServer creates a TCPServer pointer according to opt.
@@ -58,6 +60,7 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 		writeTimeout:       opt.WriteTimeout,
 		msgPacker:          opt.MsgPacker,
 		msgCodec:           opt.MsgCodec,
+		printRoutes:        !opt.DontPrintRoutes,
 		router:             router.NewRouter(),
 		accepting:          make(chan struct{}),
 		stopped:            make(chan struct{}),
@@ -77,7 +80,9 @@ func (s *TCPServer) Serve(addr string) error {
 		return err
 	}
 	s.listener = lis
-
+	if s.printRoutes {
+		s.router.PrintHandlers()
+	}
 	return s.acceptLoop()
 }
 
