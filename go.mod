@@ -5,6 +5,8 @@ go 1.14
 require (
 	github.com/golang/mock v1.5.0
 	github.com/google/uuid v1.2.0
+	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/zhuangsirui/binpacker v1.0.0
