@@ -157,8 +157,9 @@ func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 func (r *Router) PrintHandlers(addr string) {
 	fmt.Printf("\n[EASYTCP ROUTE TABLE]:\n")
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Handler"})
+	table.SetHeader([]string{"Message ID", "Route Handler"})
 	table.SetAutoFormatHeaders(false)
+	table.SetHeaderColor([]int{tablewriter.FgHiGreenColor}, []int{tablewriter.FgHiGreenColor})
 	r.handlerMapper.Range(func(key, value interface{}) bool {
 		id := key.(uint)
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
