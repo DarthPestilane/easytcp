@@ -5,7 +5,7 @@
 
 ## Introduction
 
-`EasyTCP` is a light-weight TCP framework written in Go (Golang), featured with:
+`EasyTCP` is a light-weight TCP server framework written in Go (Golang), featured with:
 
 - Non-invasive design
 - Pipelined middlewares for route handler
@@ -29,6 +29,8 @@ Use the below Go command to install EasyTCP.
 ```sh
 $ go get -u github.com/DarthPestilane/easytcp
 ```
+
+Note: EasyTCP uses **Go Modules** to manage dependencies.
 
 ## Quick start
 
