@@ -3,12 +3,11 @@ package easytcp
 import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/server"
-	"github.com/sirupsen/logrus"
 )
 
 // SetLogger sets the logger for package.
-func SetLogger(log *logrus.Logger) {
-	logger.Default = log
+func SetLogger(log logger.Logger) {
+	logger.Log = log
 }
 
 // NewTCPServer creates a new server.TCPServer according to opt.

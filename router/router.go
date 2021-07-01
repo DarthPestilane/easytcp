@@ -5,15 +5,12 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
-	"github.com/sirupsen/logrus"
 	"sync"
 )
 
 // Router is a router for incoming message.
 // Router routes the message to its handler and middlewares.
 type Router struct {
-	log *logrus.Entry
-
 	// handlerMapper maps message's ID to handler.
 	// Handler will be called around middlewares.
 	handlerMapper sync.Map
@@ -47,7 +44,6 @@ var defaultHandler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error
 // NewRouter creates a new Router pointer.
 func NewRouter() *Router {
 	return &Router{
-		log:               logger.Default.WithField("scope", "router.Router"),
 		globalMiddlewares: make([]MiddlewareFunc, 0),
 	}
 }
@@ -59,7 +55,7 @@ func (r *Router) RouteLoop(s session.Session) {
 	for {
 		req, ok := <-s.RecvReq()
 		if !ok {
-			r.log.WithField("sid", s.ID()).Tracef("loop stopped since session is closed")
+			logger.Log.Tracef("loop stopped since session is closed")
 			break
 		}
 		if req == nil {
@@ -67,11 +63,11 @@ func (r *Router) RouteLoop(s session.Session) {
 		}
 		go func() {
 			if err := r.handleReq(s, req); err != nil {
-				r.log.WithField("sid", s.ID()).Tracef("handle request err: %s", err)
+				logger.Log.Tracef("handle request err: %s", err)
 			}
 		}()
 	}
-	r.log.WithField("sid", s.ID()).Tracef("loop exit")
+	logger.Log.Tracef("loop exit")
 }
 
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,

@@ -23,7 +23,6 @@ func TestNewTCPSession(t *testing.T) {
 	assert.NotNil(t, s.closed)
 	assert.NotNil(t, s.respQueue)
 	assert.NotNil(t, s.reqQueue)
-	assert.NotNil(t, s.log)
 }
 
 func TestTCPSession_Close(t *testing.T) {

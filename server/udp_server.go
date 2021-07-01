@@ -6,7 +6,6 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/session"
-	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 )
@@ -17,7 +16,6 @@ type UDPServer struct {
 	conn          *net.UDPConn
 	rwBufferSize  int
 	maxBufferSize int
-	log           *logrus.Entry
 	msgPacker     packet.Packer
 	msgCodec      packet.Codec
 	router        *router.Router
@@ -44,7 +42,6 @@ func NewUDPServer(opt *UDPOption) *UDPServer {
 		opt.MsgPacker = &packet.DefaultPacker{}
 	}
 	return &UDPServer{
-		log:           logger.Default.WithField("scope", "server.UDPServer"),
 		rwBufferSize:  opt.SocketRWBufferSize,
 		msgPacker:     opt.MsgPacker,
 		msgCodec:      opt.MsgCodec,
@@ -92,7 +89,7 @@ func (s *UDPServer) acceptLoop() error {
 			}
 			if isTempErr(err) {
 				tempDelay := time.Millisecond * 5
-				s.log.Tracef("read conn err: %s; retrying in %v", err, tempDelay)
+				logger.Log.Tracef("read conn err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -109,12 +106,12 @@ func (s *UDPServer) handleIncomingMsg(msg []byte, addr *net.UDPAddr) {
 	sess := session.NewUDPSession(s.conn, addr, s.msgPacker, s.msgCodec)
 	defer func() {
 		sess.Close()
-		s.log.WithField("sid", sess.ID()).Tracef("session closed")
+		logger.Log.Tracef("session closed")
 	}()
 
 	go s.router.RouteLoop(sess)
 	if err := sess.ReadIncomingMsg(msg); err != nil {
-		s.log.WithField("sid", sess.ID()).Tracef("read incoming message err: %s", err)
+		logger.Log.Tracef("read incoming message err: %s", err)
 		return
 	}
 	sess.Write(s.stopped)

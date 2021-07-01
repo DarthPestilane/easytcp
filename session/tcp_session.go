@@ -5,7 +5,6 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
 	"time"
@@ -16,7 +15,6 @@ import (
 type TCPSession struct {
 	id        string                    // session's ID. it's a uuid
 	conn      net.Conn                  // tcp connection
-	log       *logrus.Entry             // logger
 	closeOnce sync.Once                 // to make sure we can only close each session one time
 	closed    chan struct{}             // to close()
 	reqQueue  chan *packet.MessageEntry // request queue channel, pushed in ReadLoop() and popped in router.Router
@@ -44,7 +42,6 @@ func NewTCPSession(conn net.Conn, opt *TCPSessionOption) *TCPSession {
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		log:       logger.Default.WithField("sid", id).WithField("scope", "session.TCPSession"),
 		reqQueue:  make(chan *packet.MessageEntry, opt.ReadBufferSize),
 		respQueue: make(chan *packet.MessageEntry, opt.WriteBufferSize),
 		msgPacker: opt.Packer,
@@ -98,20 +95,20 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 	for {
 		if readTimeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-				s.log.Tracef("set read deadline err: %s", err)
+				logger.Log.Tracef("set read deadline err: %s", err)
 				break
 			}
 		}
 		msg, err := s.msgPacker.Unpack(s.conn)
 		if err != nil {
-			s.log.Tracef("unpack incoming message err: %s", err)
+			logger.Log.Tracef("unpack incoming message err: %s", err)
 			break
 		}
 		if !s.safelyPushReqQueue(msg) {
 			break
 		}
 	}
-	s.log.Tracef("read loop exit")
+	logger.Log.Tracef("read loop exit")
 	s.Close()
 }
 
@@ -129,21 +126,21 @@ func (s *TCPSession) WriteLoop(writeTimeout time.Duration) {
 		// pack message
 		ackMsg, err := s.msgPacker.Pack(respMsg)
 		if err != nil {
-			s.log.Tracef("pack response message err: %s", err)
+			logger.Log.Tracef("pack response message err: %s", err)
 			continue
 		}
 		if writeTimeout > 0 {
 			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-				s.log.Tracef("set write deadline err: %s", err)
+				logger.Log.Tracef("set write deadline err: %s", err)
 				break
 			}
 		}
 		if _, err := s.conn.Write(ackMsg); err != nil {
-			s.log.Tracef("conn write err: %s", err)
+			logger.Log.Tracef("conn write err: %s", err)
 			break
 		}
 	}
-	s.log.Tracef("write loop exit")
+	logger.Log.Tracef("write loop exit")
 	s.Close()
 }
 
@@ -157,7 +154,7 @@ func (s *TCPSession) safelyPushReqQueue(reqMsg *packet.MessageEntry) (ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			s.log.Tracef("push reqQueue panics: %+v", r)
+			logger.Log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- reqMsg
@@ -169,7 +166,7 @@ func (s *TCPSession) safelyPushRespQueue(respMsg *packet.MessageEntry) (ok bool)
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			s.log.Tracef("push respQueue panics: %+v", r)
+			logger.Log.Tracef("push respQueue panics: %+v", r)
 		}
 	}()
 	s.respQueue <- respMsg

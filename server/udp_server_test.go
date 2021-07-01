@@ -14,7 +14,6 @@ func TestNewUDPServer(t *testing.T) {
 	u := NewUDPServer(&UDPOption{
 		MsgCodec: &packet.JsonCodec{},
 	})
-	assert.NotNil(t, u.log)
 	assert.NotNil(t, u.accepting)
 	assert.NotNil(t, u.stopped)
 	assert.Equal(t, u.msgPacker, &packet.DefaultPacker{})

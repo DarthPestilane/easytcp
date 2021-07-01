@@ -4,7 +4,6 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/message"
-	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
@@ -14,7 +13,8 @@ import (
 var log *logrus.Logger
 
 func init() {
-	log = logger.Default
+	log = logrus.New()
+	log.SetLevel(logrus.DebugLevel)
 }
 
 func main() {
