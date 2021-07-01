@@ -5,6 +5,8 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/session"
+	"reflect"
+	"runtime"
 	"sync"
 )
 
@@ -147,4 +149,15 @@ func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 			}
 		}
 	}
+}
+
+// PrintHandlers prints registered route handlers to console.
+func (r *Router) PrintHandlers() {
+	fmt.Println("[EASYTCP ROUTES]")
+	r.handlerMapper.Range(func(key, value interface{}) bool {
+		id := key.(uint)
+		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
+		fmt.Printf("  %6d --> %s\n", id, handlerName)
+		return true
+	})
 }
