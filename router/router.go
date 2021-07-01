@@ -160,5 +160,5 @@ func (r *Router) PrintHandlers(addr string) {
 		fmt.Printf("[EASYTCP ROUTES] %6d --> %s\n", id, handlerName)
 		return true
 	})
-	fmt.Printf("[EASYTCP ROUTES] Serving at: %s\n", addr)
+	fmt.Printf("[EASYTCP] Serving at: %s\n", addr)
 }
