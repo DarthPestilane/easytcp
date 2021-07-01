@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 )
@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log := logger.Default
+	log := logrus.New()
 	codec := &packet.JsonCodec{}
 	packer := &fixture.Packer16bit{}
 	go func() {

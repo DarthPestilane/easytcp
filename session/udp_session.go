@@ -6,7 +6,6 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"net"
 )
 
@@ -15,7 +14,6 @@ import (
 type UDPSession struct {
 	id         string                    // session's id. a uuid
 	conn       *net.UDPConn              // udp connection
-	log        *logrus.Entry             // logger
 	closed     chan struct{}             // represents whether the session is closed. will be closed in Close() method
 	reqQueue   chan *packet.MessageEntry // a non-buffer channel, pushed in ReadIncomingMsg(), popped in router.Router
 	respQueue  chan *packet.MessageEntry // a non-buffer channel, pushed in SendResp(), popped in Write()
@@ -36,7 +34,6 @@ func NewUDPSession(conn *net.UDPConn, addr *net.UDPAddr, packer packet.Packer, c
 		id:         id,
 		conn:       conn,
 		closed:     make(chan struct{}),
-		log:        logger.Default.WithField("sid", id).WithField("scope", "session.UDPSession"),
 		reqQueue:   make(chan *packet.MessageEntry),
 		respQueue:  make(chan *packet.MessageEntry),
 		msgPacker:  packer,
@@ -97,11 +94,11 @@ func (s *UDPSession) Write(done <-chan struct{}) {
 		}
 		ackMsg, err := s.msgPacker.Pack(respMsg)
 		if err != nil {
-			s.log.Tracef("pack response message err: %s", err)
+			logger.Log.Tracef("pack response message err: %s", err)
 			return
 		}
 		if _, err := s.conn.WriteToUDP(ackMsg, s.remoteAddr); err != nil {
-			s.log.Tracef("conn write err: %s", err)
+			logger.Log.Tracef("conn write err: %s", err)
 			return
 		}
 	}
@@ -118,7 +115,7 @@ func (s *UDPSession) Close() {
 func (s *UDPSession) safelyPushReqQueue(reqMsg *packet.MessageEntry) {
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Tracef("push reqQueue panics: %+v", r)
+			logger.Log.Tracef("push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- reqMsg
@@ -129,7 +126,7 @@ func (s *UDPSession) safelyPushRespQueue(respMsg *packet.MessageEntry) (ok bool)
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			s.log.Tracef("push respQueue panics: %+v", r)
+			logger.Log.Tracef("push respQueue panics: %+v", r)
 		}
 	}()
 	s.respQueue <- respMsg

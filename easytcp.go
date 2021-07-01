@@ -8,7 +8,7 @@ import (
 
 // SetLogger sets the logger for package.
 func SetLogger(log *logrus.Logger) {
-	logger.Default = log
+	logger.Log = log
 }
 
 // NewTCPServer creates a new server.TCPServer according to opt.

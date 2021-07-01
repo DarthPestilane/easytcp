@@ -13,7 +13,6 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	rt := NewRouter()
-	assert.NotNil(t, rt.log)
 	assert.NotNil(t, rt.globalMiddlewares)
 }
 
@@ -28,7 +27,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 		reqCh := make(chan *packet.MessageEntry)
 		close(reqCh)
 		sess.EXPECT().RecvReq().Return(reqCh)
-		sess.EXPECT().ID().Times(2).Return("test-session-id")
+		sess.EXPECT().ID().AnyTimes().Return("test-session-id")
 		rt.RouteLoop(sess) // should return
 	})
 	t.Run("when received a nil request", func(t *testing.T) {
@@ -44,7 +43,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 		}()
 		sess := mock.NewMockSession(ctrl)
 		sess.EXPECT().RecvReq().Times(2).Return(reqCh)
-		sess.EXPECT().ID().Times(2).Return("test session id")
+		sess.EXPECT().ID().AnyTimes().Return("test session id")
 		loopDone := make(chan struct{})
 		go func() {
 			rt.RouteLoop(sess) // should not call to handler
@@ -106,7 +105,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 			}()
 			sess := mock.NewMockSession(ctrl)
 			sess.EXPECT().RecvReq().Times(2).Return(reqCh)
-			sess.EXPECT().ID().Times(2).Return("test session id")
+			sess.EXPECT().ID().AnyTimes().Return("test session id")
 			loopDone := make(chan struct{})
 			go func() {
 				rt.RouteLoop(sess) // should not call to handler

@@ -6,7 +6,6 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/session"
-	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 )
@@ -20,7 +19,6 @@ type TCPServer struct {
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
 	listener           net.Listener
-	log                *logrus.Entry
 	msgPacker          packet.Packer
 	msgCodec           packet.Codec
 	router             *router.Router
@@ -53,7 +51,6 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 		opt.ReadBufferSize = 1024
 	}
 	return &TCPServer{
-		log:                logger.Default.WithField("scope", "server.TCPServer"),
 		socketRWBufferSize: opt.SocketRWBufferSize,
 		writeBufferSize:    opt.WriteBufferSize,
 		readBufferSize:     opt.ReadBufferSize,
@@ -96,7 +93,7 @@ func (s *TCPServer) acceptLoop() error {
 			}
 			if isTempErr(err) {
 				tempDelay := time.Millisecond * 5
-				s.log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
+				logger.Log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -130,9 +127,9 @@ func (s *TCPServer) handleConn(conn net.Conn) {
 	go sess.WriteLoop(s.writeTimeout)
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
-	s.log.WithField("sid", sess.ID()).Tracef("session closed")
+	logger.Log.Tracef("session closed")
 	if err := conn.Close(); err != nil {
-		s.log.Tracef("connection close err: %s", err)
+		logger.Log.Tracef("connection close err: %s", err)
 	}
 }
 
@@ -147,7 +144,7 @@ func (s *TCPServer) Stop() error {
 		}
 		return true
 	})
-	s.log.Tracef("%d session(s) closed", closedNum)
+	logger.Log.Tracef("%d session(s) closed", closedNum)
 	close(s.stopped)
 	return s.listener.Close()
 }

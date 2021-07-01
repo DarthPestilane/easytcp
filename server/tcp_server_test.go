@@ -20,7 +20,6 @@ func TestNewTCPServer(t *testing.T) {
 		WriteTimeout:       0,
 		MsgCodec:           &packet.JsonCodec{},
 	})
-	assert.NotNil(t, s.log)
 	assert.NotNil(t, s.accepting)
 	assert.Equal(t, s.msgPacker, &packet.DefaultPacker{})
 	assert.Equal(t, s.msgCodec, &packet.JsonCodec{})

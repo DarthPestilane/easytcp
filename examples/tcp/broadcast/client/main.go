@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -14,7 +13,8 @@ var log *logrus.Logger
 var packer packet.Packer
 
 func init() {
-	log = logger.Default
+	log = logrus.New()
+	log.SetLevel(logrus.DebugLevel)
 	packer = &packet.DefaultPacker{}
 }
 

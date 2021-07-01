@@ -4,8 +4,6 @@ import (
 	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
-	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"net"
 	"testing"
 )
@@ -84,7 +82,5 @@ func benchRequest(b *testing.B, client net.Conn, msg []byte) {
 }
 
 func muteLog() {
-	log := logrus.New()
-	log.SetOutput(ioutil.Discard)
-	logger.Default = log
+	logger.Log = &logger.MuteLogger{}
 }

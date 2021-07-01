@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/message"
-	"github.com/DarthPestilane/easytcp/logger"
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -13,7 +12,8 @@ import (
 var log *logrus.Logger
 
 func init() {
-	log = logger.Default
+	log = logrus.New()
+	log.SetLevel(logrus.DebugLevel)
 }
 
 func main() {
