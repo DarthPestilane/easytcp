@@ -6,13 +6,17 @@ import (
 	"os"
 )
 
+// Log is the instance of Logger interface.
 var Log Logger = newLogger()
 
+// Logger is the generic interface for log recording.
 type Logger interface {
 	Errorf(format string, args ...interface{})
 	Tracef(format string, args ...interface{})
 }
 
+// DefaultLogger is the default logger instance for this package.
+// DefaultLogger uses the built-in log.Logger.
 type DefaultLogger struct {
 	rawLogger *log.Logger
 }
@@ -33,6 +37,7 @@ func (d *DefaultLogger) Tracef(format string, args ...interface{}) {
 	d.rawLogger.Printf("[TRACE] %s", fmt.Sprintf(format, args...))
 }
 
+// MuteLogger is the empty logger instance.
 type MuteLogger struct{}
 
 var _ Logger = &MuteLogger{}
