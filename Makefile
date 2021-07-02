@@ -1,6 +1,7 @@
 ldflags = -ldflags="-s"
 coverprofile=.testCoverage.txt
 pkgs=`go list ./... | grep -v /examples/`
+os=`${OS}`
 
 .PHONY: default
 default: build
@@ -42,7 +43,7 @@ tidy:
 
 .PHONY: gen
 gen:
-ifeq ($(OS), $(filter $(OS), Windows Windows_NT)) # If on windows, there might be something strange...
+ifeq (${os}, $(filter ${os}, Windows Windows_NT)) # If on windows, there might be something strange...
 	rm -rf ./**/gomock_reflect_*
 	CGO_ENABLED=0 go generate ${pkgs} 2>/dev/null
 	rm -rf ./**/gomock_reflect_*
