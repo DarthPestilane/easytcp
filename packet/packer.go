@@ -39,6 +39,7 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
+// Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(entry *MessageEntry) ([]byte, error) {
 	size := len(entry.Data) // size without ID
 	buff := bytes.NewBuffer(make([]byte, 0, size+4+4))

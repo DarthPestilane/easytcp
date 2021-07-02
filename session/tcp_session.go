@@ -25,6 +25,7 @@ type TCPSession struct {
 
 var _ Session = &TCPSession{}
 
+// TCPSessionOption is the extra options for TCPSession.
 type TCPSessionOption struct {
 	Packer          packet.Packer
 	Codec           packet.Codec

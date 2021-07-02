@@ -29,10 +29,12 @@ func newLogger() *DefaultLogger {
 	}
 }
 
+// Errorf implements Logger Errorf method.
 func (d *DefaultLogger) Errorf(format string, args ...interface{}) {
 	d.rawLogger.Printf("[ERROR] %s", fmt.Sprintf(format, args...))
 }
 
+// Tracef implements Logger Tracef method.
 func (d *DefaultLogger) Tracef(format string, args ...interface{}) {
 	d.rawLogger.Printf("[TRACE] %s", fmt.Sprintf(format, args...))
 }
@@ -42,6 +44,8 @@ type MuteLogger struct{}
 
 var _ Logger = &MuteLogger{}
 
+// Errorf is an empty implementation to Logger Errorf method.
 func (m *MuteLogger) Errorf(format string, args ...interface{}) {}
 
+// Tracef is an empty implementation to Logger Tracef method.
 func (m *MuteLogger) Tracef(format string, args ...interface{}) {}
