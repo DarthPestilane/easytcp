@@ -14,8 +14,3 @@ func SetLogger(log logger.Logger) {
 func NewTCPServer(opt *server.TCPOption) *server.TCPServer {
 	return server.NewTCPServer(opt)
 }
-
-// NewUDPServer creates a new server.UDPServer according to opt.
-func NewUDPServer(opt *server.UDPOption) *server.UDPServer {
-	return server.NewUDPServer(opt)
-}

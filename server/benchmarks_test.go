@@ -10,17 +10,16 @@ import (
 
 //go:generate go test -bench=^BenchmarkTCP$ -run=none -benchmem -memprofile=bench_profiles/BenchmarkTCP.mem.out -cpuprofile=bench_profiles/BenchmarkTCP.profile.out
 func BenchmarkTCP(b *testing.B) {
-	muteLog()
+	logger.Log = &logger.MuteLogger{}
 	packer := &packet.DefaultPacker{}
 	s := NewTCPServer(&TCPOption{
 		MsgPacker:       packer,
 		DontPrintRoutes: true,
 	})
 	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
-		return ctx.Response(2, "bench done")
+		return ctx.Response(2, []byte("pong"))
 	})
 	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -29,59 +28,8 @@ func BenchmarkTCP(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-
-	rawData := []byte("bench me")
-	msg := &packet.MessageEntry{
-		ID:   1,
-		Data: rawData,
-	}
-	packedMsg, err := packer.Pack(msg)
-	if err != nil {
-		panic(err)
-	}
-	benchRequest(b, client, packedMsg)
-}
-
-//go:generate go test -bench=^BenchmarkUDP$ -run=none -benchmem -memprofile=bench_profiles/BenchmarkUDP.mem.out -cpuprofile=bench_profiles/BenchmarkUDP.profile.out
-func BenchmarkUDP(b *testing.B) {
-	muteLog()
-	packer := &packet.DefaultPacker{}
-	s := NewUDPServer(&UDPOption{
-		MaxBufferSize: 100,
-		MsgPacker:     packer,
-	})
-	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
-		return ctx.Response(2, "bench done")
-	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
-
-	<-s.accepting
-	client, err := net.Dial("udp", s.conn.LocalAddr().String())
-	if err != nil {
-		panic(err)
-	}
-
-	rawData := []byte("bench me")
-	msg := &packet.MessageEntry{
-		ID:   1,
-		Data: rawData,
-	}
-	packedMsg, err := packer.Pack(msg)
-	if err != nil {
-		panic(err)
-	}
-	benchRequest(b, client, packedMsg)
-}
-
-func benchRequest(b *testing.B, client net.Conn, msg []byte) {
+	packedMsg, _ := packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
-		if _, err := client.Write(msg); err != nil {
-			panic(err)
-		}
+		_, _ = client.Write(packedMsg)
 	}
-}
-
-func muteLog() {
-	logger.Log = &logger.MuteLogger{}
 }
