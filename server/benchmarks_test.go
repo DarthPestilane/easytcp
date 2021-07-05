@@ -13,7 +13,7 @@ func BenchmarkTCP(b *testing.B) {
 	logger.Log = &logger.MuteLogger{}
 	packer := &packet.DefaultPacker{}
 	s := NewTCPServer(&TCPOption{
-		MsgPacker:       packer,
+		Packer:          packer,
 		DontPrintRoutes: true,
 	})
 	s.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {

@@ -26,6 +26,8 @@ type Router struct {
 	// globalMiddlewares is a list of MiddlewareFunc.
 	// globalMiddlewares will be called before the ones in middlewaresMapper.
 	globalMiddlewares []MiddlewareFunc
+
+	notFoundHandler HandlerFunc
 }
 
 // HandlerFunc is the function type for handlers.
@@ -41,7 +43,7 @@ type HandlerFunc func(ctx *Context) (*packet.MessageEntry, error)
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var defaultHandler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error) {
+var nilHandler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error) {
 	return nil, nil
 }
 
@@ -114,7 +116,10 @@ func (r *Router) handleReq(s session.Session, reqMsg *packet.MessageEntry) error
 // 	var wrapped HandlerFunc = m1(m2(m3(handle)))
 func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wrapped HandlerFunc) {
 	if handler == nil {
-		handler = defaultHandler
+		handler = r.notFoundHandler
+	}
+	if handler == nil {
+		handler = nilHandler
 	}
 	wrapped = handler
 	for i := len(middles) - 1; i >= 0; i-- {
@@ -168,4 +173,8 @@ func (r *Router) PrintHandlers(addr string) {
 	})
 	table.Render()
 	fmt.Printf("[EASYTCP] Serving at: %s\n\n", addr)
+}
+
+func (r *Router) SetNotFoundHandler(handler HandlerFunc) {
+	r.notFoundHandler = handler
 }

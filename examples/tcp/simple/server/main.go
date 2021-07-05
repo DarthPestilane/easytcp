@@ -29,8 +29,8 @@ func main() {
 		SocketRWBufferSize: 1024 * 1024,
 		ReadTimeout:        time.Second * 10,
 		WriteTimeout:       time.Second * 10,
-		MsgPacker:          &packet.DefaultPacker{}, // with default packer
-		MsgCodec:           nil,                     // without codec
+		Packer:             &packet.DefaultPacker{}, // with default packer
+		Codec:              nil,                     // without codec
 		ReadBufferSize:     0,
 		WriteBufferSize:    0,
 	})

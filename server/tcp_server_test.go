@@ -19,7 +19,7 @@ func TestNewTCPServer(t *testing.T) {
 		SocketRWBufferSize: 0,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
-		MsgCodec:           &packet.JsonCodec{},
+		Codec:              &packet.JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
 	assert.Equal(t, s.Packer, &packet.DefaultPacker{})
@@ -139,9 +139,9 @@ func TestTCPServer_handleConn(t *testing.T) {
 
 	// server
 	server := NewTCPServer(&TCPOption{
-		SocketRWBufferSize: 1024,
-		MsgCodec:           codec,
-		MsgPacker:          packer,
+		SocketRWBufferSize: 1,
+		Codec:              codec,
+		Packer:             packer,
 		ReadBufferSize:     -1,
 		WriteBufferSize:    -1,
 	})
@@ -208,4 +208,42 @@ func TestTCPServer_handleConn(t *testing.T) {
 	assert.NoError(t, codec.Decode(respMsg.Data, &respData))
 	assert.EqualValues(t, 2, respMsg.ID)
 	assert.True(t, respData.Success)
+}
+
+func TestTCPServer_NotFoundHandler(t *testing.T) {
+	// server
+	server := NewTCPServer(&TCPOption{
+		Packer: &packet.DefaultPacker{},
+	})
+	server.NotFoundHandler(func(ctx *router.Context) (*packet.MessageEntry, error) {
+		return ctx.Response(101, []byte("handler not found"))
+	})
+	go func() {
+		err := server.Serve(":0")
+		assert.Error(t, err)
+		assert.Equal(t, err, ErrServerStopped)
+	}()
+
+	<-server.accepting
+
+	// client
+	cli, err := net.Dial("tcp", server.Listener.Addr().String())
+	assert.NoError(t, err)
+	defer func() { assert.NoError(t, cli.Close()) }()
+
+	// send msg
+	msg := &packet.MessageEntry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	reqMsg, err := server.Packer.Pack(msg)
+	assert.NoError(t, err)
+	_, err = cli.Write(reqMsg)
+	assert.NoError(t, err)
+
+	// read msg
+	entry, err := server.Packer.Unpack(cli)
+	assert.NoError(t, err)
+	assert.EqualValues(t, entry.ID, 101)
+	assert.Equal(t, entry.Data, []byte("handler not found"))
 }
