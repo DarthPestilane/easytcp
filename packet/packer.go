@@ -59,19 +59,25 @@ func (d *DefaultPacker) Pack(entry *MessageEntry) ([]byte, error) {
 
 // Unpack implements the Packer Unpack method.
 func (d *DefaultPacker) Unpack(reader io.Reader) (*MessageEntry, error) {
-	p := binpacker.NewUnpacker(d.bytesOrder(), reader)
-	size, err := p.ShiftUint32()
-	if err != nil {
+	// We should use io.ReadFull method, especially called conn.SetReadBuffer(n).
+
+	sizeBuff := make([]byte, 4)
+	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
-	id, err := p.ShiftUint32()
-	if err != nil {
+	size := d.bytesOrder().Uint32(sizeBuff)
+
+	idBuff := make([]byte, 4)
+	if _, err := io.ReadFull(reader, idBuff); err != nil {
 		return nil, fmt.Errorf("read id err: %s", err)
 	}
-	data, err := p.ShiftBytes(uint64(size))
-	if err != nil {
+	id := d.bytesOrder().Uint32(idBuff)
+
+	data := make([]byte, size)
+	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
+
 	msg := &MessageEntry{
 		ID:   uint(id),
 		Data: data,
