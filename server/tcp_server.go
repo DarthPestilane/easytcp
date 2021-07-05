@@ -27,8 +27,6 @@ type TCPServer struct {
 	stopped            chan struct{}
 }
 
-var _ Server = &TCPServer{}
-
 // TCPOption is the option for TCPServer.
 type TCPOption struct {
 	SocketRWBufferSize int           // sets the socket read write buffer
