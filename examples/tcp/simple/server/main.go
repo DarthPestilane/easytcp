@@ -7,6 +7,7 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	"github.com/DarthPestilane/easytcp/server"
+	"github.com/DarthPestilane/easytcp/session"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -33,6 +34,12 @@ func main() {
 		ReadBufferSize:     0,
 		WriteBufferSize:    0,
 	})
+	s.OnSessionCreate = func(sess session.Session) {
+		log.Infof("session created: %s", sess.ID())
+	}
+	s.OnSessionClose = func(sess session.Session) {
+		log.Warnf("session closed: %s", sess.ID())
+	}
 
 	// register global middlewares
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
