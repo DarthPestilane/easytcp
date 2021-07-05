@@ -5,6 +5,7 @@ import (
 	"github.com/DarthPestilane/easytcp/packet"
 	"github.com/DarthPestilane/easytcp/router"
 	mock_net "github.com/DarthPestilane/easytcp/server/mock/net"
+	"github.com/DarthPestilane/easytcp/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -144,6 +145,14 @@ func TestTCPServer_handleConn(t *testing.T) {
 		ReadBufferSize:     -1,
 		WriteBufferSize:    -1,
 	})
+
+	// hooks
+	server.OnSessionCreate = func(sess session.Session) {
+		fmt.Printf("session created | id: %s\n", sess.ID())
+	}
+	server.OnSessionClose = func(sess session.Session) {
+		fmt.Printf("session closed | id: %s\n", sess.ID())
+	}
 
 	// register route
 	server.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {

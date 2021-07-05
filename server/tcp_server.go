@@ -23,6 +23,8 @@ type TCPServer struct {
 	Packer             packet.Packer
 	Codec              packet.Codec
 	router             *router.Router
+	OnSessionCreate    func(sess session.Session)
+	OnSessionClose     func(sess session.Session)
 	accepting          chan struct{}
 	stopped            chan struct{}
 }
@@ -125,12 +127,17 @@ func (s *TCPServer) handleConn(conn net.Conn) {
 		WriteBufferSize: s.writeBufferSize,
 	})
 	session.Sessions().Add(sess)
+	if s.OnSessionCreate != nil {
+		go s.OnSessionCreate(sess)
+	}
 	go s.router.RouteLoop(sess)
 	go sess.ReadLoop(s.readTimeout)
 	go sess.WriteLoop(s.writeTimeout)
 	sess.WaitUntilClosed()
 	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
-	logger.Log.Tracef("session closed")
+	if s.OnSessionClose != nil {
+		go s.OnSessionClose(sess)
+	}
 	if err := conn.Close(); err != nil {
 		logger.Log.Tracef("connection close err: %s", err)
 	}
