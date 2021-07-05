@@ -46,6 +46,20 @@ func (mr *MockSessionMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockSession)(nil).Close))
 }
 
+// Codec mocks base method.
+func (m *MockSession) Codec() packet.Codec {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Codec")
+	ret0, _ := ret[0].(packet.Codec)
+	return ret0
+}
+
+// Codec indicates an expected call of Codec.
+func (mr *MockSessionMockRecorder) Codec() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Codec", reflect.TypeOf((*MockSession)(nil).Codec))
+}
+
 // ID mocks base method.
 func (m *MockSession) ID() string {
 	m.ctrl.T.Helper()
@@ -58,20 +72,6 @@ func (m *MockSession) ID() string {
 func (mr *MockSessionMockRecorder) ID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ID", reflect.TypeOf((*MockSession)(nil).ID))
-}
-
-// MsgCodec mocks base method.
-func (m *MockSession) MsgCodec() packet.Codec {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MsgCodec")
-	ret0, _ := ret[0].(packet.Codec)
-	return ret0
-}
-
-// MsgCodec indicates an expected call of MsgCodec.
-func (mr *MockSessionMockRecorder) MsgCodec() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MsgCodec", reflect.TypeOf((*MockSession)(nil).MsgCodec))
 }
 
 // RecvReq mocks base method.

@@ -19,8 +19,8 @@ type TCPSession struct {
 	closed    chan struct{}             // to close()
 	reqQueue  chan *packet.MessageEntry // request queue channel, pushed in ReadLoop() and popped in router.Router
 	respQueue chan *packet.MessageEntry // response queue channel, pushed in SendResp() and popped in WriteLoop()
-	msgPacker packet.Packer             // to pack and unpack message
-	msgCodec  packet.Codec              // encode/decode message data
+	packer    packet.Packer             // to pack and unpack message
+	codec     packet.Codec              // encode/decode message data
 }
 
 var _ Session = &TCPSession{}
@@ -45,8 +45,8 @@ func NewTCPSession(conn net.Conn, opt *TCPSessionOption) *TCPSession {
 		closed:    make(chan struct{}),
 		reqQueue:  make(chan *packet.MessageEntry, opt.ReadBufferSize),
 		respQueue: make(chan *packet.MessageEntry, opt.WriteBufferSize),
-		msgPacker: opt.Packer,
-		msgCodec:  opt.Codec,
+		packer:    opt.Packer,
+		codec:     opt.Codec,
 	}
 }
 
@@ -56,10 +56,10 @@ func (s *TCPSession) ID() string {
 	return s.id
 }
 
-// MsgCodec implements the Session MsgCodec method.
+// Codec implements the Session Codec method.
 // Returns the message codec bound to session.
-func (s *TCPSession) MsgCodec() packet.Codec {
-	return s.msgCodec
+func (s *TCPSession) Codec() packet.Codec {
+	return s.codec
 }
 
 // RecvReq implements the Session RecvReq method.
@@ -100,7 +100,7 @@ func (s *TCPSession) ReadLoop(readTimeout time.Duration) {
 				break
 			}
 		}
-		msg, err := s.msgPacker.Unpack(s.conn)
+		msg, err := s.packer.Unpack(s.conn)
 		if err != nil {
 			logger.Log.Tracef("unpack incoming message err: %s", err)
 			break
@@ -125,7 +125,7 @@ func (s *TCPSession) WriteLoop(writeTimeout time.Duration) {
 			break
 		}
 		// pack message
-		ackMsg, err := s.msgPacker.Pack(respMsg)
+		ackMsg, err := s.packer.Pack(respMsg)
 		if err != nil {
 			logger.Log.Tracef("pack response message err: %s", err)
 			continue

@@ -19,9 +19,9 @@ type TCPServer struct {
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
 	printRoutes        bool
-	listener           net.Listener
-	msgPacker          packet.Packer
-	msgCodec           packet.Codec
+	Listener           net.Listener
+	Packer             packet.Packer
+	Codec              packet.Codec
 	router             *router.Router
 	accepting          chan struct{}
 	stopped            chan struct{}
@@ -58,8 +58,8 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 		readBufferSize:     opt.ReadBufferSize,
 		readTimeout:        opt.ReadTimeout,
 		writeTimeout:       opt.WriteTimeout,
-		msgPacker:          opt.MsgPacker,
-		msgCodec:           opt.MsgCodec,
+		Packer:             opt.MsgPacker,
+		Codec:              opt.MsgCodec,
 		printRoutes:        !opt.DontPrintRoutes,
 		router:             router.NewRouter(),
 		accepting:          make(chan struct{}),
@@ -79,9 +79,9 @@ func (s *TCPServer) Serve(addr string) error {
 	if err != nil {
 		return err
 	}
-	s.listener = lis
+	s.Listener = lis
 	if s.printRoutes {
-		s.router.PrintHandlers(fmt.Sprintf("tcp://%s", s.listener.Addr()))
+		s.router.PrintHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
 	return s.acceptLoop()
 }
@@ -91,7 +91,7 @@ func (s *TCPServer) Serve(addr string) error {
 func (s *TCPServer) acceptLoop() error {
 	close(s.accepting)
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := s.Listener.Accept()
 		if err != nil {
 			if isStopped(s.stopped) {
 				return ErrServerStopped
@@ -121,8 +121,8 @@ func (s *TCPServer) acceptLoop() error {
 // and waits until the session's closed.
 func (s *TCPServer) handleConn(conn net.Conn) {
 	sess := session.NewTCPSession(conn, &session.TCPSessionOption{
-		Packer:          s.msgPacker,
-		Codec:           s.msgCodec,
+		Packer:          s.Packer,
+		Codec:           s.Codec,
 		ReadBufferSize:  s.readBufferSize,
 		WriteBufferSize: s.writeBufferSize,
 	})
@@ -151,7 +151,7 @@ func (s *TCPServer) Stop() error {
 	})
 	logger.Log.Tracef("%d session(s) closed", closedNum)
 	close(s.stopped)
-	return s.listener.Close()
+	return s.Listener.Close()
 }
 
 // AddRoute implements the Server AddRoute method.

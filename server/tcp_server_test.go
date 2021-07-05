@@ -21,8 +21,8 @@ func TestNewTCPServer(t *testing.T) {
 		MsgCodec:           &packet.JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
-	assert.Equal(t, s.msgPacker, &packet.DefaultPacker{})
-	assert.Equal(t, s.msgCodec, &packet.JsonCodec{})
+	assert.Equal(t, s.Packer, &packet.DefaultPacker{})
+	assert.Equal(t, s.Codec, &packet.JsonCodec{})
 }
 
 func TestTCPServer_Serve(t *testing.T) {
@@ -49,7 +49,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		assert.NoError(t, err)
 		lis, err := net.ListenTCP("tcp", address)
 		assert.NoError(t, err)
-		server.listener = lis
+		server.Listener = lis
 		go func() {
 			err := server.acceptLoop()
 			assert.Error(t, err)
@@ -71,7 +71,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 
 		listen := mock_net.NewMockListener(ctrl)
 		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
-		server.listener = listen
+		server.Listener = listen
 		done := make(chan struct{})
 		go func() {
 			assert.Error(t, server.acceptLoop())
@@ -95,7 +95,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 
 		listen := mock_net.NewMockListener(ctrl)
 		listen.EXPECT().Accept().MinTimes(1).Return(nil, tempErr)
-		server.listener = listen
+		server.Listener = listen
 		go func() {
 			assert.Error(t, server.acceptLoop())
 		}()
@@ -115,7 +115,7 @@ func TestTCPServer_Stop(t *testing.T) {
 	<-server.accepting
 
 	// client
-	cli, err := net.Dial("tcp", server.listener.Addr().String())
+	cli, err := net.Dial("tcp", server.Listener.Addr().String())
 	assert.NoError(t, err)
 
 	<-time.After(time.Millisecond * 10)
@@ -175,7 +175,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 	<-server.accepting
 
 	// client
-	cli, err := net.Dial("tcp", server.listener.Addr().String())
+	cli, err := net.Dial("tcp", server.Listener.Addr().String())
 	assert.NoError(t, err)
 	defer func() { assert.NoError(t, cli.Close()) }()
 
