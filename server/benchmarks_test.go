@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-//go:generate go test -bench=^BenchmarkTCPServer_\w+$ -run=none -benchmem
+// go test -bench='^BenchmarkTCPServer_\w+$' -run=none -benchmem
 
 func BenchmarkTCPServer_NoRoute(b *testing.B) {
 	logger.Log = &logger.MuteLogger{}
