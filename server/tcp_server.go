@@ -11,7 +11,6 @@ import (
 )
 
 // TCPServer is a server for TCP connections.
-// TCPServer implements the Server interface.
 type TCPServer struct {
 	Listener net.Listener
 
@@ -26,10 +25,6 @@ type TCPServer struct {
 
 	// OnSessionClose is a event hook, will be invoked when session's closed.
 	OnSessionClose func(sess session.Session)
-
-	// NotFoundHandler is a router.HandlerFunc,
-	// will be called if router cannot found the handler according to message ID.
-	NotFoundHandler router.HandlerFunc
 
 	socketRWBufferSize int
 	writeBufferSize    int
@@ -47,8 +42,8 @@ type TCPOption struct {
 	SocketRWBufferSize int           // sets the socket read write buffer
 	ReadTimeout        time.Duration // sets the timeout for connection read
 	WriteTimeout       time.Duration // sets the timeout for connection write
-	MsgPacker          packet.Packer // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
-	MsgCodec           packet.Codec  // encodes and decodes the message data, can be nil
+	Packer             packet.Packer // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	Codec              packet.Codec  // encodes and decodes the message data, can be nil
 	WriteBufferSize    int           // sets the write channel buffer size, 1024 will be used if < 0.
 	ReadBufferSize     int           // sets the read channel buffer size, 1024 will be used if < 0.
 	DontPrintRoutes    bool          // whether to print registered route handlers to the console.
@@ -56,8 +51,8 @@ type TCPOption struct {
 
 // NewTCPServer creates a TCPServer pointer according to opt.
 func NewTCPServer(opt *TCPOption) *TCPServer {
-	if opt.MsgPacker == nil {
-		opt.MsgPacker = &packet.DefaultPacker{}
+	if opt.Packer == nil {
+		opt.Packer = &packet.DefaultPacker{}
 	}
 	if opt.WriteBufferSize < 0 {
 		opt.WriteBufferSize = 1024
@@ -71,8 +66,8 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 		readBufferSize:     opt.ReadBufferSize,
 		readTimeout:        opt.ReadTimeout,
 		writeTimeout:       opt.WriteTimeout,
-		Packer:             opt.MsgPacker,
-		Codec:              opt.MsgCodec,
+		Packer:             opt.Packer,
+		Codec:              opt.Codec,
 		printRoutes:        !opt.DontPrintRoutes,
 		router:             router.NewRouter(),
 		accepting:          make(chan struct{}),
@@ -80,7 +75,6 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 	}
 }
 
-// Serve implements the Server Serve method.
 // Serve starts to listen TCP and keep accepting TCP connection in a loop.
 // Accepting loop will break when error occurred, and the error will be returned.
 func (s *TCPServer) Serve(addr string) error {
@@ -156,7 +150,6 @@ func (s *TCPServer) handleConn(conn net.Conn) {
 	}
 }
 
-// Stop implements the Server Stop method.
 // Stop stops server by closing all the TCP sessions and the listener.
 func (s *TCPServer) Stop() error {
 	closedNum := 0
@@ -172,14 +165,17 @@ func (s *TCPServer) Stop() error {
 	return s.Listener.Close()
 }
 
-// AddRoute implements the Server AddRoute method.
 // AddRoute registers message handler and middlewares to the router.
 func (s *TCPServer) AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
 	s.router.Register(msgID, handler, middlewares...)
 }
 
-// Use implements the Server Use method.
 // Use registers global middlewares to the router.
 func (s *TCPServer) Use(middlewares ...router.MiddlewareFunc) {
 	s.router.RegisterMiddleware(middlewares...)
+}
+
+// NotFoundHandler sets the not-found handler for router.
+func (s *TCPServer) NotFoundHandler(handler router.HandlerFunc) {
+	s.router.SetNotFoundHandler(handler)
 }

@@ -363,3 +363,12 @@ func TestRouter_PrintHandlers(t *testing.T) {
 		rt.PrintHandlers("localhost")
 	})
 }
+
+func TestRouter_SetNotFoundHandler(t *testing.T) {
+	rt := NewRouter()
+	assert.Nil(t, rt.notFoundHandler)
+	rt.SetNotFoundHandler(func(ctx *Context) (*packet.MessageEntry, error) {
+		return nil, nil
+	})
+	assert.NotNil(t, rt.notFoundHandler)
+}

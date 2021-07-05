@@ -26,8 +26,8 @@ func main() {
 
 	s := easytcp.NewTCPServer(&server.TCPOption{
 		// customize codec and packer
-		MsgCodec:  &packet.JsonCodec{},
-		MsgPacker: &fixture.Packer16bit{},
+		Codec:  &packet.JsonCodec{},
+		Packer: &fixture.Packer16bit{},
 	})
 
 	s.AddRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
