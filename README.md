@@ -4,6 +4,19 @@
 [![Go Report](https://goreportcard.com/badge/github.com/darthPestilane/easytcp)](https://goreportcard.com/report/github.com/darthPestilane/easytcp)
 [![codecov](https://codecov.io/gh/DarthPestilane/easytcp/branch/master/graph/badge.svg?token=002KJ5IV4Z)](https://codecov.io/gh/DarthPestilane/easytcp)
 
+```
+$ ./start
+
+[EASYTCP ROUTE TABLE]:
++------------+----------------------+
+| Message ID |    Route Handler     |
++------------+----------------------+
+|       1000 | path/to/handler.Func |
++------------+----------------------+
+[EASYTCP] Serving at: tcp://[::]:10001
+
+```
+
 ## Introduction
 
 `EasyTCP` is a light-weight TCP server framework written in Go (Golang), featured with:
