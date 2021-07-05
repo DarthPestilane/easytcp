@@ -68,7 +68,7 @@ func TestContext_Bind(t *testing.T) {
 			Data: []byte(`{"data":"test"}`),
 		}
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().Return(&packet.JsonCodec{})
+		sess.EXPECT().Codec().Return(&packet.JsonCodec{})
 
 		c := newContext(sess, message)
 		data := make(map[string]string)
@@ -84,7 +84,7 @@ func TestContext_Bind(t *testing.T) {
 			Data: []byte("test"),
 		}
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().Return(nil)
+		sess.EXPECT().Codec().Return(nil)
 
 		c := newContext(sess, message)
 		var data string
@@ -121,7 +121,7 @@ func TestContext_Response(t *testing.T) {
 				Data: []byte("test"),
 			}
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
+			sess.EXPECT().Codec().MinTimes(1).Return(nil)
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []string{"invalid", "data"})
@@ -134,7 +134,7 @@ func TestContext_Response(t *testing.T) {
 
 			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
+			sess.EXPECT().Codec().MinTimes(1).Return(nil)
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, "data")
@@ -148,7 +148,7 @@ func TestContext_Response(t *testing.T) {
 
 			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
+			sess.EXPECT().Codec().MinTimes(1).Return(nil)
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []byte("data"))
@@ -162,7 +162,7 @@ func TestContext_Response(t *testing.T) {
 
 			message := &packet.MessageEntry{}
 			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().MsgCodec().MinTimes(1).Return(nil)
+			sess.EXPECT().Codec().MinTimes(1).Return(nil)
 
 			data := &DataStringer{}
 			c := newContext(sess, message)
@@ -181,7 +181,7 @@ func TestContext_Response(t *testing.T) {
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().MinTimes(1).Return(codec)
+		sess.EXPECT().Codec().MinTimes(1).Return(codec)
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")
@@ -199,7 +199,7 @@ func TestContext_Response(t *testing.T) {
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 
 		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().MsgCodec().MinTimes(1).Return(codec)
+		sess.EXPECT().Codec().MinTimes(1).Return(codec)
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")
