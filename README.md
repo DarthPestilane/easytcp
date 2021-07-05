@@ -8,11 +8,13 @@
 $ ./start
 
 [EASYTCP ROUTE TABLE]:
-+------------+----------------------+
-| Message ID |    Route Handler     |
-+------------+----------------------+
-|       1000 | path/to/handler.Func |
-+------------+----------------------+
++------------+-----------------------+
+| Message ID |     Route Handler     |
++------------+-----------------------+
+|       1000 | path/to/handler.Func1 |
++------------+-----------------------+
+|       1002 | path/to/handler.Func2 |
++------------+-----------------------+
 [EASYTCP] Serving at: tcp://[::]:10001
 
 ```
@@ -25,6 +27,8 @@ $ ./start
 - Pipelined middlewares for route handler
 - Customizable message packer and codec
 - Handy functions to handle request data and send response
+- Common hooks
+- Customizable logger
 
 `EasyTCP` helps you build a TCP server easily and fast.
 
@@ -68,6 +72,19 @@ func main() {
 		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
 		return ctx.Response(uint(1002), []byte("copy that"))
 	})
+
+	// set custom logger (optional)
+	easytcp.SetLogger(l)
+
+	// add global middlewares (optional)
+	s.Use(recoverMiddleware)
+
+	// set hooks (optional)
+	s.OnSessionCreate(fn)
+	s.OnSessionClose(fn)
+
+	// set not-found route handler (optional)
+	s.NotFoundHandler(handler)
 
 	// listen and serve
 	if err := s.Serve(":5896"); err != nil && err != server.ErrServerStopped {
