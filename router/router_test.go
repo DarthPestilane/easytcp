@@ -96,7 +96,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 
 			rt := NewRouter()
 
-			rt.Register(1, defaultHandler)
+			rt.Register(1, nilHandler)
 
 			reqCh := make(chan *packet.MessageEntry)
 			go func() {
@@ -127,7 +127,7 @@ func TestRouter_Register(t *testing.T) {
 	_, ok = rt.middlewaresMapper.Load(id)
 	assert.False(t, ok)
 
-	h := defaultHandler
+	h := nilHandler
 	m1 := func(next HandlerFunc) HandlerFunc {
 		return func(ctx *Context) (*packet.MessageEntry, error) {
 			return next(ctx)
@@ -212,7 +212,7 @@ func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler and middlewares found", func(t *testing.T) {
 		rt := NewRouter()
 		var id uint = 1
-		rt.Register(id, defaultHandler, func(next HandlerFunc) HandlerFunc {
+		rt.Register(id, nilHandler, func(next HandlerFunc) HandlerFunc {
 			return func(ctx *Context) (*packet.MessageEntry, error) { return next(ctx) }
 		})
 
@@ -356,10 +356,10 @@ func TestRouter_PrintHandlers(t *testing.T) {
 	})
 	t.Run("when there are routes registered", func(t *testing.T) {
 		rt := NewRouter()
-		rt.Register(1234, defaultHandler)
-		rt.Register(12345, defaultHandler)
-		rt.Register(123456, defaultHandler)
-		rt.Register(12345678, defaultHandler)
+		rt.Register(1234, nilHandler)
+		rt.Register(12345, nilHandler)
+		rt.Register(123456, nilHandler)
+		rt.Register(12345678, nilHandler)
 		rt.PrintHandlers("localhost")
 	})
 }

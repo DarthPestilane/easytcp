@@ -13,18 +13,31 @@ import (
 // TCPServer is a server for TCP connections.
 // TCPServer implements the Server interface.
 type TCPServer struct {
+	Listener net.Listener
+
+	// Packer is the message packer, will be passed to session.
+	Packer packet.Packer
+
+	// Codec is the message codec, will be passed to session.
+	Codec packet.Codec
+
+	// OnSessionCreate is a event hook, will be invoked when session's created.
+	OnSessionCreate func(sess session.Session)
+
+	// OnSessionClose is a event hook, will be invoked when session's closed.
+	OnSessionClose func(sess session.Session)
+
+	// NotFoundHandler is a router.HandlerFunc,
+	// will be called if router cannot found the handler according to message ID.
+	NotFoundHandler router.HandlerFunc
+
 	socketRWBufferSize int
 	writeBufferSize    int
 	readBufferSize     int
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
 	printRoutes        bool
-	Listener           net.Listener
-	Packer             packet.Packer
-	Codec              packet.Codec
 	router             *router.Router
-	OnSessionCreate    func(sess session.Session)
-	OnSessionClose     func(sess session.Session)
 	accepting          chan struct{}
 	stopped            chan struct{}
 }

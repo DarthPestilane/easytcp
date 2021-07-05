@@ -139,7 +139,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 
 	// server
 	server := NewTCPServer(&TCPOption{
-		SocketRWBufferSize: 1024,
+		SocketRWBufferSize: 1,
 		MsgCodec:           codec,
 		MsgPacker:          packer,
 		ReadBufferSize:     -1,
