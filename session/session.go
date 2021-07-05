@@ -9,7 +9,7 @@ import (
 // Session handles message receiving and sending.
 type Session interface {
 	ID() string                                  // get session id
-	MsgCodec() packet.Codec                      // get message codec
+	Codec() packet.Codec                         // get message codec
 	RecvReq() <-chan *packet.MessageEntry        // fetch request message from internal channel
 	SendResp(respMsg *packet.MessageEntry) error // push response message into internal channel
 	Close()                                      // close current session, exit corresponding goroutines

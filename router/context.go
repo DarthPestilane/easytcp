@@ -71,7 +71,7 @@ func (c *Context) MsgData() []byte {
 
 // Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
-	codec := c.session.MsgCodec()
+	codec := c.session.Codec()
 	if codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
@@ -87,7 +87,7 @@ func (c *Context) SessionID() string {
 func (c *Context) Response(id uint, data interface{}) (*packet.MessageEntry, error) {
 	c.Set(RespKey, data)
 	var dataRaw []byte
-	if codec := c.session.MsgCodec(); codec == nil {
+	if codec := c.session.Codec(); codec == nil {
 		switch v := data.(type) {
 		case []byte:
 			dataRaw = v
@@ -100,7 +100,7 @@ func (c *Context) Response(id uint, data interface{}) (*packet.MessageEntry, err
 		}
 	} else {
 		var err error
-		dataRaw, err = c.session.MsgCodec().Encode(data)
+		dataRaw, err = codec.Encode(data)
 		if err != nil {
 			return nil, err
 		}

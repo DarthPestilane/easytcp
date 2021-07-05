@@ -57,9 +57,9 @@ func TestTCPSession_MsgCodec(t *testing.T) {
 	codec := mock.NewMockCodec(ctrl)
 
 	sess := NewTCPSession(nil, &TCPSessionOption{Codec: codec})
-	assert.NotNil(t, sess.msgCodec)
-	assert.Equal(t, sess.msgCodec, codec)
-	assert.Equal(t, sess.MsgCodec(), sess.msgCodec)
+	assert.NotNil(t, sess.codec)
+	assert.Equal(t, sess.codec, codec)
+	assert.Equal(t, sess.Codec(), sess.codec)
 }
 
 func TestTCPSession_ReadLoop(t *testing.T) {

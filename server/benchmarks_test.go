@@ -24,7 +24,7 @@ func BenchmarkTCP(b *testing.B) {
 	<-s.accepting
 
 	// client
-	client, err := net.Dial("tcp", s.listener.Addr().String())
+	client, err := net.Dial("tcp", s.Listener.Addr().String())
 	if err != nil {
 		panic(err)
 	}
