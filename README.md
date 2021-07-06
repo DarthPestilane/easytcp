@@ -101,12 +101,12 @@ Above is the server side example. There are client and more detailed examples in
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp/server
-BenchmarkTCPServer_NoRoute-8             	  180559	      7379 ns/op	     109 B/op	       5 allocs/op
-BenchmarkTCPServer_NotFoundHandler-8     	  187738	      8178 ns/op	     681 B/op	      12 allocs/op
-BenchmarkTCPServer_OneHandler-8          	  240668	      7700 ns/op	     503 B/op	      12 allocs/op
-BenchmarkTCPServer_ManyHandlers-8        	  227424	      6648 ns/op	     460 B/op	      14 allocs/op
-BenchmarkTCPServer_OneRouteSet-8         	  246500	      7288 ns/op	     474 B/op	      15 allocs/op
-BenchmarkTCPServer_OneRouteJsonCodec-8   	  206668	      8753 ns/op	    1436 B/op	      27 allocs/op
+BenchmarkTCPServer_NoRoute-8             	  204668	      8545 ns/op	     108 B/op	       5 allocs/op
+BenchmarkTCPServer_NotFoundHandler-8     	  257930	      7791 ns/op	     690 B/op	      12 allocs/op
+BenchmarkTCPServer_OneHandler-8          	  299056	      7241 ns/op	     491 B/op	      12 allocs/op
+BenchmarkTCPServer_ManyHandlers-8        	  244891	      7007 ns/op	     492 B/op	      15 allocs/op
+BenchmarkTCPServer_OneRouteSet-8         	  316861	      7418 ns/op	     540 B/op	      16 allocs/op
+BenchmarkTCPServer_OneRouteJsonCodec-8   	  163488	      8206 ns/op	    1457 B/op	      27 allocs/op
 ```
 
 ## Architecture

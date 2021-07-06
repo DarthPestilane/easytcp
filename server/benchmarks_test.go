@@ -24,6 +24,7 @@ func BenchmarkTCPServer_NoRoute(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -47,6 +48,8 @@ func BenchmarkTCPServer_NotFoundHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -70,6 +73,8 @@ func BenchmarkTCPServer_OneHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -101,6 +106,8 @@ func BenchmarkTCPServer_ManyHandlers(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -125,6 +132,8 @@ func BenchmarkTCPServer_OneRouteSet(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte("ping")})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -153,6 +162,8 @@ func BenchmarkTCPServer_OneRouteJsonCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&packet.MessageEntry{ID: 1, Data: []byte(`{"data": "ping"}`)})
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
