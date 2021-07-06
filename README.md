@@ -95,6 +95,20 @@ func main() {
 
 Above is the server side example. There are client and more detailed examples in [examples/tcp](./examples/tcp)
 
+## Benchmark
+
+```
+goos: darwin
+goarch: amd64
+pkg: github.com/DarthPestilane/easytcp/server
+BenchmarkTCPServer_NoRoute-8             	  204668	      8545 ns/op	     108 B/op	       5 allocs/op
+BenchmarkTCPServer_NotFoundHandler-8     	  257930	      7791 ns/op	     690 B/op	      12 allocs/op
+BenchmarkTCPServer_OneHandler-8          	  299056	      7241 ns/op	     491 B/op	      12 allocs/op
+BenchmarkTCPServer_ManyHandlers-8        	  244891	      7007 ns/op	     492 B/op	      15 allocs/op
+BenchmarkTCPServer_OneRouteSet-8         	  316861	      7418 ns/op	     540 B/op	      16 allocs/op
+BenchmarkTCPServer_OneRouteJsonCodec-8   	  163488	      8206 ns/op	    1457 B/op	      27 allocs/op
+```
+
 ## Architecture
 
 ```
