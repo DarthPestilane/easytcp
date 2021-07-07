@@ -1,10 +1,9 @@
-package router
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
-	mockPacker "github.com/DarthPestilane/easytcp/packet/mock"
-	"github.com/DarthPestilane/easytcp/session/mock"
+	message2 "github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -60,15 +59,11 @@ func TestContext_Set(t *testing.T) {
 
 func TestContext_Bind(t *testing.T) {
 	t.Run("when session has codec", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		message := &packet.MessageEntry{
+		message := &message2.Entry{
 			ID:   1,
 			Data: []byte(`{"data":"test"}`),
 		}
-		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().Codec().Return(&packet.JsonCodec{})
+		sess := NewSession(nil, &SessionOption{Codec: &JsonCodec{}})
 
 		c := newContext(sess, message)
 		data := make(map[string]string)
@@ -76,15 +71,11 @@ func TestContext_Bind(t *testing.T) {
 		assert.EqualValues(t, data["data"], "test")
 	})
 	t.Run("when session hasn't codec", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		message := &packet.MessageEntry{
+		message := &message2.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
-		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().Codec().Return(nil)
+		sess := NewSession(nil, &SessionOption{})
 
 		c := newContext(sess, message)
 		var data string
@@ -94,11 +85,8 @@ func TestContext_Bind(t *testing.T) {
 }
 
 func TestContext_SessionID(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	sess := mock.NewMockSession(ctrl)
-	sess.EXPECT().ID().Return("01")
+	sess := NewSession(nil, &SessionOption{})
+	sess.id = "01"
 
 	c := newContext(sess, nil)
 	assert.Equal(t, c.SessionID(), "01")
@@ -113,15 +101,11 @@ func (*DataStringer) String() string {
 func TestContext_Response(t *testing.T) {
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		t.Run("when response data is invalid", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			message := &packet.MessageEntry{
+			message := &message2.Entry{
 				ID:   1,
 				Data: []byte("test"),
 			}
-			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().Codec().MinTimes(1).Return(nil)
+			sess := NewSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []string{"invalid", "data"})
@@ -129,12 +113,8 @@ func TestContext_Response(t *testing.T) {
 			assert.Nil(t, respMsg)
 		})
 		t.Run("when response data is a string", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			message := &packet.MessageEntry{}
-			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().Codec().MinTimes(1).Return(nil)
+			message := &message2.Entry{}
+			sess := NewSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, "data")
@@ -143,12 +123,8 @@ func TestContext_Response(t *testing.T) {
 			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			message := &packet.MessageEntry{}
-			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().Codec().MinTimes(1).Return(nil)
+			message := &message2.Entry{}
+			sess := NewSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []byte("data"))
@@ -157,12 +133,8 @@ func TestContext_Response(t *testing.T) {
 			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			message := &packet.MessageEntry{}
-			sess := mock.NewMockSession(ctrl)
-			sess.EXPECT().Codec().MinTimes(1).Return(nil)
+			message := &message2.Entry{}
+			sess := NewSession(nil, &SessionOption{})
 
 			data := &DataStringer{}
 			c := newContext(sess, message)
@@ -176,12 +148,10 @@ func TestContext_Response(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{}
-		codec := mockPacker.NewMockCodec(ctrl)
+		message := &message2.Entry{}
+		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-
-		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().Codec().MinTimes(1).Return(codec)
+		sess := NewSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")
@@ -191,15 +161,13 @@ func TestContext_Response(t *testing.T) {
 	t.Run("when succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		message := &packet.MessageEntry{
+		message := &message2.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
-		codec := mockPacker.NewMockCodec(ctrl)
+		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
-
-		sess := mock.NewMockSession(ctrl)
-		sess.EXPECT().Codec().MinTimes(1).Return(codec)
+		sess := NewSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")

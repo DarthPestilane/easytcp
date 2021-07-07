@@ -1,9 +1,8 @@
-package router
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/message"
 	"sync"
 	"time"
 )
@@ -16,8 +15,8 @@ const RespKey = "easytcp.router.context.response"
 // Context implements the context.Context interface.
 type Context struct {
 	storage sync.Map
-	session session.Session
-	reqMsg  *packet.MessageEntry
+	session *Session
+	reqMsg  *message.Entry
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -84,7 +83,7 @@ func (c *Context) SessionID() string {
 }
 
 // Response creates a response message.
-func (c *Context) Response(id uint, data interface{}) (*packet.MessageEntry, error) {
+func (c *Context) Response(id uint, data interface{}) (*message.Entry, error) {
 	c.Set(RespKey, data)
 	var dataRaw []byte
 	if codec := c.session.Codec(); codec == nil {
@@ -105,13 +104,13 @@ func (c *Context) Response(id uint, data interface{}) (*packet.MessageEntry, err
 			return nil, err
 		}
 	}
-	respMsg := &packet.MessageEntry{
+	respMsg := &message.Entry{
 		ID:   id,
 		Data: dataRaw,
 	}
 	return respMsg, nil
 }
 
-func newContext(sess session.Session, msg *packet.MessageEntry) *Context {
+func newContext(sess *Session, msg *message.Entry) *Context {
 	return &Context{session: sess, reqMsg: msg}
 }

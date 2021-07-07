@@ -1,31 +1,28 @@
-package packet
+package easytcp
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/zhuangsirui/binpacker"
 	"io"
 )
 
 //go:generate mockgen -destination mock/packer_mock.go -package mock . Packer
 
-// MessageEntry is the unpacked message object.
-type MessageEntry struct {
-	ID   uint
-	Data []byte
-}
-
 // Packer is a generic interface to pack and unpack message packet.
 type Packer interface {
 	// Pack packs Message into the packet to be written.
 	// Pack(msg Message) ([]byte, error)
-	Pack(entry *MessageEntry) ([]byte, error)
+	Pack(entry *message.Entry) ([]byte, error)
 
 	// Unpack unpacks the message packet from reader,
 	// returns the Message interface, and error if error occurred.
-	Unpack(reader io.Reader) (*MessageEntry, error)
+	Unpack(reader io.Reader) (*message.Entry, error)
 }
+
+var _ Packer = &DefaultPacker{}
 
 // DefaultPacker is the default Packer used in session.
 // DefaultPacker treats the packet with the format:
@@ -40,7 +37,7 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 }
 
 // Pack implements the Packer Pack method.
-func (d *DefaultPacker) Pack(entry *MessageEntry) ([]byte, error) {
+func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 	size := len(entry.Data) // size without ID
 	buff := bytes.NewBuffer(make([]byte, 0, size+4+4))
 
@@ -58,7 +55,7 @@ func (d *DefaultPacker) Pack(entry *MessageEntry) ([]byte, error) {
 }
 
 // Unpack implements the Packer Unpack method.
-func (d *DefaultPacker) Unpack(reader io.Reader) (*MessageEntry, error) {
+func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	// We should use io.ReadFull method, especially called conn.SetReadBuffer(n).
 
 	sizeBuff := make([]byte, 4)
@@ -78,7 +75,7 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*MessageEntry, error) {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 
-	msg := &MessageEntry{
+	msg := &message.Entry{
 		ID:   uint(id),
 		Data: data,
 	}

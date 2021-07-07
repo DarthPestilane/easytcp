@@ -1,9 +1,9 @@
-package session
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/packet/mock"
+	"github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -13,20 +13,18 @@ import (
 )
 
 func TestNewTCPSession(t *testing.T) {
-	var sess Session
+	var s *Session
 	assert.NotPanics(t, func() {
-		sess = NewTCPSession(nil, &TCPSessionOption{})
+		s = NewSession(nil, &SessionOption{})
 	})
-	assert.NotNil(t, sess)
-	s, ok := sess.(*TCPSession)
-	assert.True(t, ok)
+	assert.NotNil(t, s)
 	assert.NotNil(t, s.closed)
 	assert.NotNil(t, s.respQueue)
 	assert.NotNil(t, s.reqQueue)
 }
 
 func TestTCPSession_Close(t *testing.T) {
-	sess := NewTCPSession(nil, &TCPSessionOption{})
+	sess := NewSession(nil, &SessionOption{})
 	wg := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
@@ -45,7 +43,7 @@ func TestTCPSession_Close(t *testing.T) {
 }
 
 func TestTCPSession_ID(t *testing.T) {
-	sess := NewTCPSession(nil, &TCPSessionOption{})
+	sess := NewSession(nil, &SessionOption{})
 	assert.NotEmpty(t, sess.id)
 	assert.Equal(t, sess.ID(), sess.id)
 }
@@ -56,7 +54,7 @@ func TestTCPSession_MsgCodec(t *testing.T) {
 
 	codec := mock.NewMockCodec(ctrl)
 
-	sess := NewTCPSession(nil, &TCPSessionOption{Codec: codec})
+	sess := NewSession(nil, &SessionOption{Codec: codec})
 	assert.NotNil(t, sess.codec)
 	assert.Equal(t, sess.codec, codec)
 	assert.Equal(t, sess.Codec(), sess.codec)
@@ -66,14 +64,14 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 	t.Run("when connection set read timeout failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
-		sess := NewTCPSession(p1, &TCPSessionOption{})
+		sess := NewSession(p1, &SessionOption{})
 		go sess.ReadLoop(time.Millisecond)
 		<-sess.closed
 	})
 	t.Run("when connection read timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
-		packer := &packet.DefaultPacker{}
-		sess := NewTCPSession(p1, &TCPSessionOption{Packer: packer})
+		packer := &DefaultPacker{}
+		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go sess.ReadLoop(time.Millisecond * 10)
 		<-sess.closed
 		_ = p1.Close()
@@ -85,7 +83,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
+		sess := NewSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
 		go sess.ReadLoop(0)
 		<-sess.closed
 	})
@@ -93,7 +91,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		msg := &packet.MessageEntry{
+		msg := &message.Entry{
 			ID:   1,
 			Data: []byte("unpacked"),
 		}
@@ -101,12 +99,12 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
 
-		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		sess.reqQueue = make(chan *packet.MessageEntry) // no buffer
+		sess := NewSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
+		sess.reqQueue = make(chan *message.Entry) // no buffer
 		readDone := make(chan struct{})
 		go func() {
 			sess.ReadLoop(0)
-			readDone <- struct{}{}
+			close(readDone)
 		}()
 		req := <-sess.reqQueue
 		sess.Close() // close session once we fetched a req from channel
@@ -116,14 +114,12 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 }
 
 func TestTCPSession_RecvReq(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	msg := &packet.MessageEntry{
+	msg := &message.Entry{
 		ID:   1,
 		Data: []byte("test"),
 	}
 
-	sess := NewTCPSession(nil, &TCPSessionOption{})
+	sess := NewSession(nil, &SessionOption{})
 	go func() { sess.reqQueue <- msg }()
 	reqRecv, ok := <-sess.RecvReq()
 	assert.True(t, ok)
@@ -141,14 +137,14 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		message := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
-		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: codec})
+		sess := NewSession(nil, &SessionOption{Packer: packer, Codec: codec})
 		sess.Close()                            // close channel
 		assert.Error(t, sess.SendResp(message)) // and then send resp
 	})
@@ -156,23 +152,23 @@ func TestTCPSession_SendResp(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		entry := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
 		codec := mock.NewMockCodec(ctrl)
 		packer := mock.NewMockPacker(ctrl)
 
-		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer, Codec: codec})
-		sess.respQueue = make(chan *packet.MessageEntry) // no buffer
+		sess := NewSession(nil, &SessionOption{Packer: packer, Codec: codec})
+		sess.respQueue = make(chan *message.Entry) // no buffer
 		go func() { <-sess.respQueue }()
-		assert.NoError(t, sess.SendResp(message))
+		assert.NoError(t, sess.SendResp(entry))
 		sess.Close()
 	})
 }
 
 func TestTCPSession_WaitUntilClosed(t *testing.T) {
-	sess := NewTCPSession(nil, &TCPSessionOption{})
+	sess := NewSession(nil, &SessionOption{})
 	go func() {
 		sess.Close()
 	}()
@@ -183,7 +179,7 @@ func TestTCPSession_WaitUntilClosed(t *testing.T) {
 
 func TestTCPSession_WriteLoop(t *testing.T) {
 	t.Run("when session is already closed", func(t *testing.T) {
-		sess := NewTCPSession(nil, &TCPSessionOption{})
+		sess := NewSession(nil, &SessionOption{})
 		sess.Close()
 		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
@@ -193,14 +189,14 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		message := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := NewTCPSession(nil, &TCPSessionOption{Packer: packer})
+		sess := NewSession(nil, &SessionOption{Packer: packer})
 		go sess.WriteLoop(0)
 		time.Sleep(time.Millisecond * 5)
 		sess.respQueue <- message
@@ -212,7 +208,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		message := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
@@ -221,7 +217,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 
 		p1, _ := net.Pipe()
 		_ = p1.Close()
-		sess := NewTCPSession(p1, &TCPSessionOption{Packer: packer})
+		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
@@ -231,7 +227,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		message := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
@@ -239,7 +235,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		p1, _ := net.Pipe()
-		sess := NewTCPSession(p1, &TCPSessionOption{Packer: packer})
+		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
 		go sess.WriteLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
@@ -250,7 +246,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &packet.MessageEntry{
+		message := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
@@ -259,7 +255,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
-		sess := NewTCPSession(p1, &TCPSessionOption{Packer: packer})
+		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
 		sess.WriteLoop(0) // should stop looping and return
 		_, ok := <-sess.closed

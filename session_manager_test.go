@@ -1,8 +1,6 @@
-package session
+package easytcp
 
 import (
-	"github.com/DarthPestilane/easytcp/session/mock"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
@@ -26,11 +24,7 @@ func TestManager_Add(t *testing.T) {
 	mg := &Manager{}
 	assert.NotPanics(t, func() { mg.Add(nil) })
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	sess := mock.NewMockSession(ctrl)
-	sess.EXPECT().ID().MinTimes(1).Return("sess id")
+	sess := NewSession(nil, &SessionOption{})
 
 	mg.Add(sess)
 
@@ -43,11 +37,7 @@ func TestManager_Get(t *testing.T) {
 	mg := &Manager{}
 	assert.Nil(t, mg.Get("not found"))
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	sess := mock.NewMockSession(ctrl)
-	sess.EXPECT().ID().MinTimes(1).Return("sess id")
+	sess := NewSession(nil, &SessionOption{})
 
 	mg.Sessions.Store(sess.ID(), sess)
 	s := mg.Get(sess.ID())
@@ -58,21 +48,17 @@ func TestManager_Get(t *testing.T) {
 func TestManager_Range(t *testing.T) {
 	mg := &Manager{}
 	var count int
-	mg.Range(func(id string, sess Session) (next bool) {
+	mg.Range(func(id string, sess *Session) (next bool) {
 		count++
 		return true
 	})
 	assert.Zero(t, count)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	sess := mock.NewMockSession(ctrl)
-	sess.EXPECT().ID().MinTimes(1).Return("sess id")
+	sess := NewSession(nil, &SessionOption{})
 
 	mg.Add(sess)
 	count = 0
-	mg.Range(func(id string, s Session) (next bool) {
+	mg.Range(func(id string, s *Session) (next bool) {
 		assert.Equal(t, sess.ID(), id)
 		assert.Equal(t, s, sess)
 		count++

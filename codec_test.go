@@ -1,4 +1,4 @@
-package packet
+package easytcp
 
 import (
 	"github.com/stretchr/testify/assert"

@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/server"
-	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -21,21 +18,18 @@ func init() {
 }
 
 func main() {
-	s := easytcp.NewTCPServer(&server.TCPOption{
-		Packer: &packet.DefaultPacker{},
+	s := easytcp.NewServer(&easytcp.ServerOption{
+		Packer: &easytcp.DefaultPacker{},
 	})
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *router.Context) (*packet.MessageEntry, error) {
+	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *easytcp.Context) (*message.Entry, error) {
 		var reqData string
 		_ = ctx.Bind(&reqData)
 
 		// broadcasting
-		go session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-			if _, ok := sess.(*session.TCPSession); !ok { // only broadcast to the same kind sessions
-				return true // next iteration
-			}
+		go easytcp.Sessions().Range(func(id string, sess *easytcp.Session) (next bool) {
 			if ctx.SessionID() == id {
 				return true // next iteration
 			}
@@ -67,14 +61,14 @@ func main() {
 	}
 }
 
-func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
+func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
+	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		log.Infof("recv request | %s", ctx.MsgData())
 		defer func() {
 			if err != nil || resp == nil {
 				return
 			}
-			r, _ := ctx.Get(router.RespKey)
+			r, _ := ctx.Get(easytcp.RespKey)
 			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
 		}()
 		return next(ctx)

@@ -1,10 +1,8 @@
-package router
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/logger"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"reflect"
@@ -31,7 +29,7 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-type HandlerFunc func(ctx *Context) (*packet.MessageEntry, error)
+type HandlerFunc func(ctx *Context) (*message.Entry, error)
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
@@ -43,7 +41,7 @@ type HandlerFunc func(ctx *Context) (*packet.MessageEntry, error)
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var nilHandler HandlerFunc = func(ctx *Context) (*packet.MessageEntry, error) {
+var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 	return nil, nil
 }
 
@@ -57,11 +55,11 @@ func NewRouter() *Router {
 // RouteLoop reads message from session.Session s in a loop way,
 // and routes the message to corresponding handler and middlewares if message is not nil.
 // RouteLoop will break if session.Session s is closed.
-func (r *Router) RouteLoop(s session.Session) {
+func (r *Router) RouteLoop(s *Session) {
 	for {
 		req, ok := <-s.RecvReq()
 		if !ok {
-			logger.Log.Tracef("loop stopped since session is closed")
+			Log.Tracef("loop stopped since session is closed")
 			break
 		}
 		if req == nil {
@@ -69,17 +67,17 @@ func (r *Router) RouteLoop(s session.Session) {
 		}
 		go func() {
 			if err := r.handleReq(s, req); err != nil {
-				logger.Log.Tracef("handle request err: %s", err)
+				Log.Tracef("handle request err: %s", err)
 			}
 		}()
 	}
-	logger.Log.Tracef("loop exit")
+	Log.Tracef("loop exit")
 }
 
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
 // and call the handler functions, and send response to session.Session s if response is not nil.
 // Returns error when calling handler functions or sending response failed.
-func (r *Router) handleReq(s session.Session, reqMsg *packet.MessageEntry) error {
+func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
 	var handler HandlerFunc
 	if v, has := r.handlerMapper.Load(reqMsg.ID); has {
 		handler = v.(HandlerFunc)

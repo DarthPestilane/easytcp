@@ -1,11 +1,9 @@
-package server
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
-	mock_net "github.com/DarthPestilane/easytcp/server/mock/net"
-	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -15,20 +13,20 @@ import (
 )
 
 func TestNewTCPServer(t *testing.T) {
-	s := NewTCPServer(&TCPOption{
+	s := NewServer(&ServerOption{
 		SocketRWBufferSize: 0,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
-		Codec:              &packet.JsonCodec{},
+		Codec:              &JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
-	assert.Equal(t, s.Packer, &packet.DefaultPacker{})
-	assert.Equal(t, s.Codec, &packet.JsonCodec{})
+	assert.Equal(t, s.Packer, &DefaultPacker{})
+	assert.Equal(t, s.Codec, &JsonCodec{})
 }
 
 func TestTCPServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
-	server := NewTCPServer(&TCPOption{})
+	server := NewServer(&ServerOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -43,7 +41,7 @@ func TestTCPServer_Serve(t *testing.T) {
 
 func TestTCPServer_acceptLoop(t *testing.T) {
 	t.Run("when everything's fine", func(t *testing.T) {
-		server := NewTCPServer(&TCPOption{
+		server := NewServer(&ServerOption{
 			SocketRWBufferSize: 1024,
 		})
 		address, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -68,9 +66,9 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		server := NewTCPServer(&TCPOption{})
+		server := NewServer(&ServerOption{})
 
-		listen := mock_net.NewMockListener(ctrl)
+		listen := mock.NewMockListener(ctrl)
 		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
 		server.Listener = listen
 		done := make(chan struct{})
@@ -84,9 +82,9 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		server := NewTCPServer(&TCPOption{})
+		server := NewServer(&ServerOption{})
 
-		tempErr := mock_net.NewMockError(ctrl)
+		tempErr := mock.NewMockError(ctrl)
 		tempErr.EXPECT().Error().MinTimes(1).Return("some err")
 		i := 0
 		tempErr.EXPECT().Temporary().MinTimes(1).DoAndReturn(func() bool {
@@ -94,7 +92,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 			return i == 0 // returns true for the first time
 		})
 
-		listen := mock_net.NewMockListener(ctrl)
+		listen := mock.NewMockListener(ctrl)
 		listen.EXPECT().Accept().MinTimes(1).Return(nil, tempErr)
 		server.Listener = listen
 		go func() {
@@ -106,7 +104,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 }
 
 func TestTCPServer_Stop(t *testing.T) {
-	server := NewTCPServer(&TCPOption{})
+	server := NewServer(&ServerOption{})
 	go func() {
 		err := server.Serve("localhost:0")
 		assert.Error(t, err)
@@ -134,11 +132,11 @@ func TestTCPServer_handleConn(t *testing.T) {
 	}
 
 	// options
-	codec := &packet.JsonCodec{}
-	packer := &packet.DefaultPacker{}
+	codec := &JsonCodec{}
+	packer := &DefaultPacker{}
 
 	// server
-	server := NewTCPServer(&TCPOption{
+	server := NewServer(&ServerOption{
 		SocketRWBufferSize: 1,
 		Codec:              codec,
 		Packer:             packer,
@@ -147,15 +145,15 @@ func TestTCPServer_handleConn(t *testing.T) {
 	})
 
 	// hooks
-	server.OnSessionCreate = func(sess session.Session) {
+	server.OnSessionCreate = func(sess *Session) {
 		fmt.Printf("session created | id: %s\n", sess.ID())
 	}
-	server.OnSessionClose = func(sess session.Session) {
+	server.OnSessionClose = func(sess *Session) {
 		fmt.Printf("session closed | id: %s\n", sess.ID())
 	}
 
 	// register route
-	server.AddRoute(1, func(ctx *router.Context) (*packet.MessageEntry, error) {
+	server.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
 		assert.EqualValues(t, 1, ctx.MsgID())
@@ -163,8 +161,8 @@ func TestTCPServer_handleConn(t *testing.T) {
 		return ctx.Response(2, &TestResp{Success: true})
 	})
 	// use middleware
-	server.Use(func(next router.HandlerFunc) router.HandlerFunc {
-		return func(ctx *router.Context) (*packet.MessageEntry, error) {
+	server.Use(func(next HandlerFunc) HandlerFunc {
+		return func(ctx *Context) (*message.Entry, error) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
@@ -192,7 +190,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 	reqData := &TestReq{Param: "hello test"}
 	reqDataByte, err := codec.Encode(reqData)
 	assert.NoError(t, err)
-	msg := &packet.MessageEntry{
+	msg := &message.Entry{
 		ID:   1,
 		Data: reqDataByte,
 	}
@@ -212,10 +210,10 @@ func TestTCPServer_handleConn(t *testing.T) {
 
 func TestTCPServer_NotFoundHandler(t *testing.T) {
 	// server
-	server := NewTCPServer(&TCPOption{
-		Packer: &packet.DefaultPacker{},
+	server := NewServer(&ServerOption{
+		Packer: &DefaultPacker{},
 	})
-	server.NotFoundHandler(func(ctx *router.Context) (*packet.MessageEntry, error) {
+	server.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(101, []byte("handler not found"))
 	})
 	go func() {
@@ -232,7 +230,7 @@ func TestTCPServer_NotFoundHandler(t *testing.T) {
 	defer func() { assert.NoError(t, cli.Close()) }()
 
 	// send msg
-	msg := &packet.MessageEntry{
+	msg := &message.Entry{
 		ID:   1,
 		Data: []byte("test"),
 	}

@@ -1,4 +1,4 @@
-package session
+package easytcp
 
 import (
 	"sync"
@@ -11,9 +11,8 @@ var (
 
 // Manager manages all the sessions in application runtime.
 type Manager struct {
-
 	// Sessions keeps all sessions.
-	// Key is session's ID, value is Session
+	// Key is session's ID, value is *Session
 	Sessions sync.Map
 }
 
@@ -27,7 +26,7 @@ func Sessions() *Manager {
 
 // Add adds a session to Sessions.
 // If the ID of s already existed in Sessions, it replaces the value with the s.
-func (m *Manager) Add(s Session) {
+func (m *Manager) Add(s *Session) {
 	if s == nil {
 		return
 	}
@@ -42,18 +41,18 @@ func (m *Manager) Remove(id string) {
 
 // Get returns a Session when found by the id,
 // returns nil otherwise.
-func (m *Manager) Get(id string) Session {
+func (m *Manager) Get(id string) *Session {
 	sess, ok := m.Sessions.Load(id)
 	if !ok {
 		return nil
 	}
-	return sess.(Session)
+	return sess.(*Session)
 }
 
 // Range calls fn sequentially for each id and sess present in the Sessions.
 // If fn returns false, range stops the iteration.
-func (m *Manager) Range(fn func(id string, sess Session) (next bool)) {
+func (m *Manager) Range(fn func(id string, sess *Session) (next bool)) {
 	m.Sessions.Range(func(key, value interface{}) bool {
-		return fn(key.(string), value.(Session))
+		return fn(key.(string), value.(*Session))
 	})
 }

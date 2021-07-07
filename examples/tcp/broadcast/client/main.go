@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
+	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 )
 
 var log *logrus.Logger
-var packer packet.Packer
+var packer easytcp.Packer
 
 func init() {
 	log = logrus.New()
 	log.SetLevel(logrus.DebugLevel)
-	packer = &packet.DefaultPacker{}
+	packer = &easytcp.DefaultPacker{}
 }
 
 func main() {
@@ -42,7 +43,7 @@ func senderClient() {
 		for {
 			time.Sleep(time.Second)
 			data := []byte(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
-			msg := &packet.MessageEntry{
+			msg := &message.Entry{
 				ID:   fixture.MsgIdBroadCastReq,
 				Data: data,
 			}

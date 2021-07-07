@@ -1,11 +1,13 @@
 package fixture
 
 import (
+	"github.com/DarthPestilane/easytcp"
 	"google.golang.org/protobuf/proto"
 )
 
-type ProtoCodec struct {
-}
+var _ easytcp.Codec = &ProtoCodec{}
+
+type ProtoCodec struct{}
 
 func (p *ProtoCodec) Encode(data interface{}) ([]byte, error) {
 	return proto.Marshal(data.(proto.Message))
