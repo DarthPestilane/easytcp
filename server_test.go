@@ -14,10 +14,9 @@ import (
 
 func TestNewServer(t *testing.T) {
 	s := NewServer(&ServerOption{
-		SocketRWBufferSize: 0,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
-		Codec:              &JsonCodec{},
+		ReadTimeout:  0,
+		WriteTimeout: 0,
+		Codec:        &JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
 	assert.Equal(t, s.Packer, &DefaultPacker{})
@@ -42,7 +41,8 @@ func TestServer_Serve(t *testing.T) {
 func TestServer_acceptLoop(t *testing.T) {
 	t.Run("when everything's fine", func(t *testing.T) {
 		server := NewServer(&ServerOption{
-			SocketRWBufferSize: 1024,
+			SocketReadBufferSize:  1024,
+			SocketWriteBufferSize: 1024,
 		})
 		address, err := net.ResolveTCPAddr("tcp", "localhost:0")
 		assert.NoError(t, err)
@@ -137,11 +137,12 @@ func TestServer_handleConn(t *testing.T) {
 
 	// server
 	server := NewServer(&ServerOption{
-		SocketRWBufferSize: 1,
-		Codec:              codec,
-		Packer:             packer,
-		ReadBufferSize:     -1,
-		WriteBufferSize:    -1,
+		SocketReadBufferSize:  1,
+		SocketWriteBufferSize: 1,
+		Codec:                 codec,
+		Packer:                packer,
+		ReadBufferSize:        -1,
+		WriteBufferSize:       -1,
 	})
 
 	// hooks
