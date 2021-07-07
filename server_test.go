@@ -34,8 +34,12 @@ func TestServer_Serve(t *testing.T) {
 	<-server.accepting
 	err := server.Stop()
 	assert.NoError(t, err)
-	<-time.After(time.Millisecond * 10)
-	assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
+	// no goroutine leak
+	for goroutineNum != runtime.NumGoroutine() {
+		time.Sleep(time.Millisecond * 10)
+	}
+	// <-time.After(time.Millisecond * 10)
+	// assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
 }
 
 func TestServer_acceptLoop(t *testing.T) {
