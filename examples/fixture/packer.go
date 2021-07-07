@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/message"
 	"io"
 )
 
@@ -16,7 +16,7 @@ func (p *Packer16bit) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
-func (p *Packer16bit) Pack(msg *packet.MessageEntry) ([]byte, error) {
+func (p *Packer16bit) Pack(msg *message.Entry) ([]byte, error) {
 	size := len(msg.Data) // without id
 	buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
 	if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
@@ -31,7 +31,7 @@ func (p *Packer16bit) Pack(msg *packet.MessageEntry) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (p *Packer16bit) Unpack(reader io.Reader) (*packet.MessageEntry, error) {
+func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
 	sizeBuff := make([]byte, 2)
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		return nil, fmt.Errorf("read size err: %s", err)
@@ -49,6 +49,6 @@ func (p *Packer16bit) Unpack(reader io.Reader) (*packet.MessageEntry, error) {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 
-	msg := &packet.MessageEntry{ID: uint(id), Data: data}
+	msg := &message.Entry{ID: uint(id), Data: data}
 	return msg, nil
 }

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/server"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"os"
@@ -22,11 +20,11 @@ func init() {
 }
 
 func main() {
-	easytcp.SetLogger(log)
+	easytcp.Log = log
 
-	s := easytcp.NewTCPServer(&server.TCPOption{
+	s := easytcp.NewServer(&easytcp.ServerOption{
 		// customize codec and packer
-		Codec:  &packet.JsonCodec{},
+		Codec:  &easytcp.JsonCodec{},
 		Packer: &fixture.Packer16bit{},
 	})
 
@@ -46,7 +44,7 @@ func main() {
 	}
 }
 
-func handler(ctx *router.Context) (*packet.MessageEntry, error) {
+func handler(ctx *easytcp.Context) (*message.Entry, error) {
 	var data fixture.Json01Req
 	_ = ctx.Bind(&data)
 
@@ -61,11 +59,11 @@ func handler(ctx *router.Context) (*packet.MessageEntry, error) {
 	})
 }
 
-func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
+func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
+	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		// var data fixture.Json01Req
 		// _ = ctx.Bind(&data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
+		log.Infof("recv request | id:(%d) size:(%d) data: %s", ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
 		defer func() {
 			if err != nil {

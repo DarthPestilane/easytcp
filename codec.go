@@ -1,4 +1,4 @@
-package packet
+package easytcp
 
 import (
 	"encoding/json"
@@ -17,6 +17,8 @@ type Codec interface {
 	Decode(data []byte, v interface{}) error
 }
 
+var _ Codec = &JsonCodec{}
+
 // JsonCodec implements the Codec interface.
 // JsonCodec encodes and decodes data in json way.
 type JsonCodec struct{}
@@ -30,5 +32,3 @@ func (c *JsonCodec) Encode(data interface{}) ([]byte, error) {
 func (c *JsonCodec) Decode(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
-
-var _ Codec = &JsonCodec{}

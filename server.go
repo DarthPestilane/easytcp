@@ -1,30 +1,28 @@
-package server
+package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/logger"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/session"
 	"net"
 	"time"
 )
 
-// TCPServer is a server for TCP connections.
-type TCPServer struct {
+//go:generate mockgen -destination mock/net_mock.go -package mock net Listener,Error
+
+// Server is a server for TCP connections.
+type Server struct {
 	Listener net.Listener
 
 	// Packer is the message packer, will be passed to session.
-	Packer packet.Packer
+	Packer Packer
 
 	// Codec is the message codec, will be passed to session.
-	Codec packet.Codec
+	Codec Codec
 
 	// OnSessionCreate is a event hook, will be invoked when session's created.
-	OnSessionCreate func(sess session.Session)
+	OnSessionCreate func(sess *Session)
 
 	// OnSessionClose is a event hook, will be invoked when session's closed.
-	OnSessionClose func(sess session.Session)
+	OnSessionClose func(sess *Session)
 
 	socketRWBufferSize int
 	writeBufferSize    int
@@ -32,27 +30,27 @@ type TCPServer struct {
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
 	printRoutes        bool
-	router             *router.Router
+	router             *Router
 	accepting          chan struct{}
 	stopped            chan struct{}
 }
 
-// TCPOption is the option for TCPServer.
-type TCPOption struct {
+// ServerOption is the option for Server.
+type ServerOption struct {
 	SocketRWBufferSize int           // sets the socket read write buffer
 	ReadTimeout        time.Duration // sets the timeout for connection read
 	WriteTimeout       time.Duration // sets the timeout for connection write
-	Packer             packet.Packer // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
-	Codec              packet.Codec  // encodes and decodes the message data, can be nil
+	Packer             Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	Codec              Codec         // encodes and decodes the message data, can be nil
 	WriteBufferSize    int           // sets the write channel buffer size, 1024 will be used if < 0.
 	ReadBufferSize     int           // sets the read channel buffer size, 1024 will be used if < 0.
 	DontPrintRoutes    bool          // whether to print registered route handlers to the console.
 }
 
-// NewTCPServer creates a TCPServer pointer according to opt.
-func NewTCPServer(opt *TCPOption) *TCPServer {
+// NewServer creates a Server pointer according to opt.
+func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
-		opt.Packer = &packet.DefaultPacker{}
+		opt.Packer = &DefaultPacker{}
 	}
 	if opt.WriteBufferSize < 0 {
 		opt.WriteBufferSize = 1024
@@ -60,7 +58,7 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 	if opt.ReadBufferSize < 0 {
 		opt.ReadBufferSize = 1024
 	}
-	return &TCPServer{
+	return &Server{
 		socketRWBufferSize: opt.SocketRWBufferSize,
 		writeBufferSize:    opt.WriteBufferSize,
 		readBufferSize:     opt.ReadBufferSize,
@@ -69,7 +67,7 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 		Packer:             opt.Packer,
 		Codec:              opt.Codec,
 		printRoutes:        !opt.DontPrintRoutes,
-		router:             router.NewRouter(),
+		router:             newRouter(),
 		accepting:          make(chan struct{}),
 		stopped:            make(chan struct{}),
 	}
@@ -77,7 +75,7 @@ func NewTCPServer(opt *TCPOption) *TCPServer {
 
 // Serve starts to listen TCP and keep accepting TCP connection in a loop.
 // Accepting loop will break when error occurred, and the error will be returned.
-func (s *TCPServer) Serve(addr string) error {
+func (s *Server) Serve(addr string) error {
 	address, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return err
@@ -88,24 +86,26 @@ func (s *TCPServer) Serve(addr string) error {
 	}
 	s.Listener = lis
 	if s.printRoutes {
-		s.router.PrintHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
+		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
 	return s.acceptLoop()
 }
 
 // acceptLoop accepts TCP connections in a loop, and handle connections in goroutines.
 // Returns error when error occurred.
-func (s *TCPServer) acceptLoop() error {
+func (s *Server) acceptLoop() error {
 	close(s.accepting)
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			if isStopped(s.stopped) {
+			select {
+			case <-s.stopped:
 				return ErrServerStopped
+			default:
 			}
-			if isTempErr(err) {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				tempDelay := time.Millisecond * 5
-				logger.Log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
+				Log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -126,56 +126,57 @@ func (s *TCPServer) acceptLoop() error {
 // handleConn creates a new session according to conn,
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
-func (s *TCPServer) handleConn(conn net.Conn) {
-	sess := session.NewTCPSession(conn, &session.TCPSessionOption{
+func (s *Server) handleConn(conn net.Conn) {
+	sess := newSession(conn, &SessionOption{
 		Packer:          s.Packer,
 		Codec:           s.Codec,
 		ReadBufferSize:  s.readBufferSize,
 		WriteBufferSize: s.writeBufferSize,
 	})
-	session.Sessions().Add(sess)
+	Sessions().Add(sess)
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	go s.router.RouteLoop(sess)
-	go sess.ReadLoop(s.readTimeout)
-	go sess.WriteLoop(s.writeTimeout)
-	sess.WaitUntilClosed()
-	session.Sessions().Remove(sess.ID()) // session has been closed, remove it
+	go s.router.routeLoop(sess)
+	go sess.readLoop(s.readTimeout)
+	go sess.writeLoop(s.writeTimeout)
+	<-sess.closed
+	Sessions().Remove(sess.ID()) // session has been closed, remove it
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
 	}
 	if err := conn.Close(); err != nil {
-		logger.Log.Tracef("connection close err: %s", err)
+		Log.Tracef("connection close err: %s", err)
 	}
 }
 
 // Stop stops server by closing all the TCP sessions and the listener.
-func (s *TCPServer) Stop() error {
+func (s *Server) Stop() error {
 	closedNum := 0
-	session.Sessions().Range(func(id string, sess session.Session) (next bool) {
-		if tcpSess, ok := sess.(*session.TCPSession); ok {
-			tcpSess.Close()
-			closedNum++
-		}
+	Sessions().Range(func(id string, sess *Session) (next bool) {
+		sess.Close()
+		closedNum++
 		return true
 	})
-	logger.Log.Tracef("%d session(s) closed", closedNum)
+	Log.Tracef("%d session(s) closed", closedNum)
 	close(s.stopped)
 	return s.Listener.Close()
 }
 
 // AddRoute registers message handler and middlewares to the router.
-func (s *TCPServer) AddRoute(msgID uint, handler router.HandlerFunc, middlewares ...router.MiddlewareFunc) {
-	s.router.Register(msgID, handler, middlewares...)
+func (s *Server) AddRoute(msgID uint, handler HandlerFunc, middlewares ...MiddlewareFunc) {
+	s.router.register(msgID, handler, middlewares...)
 }
 
 // Use registers global middlewares to the router.
-func (s *TCPServer) Use(middlewares ...router.MiddlewareFunc) {
-	s.router.RegisterMiddleware(middlewares...)
+func (s *Server) Use(middlewares ...MiddlewareFunc) {
+	s.router.registerMiddleware(middlewares...)
 }
 
 // NotFoundHandler sets the not-found handler for router.
-func (s *TCPServer) NotFoundHandler(handler router.HandlerFunc) {
-	s.router.SetNotFoundHandler(handler)
+func (s *Server) NotFoundHandler(handler HandlerFunc) {
+	s.router.setNotFoundHandler(handler)
 }
+
+// ErrServerStopped is used when server stopped.
+var ErrServerStopped = fmt.Errorf("server stopped")

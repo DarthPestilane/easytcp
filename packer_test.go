@@ -1,7 +1,8 @@
-package packet
+package easytcp
 
 import (
 	"bytes"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/zhuangsirui/binpacker"
 	"testing"
@@ -11,7 +12,7 @@ func TestDefaultPacker_Pack(t *testing.T) {
 	id := uint(123)
 	data := []byte("hello")
 	size := uint32(len(data))
-	rawMsg := &MessageEntry{
+	rawMsg := &message.Entry{
 		ID:   id,
 		Data: data,
 	}
@@ -47,7 +48,7 @@ func TestDefaultPacker_Unpack(t *testing.T) {
 
 	msg, err := p.Unpack(buff)
 	assert.NoError(t, err)
-	assert.IsType(t, &MessageEntry{}, msg)
+	assert.IsType(t, &message.Entry{}, msg)
 	assert.Len(t, msg.Data, size)
 	assert.EqualValues(t, msg.ID, id)
 	assert.Equal(t, msg.Data, data)

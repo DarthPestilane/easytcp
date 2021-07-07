@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/packet"
-	"github.com/DarthPestilane/easytcp/router"
-	"github.com/DarthPestilane/easytcp/server"
-	"github.com/DarthPestilane/easytcp/session"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -25,19 +22,19 @@ func init() {
 func main() {
 	// go printGoroutineNum()
 
-	s := easytcp.NewTCPServer(&server.TCPOption{
+	s := easytcp.NewServer(&easytcp.ServerOption{
 		SocketRWBufferSize: 1024 * 1024,
 		ReadTimeout:        time.Second * 10,
 		WriteTimeout:       time.Second * 10,
-		Packer:             &packet.DefaultPacker{}, // with default packer
-		Codec:              nil,                     // without codec
+		Packer:             &easytcp.DefaultPacker{}, // with default packer
+		Codec:              nil,                      // without codec
 		ReadBufferSize:     0,
 		WriteBufferSize:    0,
 	})
-	s.OnSessionCreate = func(sess session.Session) {
+	s.OnSessionCreate = func(sess *easytcp.Session) {
 		log.Infof("session created: %s", sess.ID())
 	}
-	s.OnSessionClose = func(sess session.Session) {
+	s.OnSessionClose = func(sess *easytcp.Session) {
 		log.Warnf("session closed: %s", sess.ID())
 	}
 
@@ -45,8 +42,8 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
-	s.AddRoute(fixture.MsgIdPingReq, func(ctx *router.Context) (*packet.MessageEntry, error) {
-		return ctx.Response(fixture.MsgIdPingAck, "pong, pong, pong")
+	s.AddRoute(fixture.MsgIdPingReq, func(c *easytcp.Context) (*message.Entry, error) {
+		return c.Response(fixture.MsgIdPingAck, "pong, pong, pong")
 	})
 
 	go func() {
@@ -63,16 +60,16 @@ func main() {
 	}
 }
 
-func logMiddleware(next router.HandlerFunc) router.HandlerFunc {
-	return func(ctx *router.Context) (resp *packet.MessageEntry, err error) {
-		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", ctx.MsgID(), ctx.MsgSize(), ctx.MsgData())
+func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
+	return func(c *easytcp.Context) (resp *message.Entry, err error) {
+		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", c.Message().ID, len(c.Message().Data), c.Message().Data)
 		defer func() {
 			if err != nil || resp == nil {
 				return
 			}
 			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
-		return next(ctx)
+		return next(c)
 	}
 }
 

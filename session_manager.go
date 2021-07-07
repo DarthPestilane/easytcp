@@ -1,4 +1,4 @@
-package session
+package easytcp
 
 import (
 	"sync"
@@ -6,28 +6,27 @@ import (
 
 var (
 	managerOnce sync.Once
-	manager     *Manager
+	manager     *SessionManager
 )
 
-// Manager manages all the sessions in application runtime.
-type Manager struct {
-
+// SessionManager manages all the sessions in application runtime.
+type SessionManager struct {
 	// Sessions keeps all sessions.
-	// Key is session's ID, value is Session
+	// Key is session's ID, value is *Session
 	Sessions sync.Map
 }
 
-// Sessions returns a Manager pointer in a singleton way.
-func Sessions() *Manager {
+// Sessions returns a SessionManager pointer in a singleton way.
+func Sessions() *SessionManager {
 	managerOnce.Do(func() {
-		manager = &Manager{}
+		manager = &SessionManager{}
 	})
 	return manager
 }
 
 // Add adds a session to Sessions.
 // If the ID of s already existed in Sessions, it replaces the value with the s.
-func (m *Manager) Add(s Session) {
+func (m *SessionManager) Add(s *Session) {
 	if s == nil {
 		return
 	}
@@ -36,24 +35,24 @@ func (m *Manager) Add(s Session) {
 
 // Remove removes a session from Sessions.
 // Parameter id should be the session's id.
-func (m *Manager) Remove(id string) {
+func (m *SessionManager) Remove(id string) {
 	m.Sessions.Delete(id)
 }
 
 // Get returns a Session when found by the id,
 // returns nil otherwise.
-func (m *Manager) Get(id string) Session {
+func (m *SessionManager) Get(id string) *Session {
 	sess, ok := m.Sessions.Load(id)
 	if !ok {
 		return nil
 	}
-	return sess.(Session)
+	return sess.(*Session)
 }
 
 // Range calls fn sequentially for each id and sess present in the Sessions.
 // If fn returns false, range stops the iteration.
-func (m *Manager) Range(fn func(id string, sess Session) (next bool)) {
+func (m *SessionManager) Range(fn func(id string, sess *Session) (next bool)) {
 	m.Sessions.Range(func(key, value interface{}) bool {
-		return fn(key.(string), value.(Session))
+		return fn(key.(string), value.(*Session))
 	})
 }

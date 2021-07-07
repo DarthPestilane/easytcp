@@ -1,8 +1,9 @@
 package main
 
 import (
+	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/packet"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
@@ -14,13 +15,13 @@ func main() {
 		panic(err)
 	}
 	log := logrus.New()
-	packer := &packet.DefaultPacker{}
+	packer := &easytcp.DefaultPacker{}
 	go func() {
 		// write loop
 		for {
 			time.Sleep(time.Second)
 			rawData := []byte("ping, ping, ping")
-			msg := &packet.MessageEntry{
+			msg := &message.Entry{
 				ID:   fixture.MsgIdPingReq,
 				Data: rawData,
 			}
