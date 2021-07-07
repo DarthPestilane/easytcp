@@ -1,6 +1,5 @@
 ldflags = -ldflags="-s"
 coverprofile=.testCoverage.txt
-pkgs=`go list ./... | grep -v /examples/`
 os=`${OS}`
 
 .PHONY: default
@@ -24,7 +23,7 @@ lint-fix:
 
 .PHONY: test
 test:
-	CGO_ENABLED=0 go test -count=1 -covermode=set -coverprofile=${coverprofile}
+	CGO_ENABLED=0 go test -count=1 -covermode=set -coverprofile=${coverprofile} .
 
 .PHONY: coverage
 coverage:

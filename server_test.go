@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func TestNewTCPServer(t *testing.T) {
+func TestNewServer(t *testing.T) {
 	s := NewServer(&ServerOption{
 		SocketRWBufferSize: 0,
 		ReadTimeout:        0,
@@ -24,7 +24,7 @@ func TestNewTCPServer(t *testing.T) {
 	assert.Equal(t, s.Codec, &JsonCodec{})
 }
 
-func TestTCPServer_Serve(t *testing.T) {
+func TestServer_Serve(t *testing.T) {
 	goroutineNum := runtime.NumGoroutine()
 	server := NewServer(&ServerOption{})
 	go func() {
@@ -39,7 +39,7 @@ func TestTCPServer_Serve(t *testing.T) {
 	assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
 }
 
-func TestTCPServer_acceptLoop(t *testing.T) {
+func TestServer_acceptLoop(t *testing.T) {
 	t.Run("when everything's fine", func(t *testing.T) {
 		server := NewServer(&ServerOption{
 			SocketRWBufferSize: 1024,
@@ -103,7 +103,7 @@ func TestTCPServer_acceptLoop(t *testing.T) {
 	})
 }
 
-func TestTCPServer_Stop(t *testing.T) {
+func TestServer_Stop(t *testing.T) {
 	server := NewServer(&ServerOption{})
 	go func() {
 		err := server.Serve("localhost:0")
@@ -123,7 +123,7 @@ func TestTCPServer_Stop(t *testing.T) {
 	assert.NoError(t, cli.Close())
 }
 
-func TestTCPServer_handleConn(t *testing.T) {
+func TestServer_handleConn(t *testing.T) {
 	type TestReq struct {
 		Param string
 	}
@@ -208,7 +208,7 @@ func TestTCPServer_handleConn(t *testing.T) {
 	assert.True(t, respData.Success)
 }
 
-func TestTCPServer_NotFoundHandler(t *testing.T) {
+func TestServer_NotFoundHandler(t *testing.T) {
 	// server
 	server := NewServer(&ServerOption{
 		Packer: &DefaultPacker{},

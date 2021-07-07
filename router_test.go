@@ -9,12 +9,12 @@ import (
 	"testing"
 )
 
-func TestNewRouter(t *testing.T) {
+func Test_newRouter(t *testing.T) {
 	rt := newRouter()
 	assert.NotNil(t, rt.globalMiddlewares)
 }
 
-func TestRouter_RouteLoop(t *testing.T) {
+func TestRouter_routeLoop(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
 		rt := newRouter()
 
@@ -83,7 +83,7 @@ func TestRouter_RouteLoop(t *testing.T) {
 	})
 }
 
-func TestRouter_Register(t *testing.T) {
+func TestRouter_register(t *testing.T) {
 	rt := newRouter()
 
 	var id uint = 1
@@ -123,7 +123,7 @@ func TestRouter_Register(t *testing.T) {
 	}
 }
 
-func TestRouter_RegisterMiddleware(t *testing.T) {
+func TestRouter_registerMiddleware(t *testing.T) {
 	rt := newRouter()
 
 	rt.registerMiddleware()
@@ -298,7 +298,7 @@ func TestRouter_wrapHandlers(t *testing.T) {
 	})
 }
 
-func TestRouter_PrintHandlers(t *testing.T) {
+func TestRouter_printHandlers(t *testing.T) {
 	t.Run("when there's no route registered", func(t *testing.T) {
 		rt := newRouter()
 		rt.printHandlers("localhost")
@@ -313,7 +313,7 @@ func TestRouter_PrintHandlers(t *testing.T) {
 	})
 }
 
-func TestRouter_SetNotFoundHandler(t *testing.T) {
+func TestRouter_setNotFoundHandler(t *testing.T) {
 	rt := newRouter()
 	assert.Nil(t, rt.notFoundHandler)
 	rt.setNotFoundHandler(func(ctx *Context) (*message.Entry, error) {
