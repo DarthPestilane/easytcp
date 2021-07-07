@@ -43,7 +43,7 @@ func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(c *easytcp.Context) (*message2.Entry, error) {
 		var reqData message.FooReq
 		if err := c.Bind(&reqData); err == nil {
-			log.Debugf("recv | id: %d; size: %d; data: %s", c.MsgID(), c.MsgSize(), reqData.String())
+			log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), reqData.String())
 		}
 		resp, err := next(c)
 		if err != nil {

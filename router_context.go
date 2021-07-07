@@ -53,40 +53,30 @@ func (c *Context) Set(key string, value interface{}) {
 	c.storage.Store(key, value)
 }
 
-// MsgID returns the request message's ID.
-func (c *Context) MsgID() uint {
-	return c.reqMsg.ID
-}
-
-// MsgSize returns the request message's size.
-func (c *Context) MsgSize() int {
-	return len(c.reqMsg.Data)
-}
-
-// MsgData returns the request message's data, which may been encoded.
-func (c *Context) MsgData() []byte {
-	return c.reqMsg.Data
+// Message returns the request message entry.
+func (c *Context) Message() *message.Entry {
+	return c.reqMsg
 }
 
 // Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
-	codec := c.session.Codec()
+	codec := c.session.codec
 	if codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(c.MsgData(), v)
+	return codec.Decode(c.reqMsg.Data, v)
 }
 
-// SessionID returns current session's ID.
-func (c *Context) SessionID() string {
-	return c.session.ID()
+// Session returns current session.
+func (c *Context) Session() *Session {
+	return c.session
 }
 
 // Response creates a response message.
 func (c *Context) Response(id uint, data interface{}) (*message.Entry, error) {
 	c.Set(RespKey, data)
 	var dataRaw []byte
-	if codec := c.session.Codec(); codec == nil {
+	if codec := c.session.codec; codec == nil {
 		switch v := data.(type) {
 		case []byte:
 			dataRaw = v

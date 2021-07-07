@@ -30,10 +30,10 @@ func main() {
 
 		// broadcasting
 		go easytcp.Sessions().Range(func(id string, sess *easytcp.Session) (next bool) {
-			if ctx.SessionID() == id {
+			if ctx.Session().ID() == id {
 				return true // next iteration
 			}
-			msg, err := ctx.Response(fixture.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.SessionID()))
+			msg, err := ctx.Response(fixture.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID()))
 			if err != nil {
 				log.Errorf("create response err: %s", err)
 				return true
@@ -63,7 +63,7 @@ func main() {
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
-		log.Infof("recv request | %s", ctx.MsgData())
+		log.Infof("recv request | %s", ctx.Message().Data)
 		defer func() {
 			if err != nil || resp == nil {
 				return

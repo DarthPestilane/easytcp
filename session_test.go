@@ -48,31 +48,19 @@ func TestTCPSession_ID(t *testing.T) {
 	assert.Equal(t, sess.ID(), sess.id)
 }
 
-func TestTCPSession_MsgCodec(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	codec := mock.NewMockCodec(ctrl)
-
-	sess := NewSession(nil, &SessionOption{Codec: codec})
-	assert.NotNil(t, sess.codec)
-	assert.Equal(t, sess.codec, codec)
-	assert.Equal(t, sess.Codec(), sess.codec)
-}
-
 func TestTCPSession_ReadLoop(t *testing.T) {
 	t.Run("when connection set read timeout failed", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
 		sess := NewSession(p1, &SessionOption{})
-		go sess.ReadLoop(time.Millisecond)
+		go sess.readLoop(time.Millisecond)
 		<-sess.closed
 	})
 	t.Run("when connection read timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
 		packer := &DefaultPacker{}
 		sess := NewSession(p1, &SessionOption{Packer: packer})
-		go sess.ReadLoop(time.Millisecond * 10)
+		go sess.readLoop(time.Millisecond * 10)
 		<-sess.closed
 		_ = p1.Close()
 	})
@@ -84,7 +72,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		go sess.ReadLoop(0)
+		go sess.readLoop(0)
 		<-sess.closed
 	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
@@ -103,7 +91,7 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		sess.reqQueue = make(chan *message.Entry) // no buffer
 		readDone := make(chan struct{})
 		go func() {
-			sess.ReadLoop(0)
+			sess.readLoop(0)
 			close(readDone)
 		}()
 		req := <-sess.reqQueue
@@ -111,25 +99,6 @@ func TestTCPSession_ReadLoop(t *testing.T) {
 		assert.Equal(t, msg, req)
 		<-readDone
 	})
-}
-
-func TestTCPSession_RecvReq(t *testing.T) {
-	msg := &message.Entry{
-		ID:   1,
-		Data: []byte("test"),
-	}
-
-	sess := NewSession(nil, &SessionOption{})
-	go func() { sess.reqQueue <- msg }()
-	reqRecv, ok := <-sess.RecvReq()
-	assert.True(t, ok)
-	assert.Equal(t, reqRecv, msg)
-
-	sess.Close()
-
-	reqRecv, ok = <-sess.RecvReq()
-	assert.False(t, ok)
-	assert.Nil(t, reqRecv)
 }
 
 func TestTCPSession_SendResp(t *testing.T) {
@@ -167,21 +136,11 @@ func TestTCPSession_SendResp(t *testing.T) {
 	})
 }
 
-func TestTCPSession_WaitUntilClosed(t *testing.T) {
-	sess := NewSession(nil, &SessionOption{})
-	go func() {
-		sess.Close()
-	}()
-	sess.WaitUntilClosed()
-	_, ok := <-sess.closed
-	assert.False(t, ok)
-}
-
 func TestTCPSession_WriteLoop(t *testing.T) {
 	t.Run("when session is already closed", func(t *testing.T) {
 		sess := NewSession(nil, &SessionOption{})
 		sess.Close()
-		sess.WriteLoop(0) // should stop looping and return
+		sess.writeLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -197,7 +156,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := NewSession(nil, &SessionOption{Packer: packer})
-		go sess.WriteLoop(0)
+		go sess.writeLoop(0)
 		time.Sleep(time.Millisecond * 5)
 		sess.respQueue <- message
 		time.Sleep(time.Millisecond * 5)
@@ -219,7 +178,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		_ = p1.Close()
 		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
-		go sess.WriteLoop(time.Millisecond * 10)
+		go sess.writeLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -237,7 +196,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		p1, _ := net.Pipe()
 		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
-		go sess.WriteLoop(time.Millisecond * 10)
+		go sess.writeLoop(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 		_ = p1.Close()
@@ -257,7 +216,7 @@ func TestTCPSession_WriteLoop(t *testing.T) {
 		assert.NoError(t, p1.Close())
 		sess := NewSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- message }()
-		sess.WriteLoop(0) // should stop looping and return
+		sess.writeLoop(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})

@@ -84,12 +84,11 @@ func TestContext_Bind(t *testing.T) {
 	})
 }
 
-func TestContext_SessionID(t *testing.T) {
+func TestContext_Session(t *testing.T) {
 	sess := NewSession(nil, &SessionOption{})
-	sess.id = "01"
 
 	c := newContext(sess, nil)
-	assert.Equal(t, c.SessionID(), "01")
+	assert.Equal(t, c.Session(), sess)
 }
 
 type DataStringer struct{}

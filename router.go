@@ -45,19 +45,19 @@ var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 	return nil, nil
 }
 
-// NewRouter creates a new Router pointer.
-func NewRouter() *Router {
+// newRouter creates a new Router pointer.
+func newRouter() *Router {
 	return &Router{
 		globalMiddlewares: make([]MiddlewareFunc, 0),
 	}
 }
 
-// RouteLoop reads message from session.Session s in a loop way,
+// routeLoop reads message from session.Session s in a loop way,
 // and routes the message to corresponding handler and middlewares if message is not nil.
-// RouteLoop will break if session.Session s is closed.
-func (r *Router) RouteLoop(s *Session) {
+// routeLoop will break if session.Session s is closed.
+func (r *Router) routeLoop(s *Session) {
 	for {
-		req, ok := <-s.RecvReq()
+		req, ok := <-s.reqQueue
 		if !ok {
 			Log.Tracef("loop stopped since session is closed")
 			break
@@ -127,8 +127,8 @@ func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wr
 	return wrapped
 }
 
-// Register stores handler and middlewares for id.
-func (r *Router) Register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
+// register stores handler and middlewares for id.
+func (r *Router) register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
 	if h != nil {
 		r.handlerMapper.Store(id, h)
 	}
@@ -145,8 +145,8 @@ func (r *Router) Register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
 	}
 }
 
-// RegisterMiddleware stores the global middlewares.
-func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
+// registerMiddleware stores the global middlewares.
+func (r *Router) registerMiddleware(m ...MiddlewareFunc) {
 	if len(m) != 0 {
 		for _, mm := range m {
 			if mm != nil {
@@ -156,8 +156,8 @@ func (r *Router) RegisterMiddleware(m ...MiddlewareFunc) {
 	}
 }
 
-// PrintHandlers prints registered route handlers to console.
-func (r *Router) PrintHandlers(addr string) {
+// printHandlers prints registered route handlers to console.
+func (r *Router) printHandlers(addr string) {
 	fmt.Printf("\n[EASYTCP ROUTE TABLE]:\n")
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Message ID", "Route Handler"})
@@ -173,6 +173,6 @@ func (r *Router) PrintHandlers(addr string) {
 	fmt.Printf("[EASYTCP] Serving at: %s\n\n", addr)
 }
 
-func (r *Router) SetNotFoundHandler(handler HandlerFunc) {
+func (r *Router) setNotFoundHandler(handler HandlerFunc) {
 	r.notFoundHandler = handler
 }

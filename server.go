@@ -67,7 +67,7 @@ func NewServer(opt *ServerOption) *Server {
 		Packer:             opt.Packer,
 		Codec:              opt.Codec,
 		printRoutes:        !opt.DontPrintRoutes,
-		router:             NewRouter(),
+		router:             newRouter(),
 		accepting:          make(chan struct{}),
 		stopped:            make(chan struct{}),
 	}
@@ -86,7 +86,7 @@ func (s *Server) Serve(addr string) error {
 	}
 	s.Listener = lis
 	if s.printRoutes {
-		s.router.PrintHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
+		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
 	return s.acceptLoop()
 }
@@ -98,10 +98,12 @@ func (s *Server) acceptLoop() error {
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			if isStopped(s.stopped) {
+			select {
+			case <-s.stopped:
 				return ErrServerStopped
+			default:
 			}
-			if isTempErr(err) {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				tempDelay := time.Millisecond * 5
 				Log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
@@ -135,10 +137,10 @@ func (s *Server) handleConn(conn net.Conn) {
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	go s.router.RouteLoop(sess)
-	go sess.ReadLoop(s.readTimeout)
-	go sess.WriteLoop(s.writeTimeout)
-	sess.WaitUntilClosed()
+	go s.router.routeLoop(sess)
+	go sess.readLoop(s.readTimeout)
+	go sess.writeLoop(s.writeTimeout)
+	<-sess.closed
 	Sessions().Remove(sess.ID()) // session has been closed, remove it
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
@@ -163,32 +165,18 @@ func (s *Server) Stop() error {
 
 // AddRoute registers message handler and middlewares to the router.
 func (s *Server) AddRoute(msgID uint, handler HandlerFunc, middlewares ...MiddlewareFunc) {
-	s.router.Register(msgID, handler, middlewares...)
+	s.router.register(msgID, handler, middlewares...)
 }
 
 // Use registers global middlewares to the router.
 func (s *Server) Use(middlewares ...MiddlewareFunc) {
-	s.router.RegisterMiddleware(middlewares...)
+	s.router.registerMiddleware(middlewares...)
 }
 
 // NotFoundHandler sets the not-found handler for router.
 func (s *Server) NotFoundHandler(handler HandlerFunc) {
-	s.router.SetNotFoundHandler(handler)
+	s.router.setNotFoundHandler(handler)
 }
 
 // ErrServerStopped is used when server stopped.
 var ErrServerStopped = fmt.Errorf("server stopped")
-
-func isStopped(stopChan <-chan struct{}) bool {
-	select {
-	case <-stopChan:
-		return true
-	default:
-		return false
-	}
-}
-
-func isTempErr(err error) bool {
-	ne, ok := err.(net.Error)
-	return ok && ne.Temporary()
-}
