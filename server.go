@@ -24,27 +24,30 @@ type Server struct {
 	// OnSessionClose is a event hook, will be invoked when session's closed.
 	OnSessionClose func(sess *Session)
 
-	socketRWBufferSize int
-	writeBufferSize    int
-	readBufferSize     int
-	readTimeout        time.Duration
-	writeTimeout       time.Duration
-	printRoutes        bool
-	router             *Router
-	accepting          chan struct{}
-	stopped            chan struct{}
+	socketReadBufferSize  int
+	socketWriteBufferSize int
+
+	writeBufferSize int
+	readBufferSize  int
+	readTimeout     time.Duration
+	writeTimeout    time.Duration
+	printRoutes     bool
+	router          *Router
+	accepting       chan struct{}
+	stopped         chan struct{}
 }
 
 // ServerOption is the option for Server.
 type ServerOption struct {
-	SocketRWBufferSize int           // sets the socket read write buffer
-	ReadTimeout        time.Duration // sets the timeout for connection read
-	WriteTimeout       time.Duration // sets the timeout for connection write
-	Packer             Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
-	Codec              Codec         // encodes and decodes the message data, can be nil
-	WriteBufferSize    int           // sets the write channel buffer size, 1024 will be used if < 0.
-	ReadBufferSize     int           // sets the read channel buffer size, 1024 will be used if < 0.
-	DontPrintRoutes    bool          // whether to print registered route handlers to the console.
+	SocketReadBufferSize  int
+	SocketWriteBufferSize int
+	ReadTimeout           time.Duration // sets the timeout for connection read
+	WriteTimeout          time.Duration // sets the timeout for connection write
+	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	Codec                 Codec         // encodes and decodes the message data, can be nil
+	WriteBufferSize       int           // sets the write channel buffer size, 1024 will be used if < 0.
+	ReadBufferSize        int           // sets the read channel buffer size, 1024 will be used if < 0.
+	DontPrintRoutes       bool          // whether to print registered route handlers to the console.
 }
 
 // NewServer creates a Server pointer according to opt.
@@ -59,17 +62,18 @@ func NewServer(opt *ServerOption) *Server {
 		opt.ReadBufferSize = 1024
 	}
 	return &Server{
-		socketRWBufferSize: opt.SocketRWBufferSize,
-		writeBufferSize:    opt.WriteBufferSize,
-		readBufferSize:     opt.ReadBufferSize,
-		readTimeout:        opt.ReadTimeout,
-		writeTimeout:       opt.WriteTimeout,
-		Packer:             opt.Packer,
-		Codec:              opt.Codec,
-		printRoutes:        !opt.DontPrintRoutes,
-		router:             newRouter(),
-		accepting:          make(chan struct{}),
-		stopped:            make(chan struct{}),
+		socketReadBufferSize:  opt.SocketReadBufferSize,
+		socketWriteBufferSize: opt.SocketWriteBufferSize,
+		writeBufferSize:       opt.WriteBufferSize,
+		readBufferSize:        opt.ReadBufferSize,
+		readTimeout:           opt.ReadTimeout,
+		writeTimeout:          opt.WriteTimeout,
+		Packer:                opt.Packer,
+		Codec:                 opt.Codec,
+		printRoutes:           !opt.DontPrintRoutes,
+		router:                newRouter(),
+		accepting:             make(chan struct{}),
+		stopped:               make(chan struct{}),
 	}
 }
 
@@ -111,11 +115,13 @@ func (s *Server) acceptLoop() error {
 			}
 			return fmt.Errorf("accept err: %s", err)
 		}
-		if s.socketRWBufferSize > 0 {
-			if err := conn.(*net.TCPConn).SetReadBuffer(s.socketRWBufferSize); err != nil {
+		if s.socketReadBufferSize > 0 {
+			if err := conn.(*net.TCPConn).SetReadBuffer(s.socketReadBufferSize); err != nil {
 				return fmt.Errorf("conn set read buffer err: %s", err)
 			}
-			if err := conn.(*net.TCPConn).SetWriteBuffer(s.socketRWBufferSize); err != nil {
+		}
+		if s.socketWriteBufferSize > 0 {
+			if err := conn.(*net.TCPConn).SetWriteBuffer(s.socketWriteBufferSize); err != nil {
 				return fmt.Errorf("conn set write buffer err: %s", err)
 			}
 		}

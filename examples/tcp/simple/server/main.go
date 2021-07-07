@@ -23,13 +23,14 @@ func main() {
 	// go printGoroutineNum()
 
 	s := easytcp.NewServer(&easytcp.ServerOption{
-		SocketRWBufferSize: 1024 * 1024,
-		ReadTimeout:        time.Second * 10,
-		WriteTimeout:       time.Second * 10,
-		Packer:             &easytcp.DefaultPacker{}, // with default packer
-		Codec:              nil,                      // without codec
-		ReadBufferSize:     0,
-		WriteBufferSize:    0,
+		SocketReadBufferSize:  1024 * 1024,
+		SocketWriteBufferSize: 1024 * 1024,
+		ReadTimeout:           time.Second * 10,
+		WriteTimeout:          time.Second * 10,
+		Packer:                &easytcp.DefaultPacker{}, // with default packer
+		Codec:                 nil,                      // without codec
+		ReadBufferSize:        0,
+		WriteBufferSize:       0,
 	})
 	s.OnSessionCreate = func(sess *easytcp.Session) {
 		log.Infof("session created: %s", sess.ID())
