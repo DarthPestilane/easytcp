@@ -18,7 +18,7 @@ func TestRouter_routeLoop(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
 		rt := newRouter()
 
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 		sess.Close()
 		rt.routeLoop(sess)
 	})
@@ -30,7 +30,7 @@ func TestRouter_routeLoop(t *testing.T) {
 			reqCh <- nil
 			close(reqCh)
 		}()
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 		go func() {
 			sess.reqQueue <- nil
 			sess.Close()
@@ -52,7 +52,7 @@ func TestRouter_routeLoop(t *testing.T) {
 				ID:   1,
 				Data: []byte("test"),
 			}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 			go func() {
 				sess.reqQueue <- entry
 				sess.Close()
@@ -68,7 +68,7 @@ func TestRouter_routeLoop(t *testing.T) {
 				ID:   1,
 				Data: []byte("test"),
 			}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 			go func() {
 				sess.reqQueue <- entry
 				sess.Close()
@@ -169,7 +169,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 		assert.Nil(t, rt.handleReq(sess, msg))
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
@@ -179,7 +179,7 @@ func TestRouter_handleReq(t *testing.T) {
 			return func(ctx *Context) (*message.Entry, error) { return next(ctx) }
 		})
 
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
@@ -194,7 +194,7 @@ func TestRouter_handleReq(t *testing.T) {
 			return nil, fmt.Errorf("some err")
 		})
 
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 		msg := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
@@ -214,7 +214,7 @@ func TestRouter_handleReq(t *testing.T) {
 				return &message.Entry{}, nil
 			})
 
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 			close(sess.respQueue)
 
 			entry := &message.Entry{
@@ -232,7 +232,7 @@ func TestRouter_handleReq(t *testing.T) {
 				return &message.Entry{}, nil
 			})
 
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 			go func() {
 				<-sess.respQueue
 			}()

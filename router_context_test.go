@@ -63,7 +63,7 @@ func TestContext_Bind(t *testing.T) {
 			ID:   1,
 			Data: []byte(`{"data":"test"}`),
 		}
-		sess := NewSession(nil, &SessionOption{Codec: &JsonCodec{}})
+		sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
 
 		c := newContext(sess, message)
 		data := make(map[string]string)
@@ -75,7 +75,7 @@ func TestContext_Bind(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		sess := NewSession(nil, &SessionOption{})
+		sess := newSession(nil, &SessionOption{})
 
 		c := newContext(sess, message)
 		var data string
@@ -85,7 +85,7 @@ func TestContext_Bind(t *testing.T) {
 }
 
 func TestContext_Session(t *testing.T) {
-	sess := NewSession(nil, &SessionOption{})
+	sess := newSession(nil, &SessionOption{})
 
 	c := newContext(sess, nil)
 	assert.Equal(t, c.Session(), sess)
@@ -104,7 +104,7 @@ func TestContext_Response(t *testing.T) {
 				ID:   1,
 				Data: []byte("test"),
 			}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []string{"invalid", "data"})
@@ -113,7 +113,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is a string", func(t *testing.T) {
 			message := &message2.Entry{}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, "data")
@@ -123,7 +123,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
 			message := &message2.Entry{}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, message)
 			respMsg, err := c.Response(1, []byte("data"))
@@ -133,7 +133,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
 			message := &message2.Entry{}
-			sess := NewSession(nil, &SessionOption{})
+			sess := newSession(nil, &SessionOption{})
 
 			data := &DataStringer{}
 			c := newContext(sess, message)
@@ -150,7 +150,7 @@ func TestContext_Response(t *testing.T) {
 		message := &message2.Entry{}
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-		sess := NewSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")
@@ -166,7 +166,7 @@ func TestContext_Response(t *testing.T) {
 		}
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
-		sess := NewSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, message)
 		respMsg, err := c.Response(1, "test")

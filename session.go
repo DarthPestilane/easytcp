@@ -29,11 +29,11 @@ type SessionOption struct {
 	WriteBufferSize int
 }
 
-// NewSession creates a new Session.
+// newSession creates a new Session.
 // Parameter conn is the TCP connection,
 // opt includes packer, codec, and channel size.
 // Returns a Session pointer.
-func NewSession(conn net.Conn, opt *SessionOption) *Session {
+func newSession(conn net.Conn, opt *SessionOption) *Session {
 	id := uuid.NewString()
 	return &Session{
 		id:        id,
@@ -46,14 +46,13 @@ func NewSession(conn net.Conn, opt *SessionOption) *Session {
 	}
 }
 
-// ID implements the Session ID method.
-// Returns session's ID.
+// ID returns the session's ID.
 func (s *Session) ID() string {
 	return s.id
 }
 
-// SendResp implements the Session SendResp method.
-// If respQueue is closed, returns false.
+// SendResp pushes response message entry to respQueue.
+// If respQueue is closed, returns error.
 func (s *Session) SendResp(respMsg *message.Entry) error {
 	if !s.safelyPushRespQueue(respMsg) {
 		return fmt.Errorf("session's closed")

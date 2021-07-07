@@ -108,7 +108,6 @@ func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
 	return nil
 }
 
-// wrapHandlers make something like wrapped = M1(M2(M3(handle))).
 // wrapHandlers wraps handler and middlewares into a right order call stack.
 // Makes something like:
 // 	var wrapped HandlerFunc = m1(m2(m3(handle)))

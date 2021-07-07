@@ -127,7 +127,7 @@ func (s *Server) acceptLoop() error {
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
 func (s *Server) handleConn(conn net.Conn) {
-	sess := NewSession(conn, &SessionOption{
+	sess := newSession(conn, &SessionOption{
 		Packer:          s.Packer,
 		Codec:           s.Codec,
 		ReadBufferSize:  s.readBufferSize,

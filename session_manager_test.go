@@ -24,7 +24,7 @@ func TestManager_Add(t *testing.T) {
 	mg := &SessionManager{}
 	assert.NotPanics(t, func() { mg.Add(nil) })
 
-	sess := NewSession(nil, &SessionOption{})
+	sess := newSession(nil, &SessionOption{})
 
 	mg.Add(sess)
 
@@ -37,7 +37,7 @@ func TestManager_Get(t *testing.T) {
 	mg := &SessionManager{}
 	assert.Nil(t, mg.Get("not found"))
 
-	sess := NewSession(nil, &SessionOption{})
+	sess := newSession(nil, &SessionOption{})
 
 	mg.Sessions.Store(sess.ID(), sess)
 	s := mg.Get(sess.ID())
@@ -54,7 +54,7 @@ func TestManager_Range(t *testing.T) {
 	})
 	assert.Zero(t, count)
 
-	sess := NewSession(nil, &SessionOption{})
+	sess := newSession(nil, &SessionOption{})
 
 	mg.Add(sess)
 	count = 0
