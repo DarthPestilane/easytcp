@@ -77,8 +77,8 @@ func main() {
 	s.Use(recoverMiddleware)
 
 	// set hooks (optional)
-	s.OnSessionCreate(fn)
-	s.OnSessionClose(fn)
+	s.OnSessionCreate = func(sess *easytcp.Session) {}
+	s.OnSessionClose = func(sess *easytcp.Session) {}
 
 	// set not-found route handler (optional)
 	s.NotFoundHandler(handler)
