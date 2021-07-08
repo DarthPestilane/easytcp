@@ -8,7 +8,7 @@ import (
 
 // go test -bench='^BenchmarkTCPServer_\w+$' -run=none -benchmem
 
-func BenchmarkTCPServer_NoRoute(b *testing.B) {
+func BenchmarkServer_NoRoute(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
@@ -29,7 +29,7 @@ func BenchmarkTCPServer_NoRoute(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPServer_NotFoundHandler(b *testing.B) {
+func BenchmarkServer_NotFoundHandler(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
@@ -54,7 +54,7 @@ func BenchmarkTCPServer_NotFoundHandler(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPServer_OneHandler(b *testing.B) {
+func BenchmarkServer_OneHandler(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
@@ -79,7 +79,7 @@ func BenchmarkTCPServer_OneHandler(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPServer_ManyHandlers(b *testing.B) {
+func BenchmarkServer_ManyHandlers(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
@@ -112,7 +112,7 @@ func BenchmarkTCPServer_ManyHandlers(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPServer_OneRouteSet(b *testing.B) {
+func BenchmarkServer_OneRouteSet(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
@@ -138,7 +138,7 @@ func BenchmarkTCPServer_OneRouteSet(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPServer_OneRouteJsonCodec(b *testing.B) {
+func BenchmarkServer_OneRouteJsonCodec(b *testing.B) {
 	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		Codec:           &JsonCodec{},
