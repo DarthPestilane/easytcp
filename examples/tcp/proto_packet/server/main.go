@@ -21,7 +21,7 @@ func main() {
 		Codec:  &fixture.ProtoCodec{},
 	})
 
-	srv.AddRoute(uint(message.ID_FooReqID), handle, logMiddleware)
+	srv.AddRoute(uint32(message.ID_FooReqID), handle, logMiddleware)
 
 	if err := srv.Serve(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
@@ -33,7 +33,7 @@ func handle(c *easytcp.Context) (*message2.Entry, error) {
 	if err := c.Bind(&reqData); err != nil {
 		return nil, err
 	}
-	return c.Response(uint(message.ID_FooRespID), &message.FooResp{
+	return c.Response(uint32(message.ID_FooRespID), &message.FooResp{
 		Code:    2,
 		Message: "success",
 	})

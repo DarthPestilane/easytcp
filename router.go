@@ -127,7 +127,7 @@ func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wr
 }
 
 // register stores handler and middlewares for id.
-func (r *Router) register(id uint, h HandlerFunc, m ...MiddlewareFunc) {
+func (r *Router) register(id interface{}, h HandlerFunc, m ...MiddlewareFunc) {
 	if h != nil {
 		r.handlerMapper.Store(id, h)
 	}
@@ -163,9 +163,9 @@ func (r *Router) printHandlers(addr string) {
 	table.SetAutoFormatHeaders(false)
 	table.SetHeaderColor([]int{tablewriter.FgHiGreenColor}, []int{tablewriter.FgHiGreenColor})
 	r.handlerMapper.Range(func(key, value interface{}) bool {
-		id := key.(uint)
+		id := key
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
-		table.Append([]string{fmt.Sprintf("%d", id), handlerName})
+		table.Append([]string{fmt.Sprintf("%v", id), handlerName})
 		return true
 	})
 	table.Render()

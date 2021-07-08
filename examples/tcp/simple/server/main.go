@@ -59,6 +59,7 @@ func main() {
 	if err := s.Stop(); err != nil {
 		log.Errorf("server stopped err: %s", err)
 	}
+	time.Sleep(time.Second)
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
