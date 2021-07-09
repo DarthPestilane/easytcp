@@ -98,14 +98,14 @@ Above is the server side example. There are client and more detailed examples in
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-BenchmarkServer_NoRoute-8             	  174753	      9224 ns/op	     128 B/op	       5 allocs/op
-BenchmarkServer_NotFoundHandler-8     	  357021	      9741 ns/op	     838 B/op	      14 allocs/op
-BenchmarkServer_OneHandler-8          	  288699	      7050 ns/op	     492 B/op	      13 allocs/op
-BenchmarkServer_ManyHandlers-8        	  260398	      8360 ns/op	     531 B/op	      16 allocs/op
-BenchmarkServer_OneRouteSet-8         	  280366	      8427 ns/op	     650 B/op	      20 allocs/op
-BenchmarkServer_OneRouteJsonCodec-8   	  211809	      8474 ns/op	    1528 B/op	      30 allocs/op
+BenchmarkServer_NoRoute-8               201159      9679 ns/op      127 B/op      5 allocs/op
+BenchmarkServer_NotFoundHandler-8       233755      7077 ns/op      677 B/op     12 allocs/op
+BenchmarkServer_OneHandler-8            309848      9029 ns/op      614 B/op     14 allocs/op
+BenchmarkServer_ManyHandlers-8          202014      7156 ns/op      461 B/op     14 allocs/op
+BenchmarkServer_OneRouteSet-8           224008      6717 ns/op      700 B/op     18 allocs/op
+BenchmarkServer_OneRouteJsonCodec-8     180741      7949 ns/op     1442 B/op     27 allocs/op
 PASS
-ok  	github.com/DarthPestilane/easytcp	16.146s
+ok      github.com/DarthPestilane/easytcp       12.507s
 ```
 
 ## Architecture

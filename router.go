@@ -131,26 +131,22 @@ func (r *Router) register(id interface{}, h HandlerFunc, m ...MiddlewareFunc) {
 	if h != nil {
 		r.handlerMapper.Store(id, h)
 	}
-	if len(m) != 0 {
-		ms := make([]MiddlewareFunc, 0)
-		for _, mm := range m {
-			if mm != nil {
-				ms = append(ms, mm)
-			}
+	ms := make([]MiddlewareFunc, 0, len(m))
+	for _, mm := range m {
+		if mm != nil {
+			ms = append(ms, mm)
 		}
-		if len(ms) != 0 {
-			r.middlewaresMapper.Store(id, ms)
-		}
+	}
+	if len(ms) != 0 {
+		r.middlewaresMapper.Store(id, ms)
 	}
 }
 
 // registerMiddleware stores the global middlewares.
 func (r *Router) registerMiddleware(m ...MiddlewareFunc) {
-	if len(m) != 0 {
-		for _, mm := range m {
-			if mm != nil {
-				r.globalMiddlewares = append(r.globalMiddlewares, mm)
-			}
+	for _, mm := range m {
+		if mm != nil {
+			r.globalMiddlewares = append(r.globalMiddlewares, mm)
 		}
 	}
 }
@@ -161,7 +157,7 @@ func (r *Router) printHandlers(addr string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Message ID", "Route Handler"})
 	table.SetAutoFormatHeaders(false)
-	table.SetHeaderColor([]int{tablewriter.FgHiGreenColor}, []int{tablewriter.FgHiGreenColor})
+	// table.SetHeaderColor([]int{tablewriter.FgHiGreenColor}, []int{tablewriter.FgHiGreenColor})
 	r.handlerMapper.Range(func(key, value interface{}) bool {
 		id := key
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
