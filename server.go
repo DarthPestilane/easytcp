@@ -26,6 +26,7 @@ type Server struct {
 
 	socketReadBufferSize  int
 	socketWriteBufferSize int
+	socketSendDelay       bool
 
 	writeBufferSize int
 	readBufferSize  int
@@ -39,10 +40,11 @@ type Server struct {
 
 // ServerOption is the option for Server.
 type ServerOption struct {
-	SocketReadBufferSize  int
-	SocketWriteBufferSize int
-	ReadTimeout           time.Duration // sets the timeout for connection read
-	WriteTimeout          time.Duration // sets the timeout for connection write
+	SocketReadBufferSize  int           // sets the socket read buffer size.
+	SocketWriteBufferSize int           // sets the socket write buffer size.
+	SocketSendDelay       bool          // sets the socket delay or not.
+	ReadTimeout           time.Duration // sets the timeout for connection read.
+	WriteTimeout          time.Duration // sets the timeout for connection write.
 	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil
 	WriteBufferSize       int           // sets the write channel buffer size, 1024 will be used if < 0.
@@ -64,6 +66,7 @@ func NewServer(opt *ServerOption) *Server {
 	return &Server{
 		socketReadBufferSize:  opt.SocketReadBufferSize,
 		socketWriteBufferSize: opt.SocketWriteBufferSize,
+		socketSendDelay:       opt.SocketSendDelay,
 		writeBufferSize:       opt.WriteBufferSize,
 		readBufferSize:        opt.ReadBufferSize,
 		readTimeout:           opt.ReadTimeout,
@@ -123,6 +126,11 @@ func (s *Server) acceptLoop() error {
 		if s.socketWriteBufferSize > 0 {
 			if err := conn.(*net.TCPConn).SetWriteBuffer(s.socketWriteBufferSize); err != nil {
 				return fmt.Errorf("conn set write buffer err: %s", err)
+			}
+		}
+		if s.socketSendDelay {
+			if err := conn.(*net.TCPConn).SetNoDelay(false); err != nil {
+				return fmt.Errorf("conn set no delay err: %s", err)
 			}
 		}
 		go s.handleConn(conn)
