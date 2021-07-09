@@ -2,12 +2,16 @@ package easytcp
 
 import (
 	"fmt"
-	message2 "github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/DarthPestilane/easytcp/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func newContext(sess *Session, msg *message.Entry) *Context {
+	return &Context{session: sess, reqMsg: msg}
+}
 
 func TestContext_Deadline(t *testing.T) {
 	c := newContext(nil, nil)
@@ -59,25 +63,25 @@ func TestContext_Set(t *testing.T) {
 
 func TestContext_Bind(t *testing.T) {
 	t.Run("when session has codec", func(t *testing.T) {
-		message := &message2.Entry{
+		entry := &message.Entry{
 			ID:   1,
 			Data: []byte(`{"data":"test"}`),
 		}
 		sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
 
-		c := newContext(sess, message)
+		c := newContext(sess, entry)
 		data := make(map[string]string)
 		assert.NoError(t, c.Bind(&data))
 		assert.EqualValues(t, data["data"], "test")
 	})
 	t.Run("when session hasn't codec", func(t *testing.T) {
-		message := &message2.Entry{
+		entry := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
 		sess := newSession(nil, &SessionOption{})
 
-		c := newContext(sess, message)
+		c := newContext(sess, entry)
 		var data string
 		assert.Error(t, c.Bind(&data))
 		assert.Empty(t, data)
@@ -100,43 +104,43 @@ func (*DataStringer) String() string {
 func TestContext_Response(t *testing.T) {
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		t.Run("when response data is invalid", func(t *testing.T) {
-			message := &message2.Entry{
+			entry := &message.Entry{
 				ID:   1,
 				Data: []byte("test"),
 			}
 			sess := newSession(nil, &SessionOption{})
 
-			c := newContext(sess, message)
+			c := newContext(sess, entry)
 			respMsg, err := c.Response(1, []string{"invalid", "data"})
 			assert.Error(t, err)
 			assert.Nil(t, respMsg)
 		})
 		t.Run("when response data is a string", func(t *testing.T) {
-			message := &message2.Entry{}
+			entry := &message.Entry{}
 			sess := newSession(nil, &SessionOption{})
 
-			c := newContext(sess, message)
+			c := newContext(sess, entry)
 			respMsg, err := c.Response(1, "data")
 			assert.NoError(t, err)
 			assert.Equal(t, respMsg.Data, []byte("data"))
 			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
-			message := &message2.Entry{}
+			entry := &message.Entry{}
 			sess := newSession(nil, &SessionOption{})
 
-			c := newContext(sess, message)
+			c := newContext(sess, entry)
 			respMsg, err := c.Response(1, []byte("data"))
 			assert.NoError(t, err)
 			assert.Equal(t, respMsg.Data, []byte("data"))
 			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
-			message := &message2.Entry{}
+			entry := &message.Entry{}
 			sess := newSession(nil, &SessionOption{})
 
 			data := &DataStringer{}
-			c := newContext(sess, message)
+			c := newContext(sess, entry)
 			respMsg, err := c.Response(1, data)
 			assert.NoError(t, err)
 			assert.Equal(t, respMsg.Data, []byte(data.String()))
@@ -147,12 +151,12 @@ func TestContext_Response(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		message := &message2.Entry{}
+		entry := &message.Entry{}
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 		sess := newSession(nil, &SessionOption{Codec: codec})
 
-		c := newContext(sess, message)
+		c := newContext(sess, entry)
 		respMsg, err := c.Response(1, "test")
 		assert.Error(t, err)
 		assert.Nil(t, respMsg)
@@ -160,7 +164,7 @@ func TestContext_Response(t *testing.T) {
 	t.Run("when succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		message := &message2.Entry{
+		entry := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
@@ -168,9 +172,9 @@ func TestContext_Response(t *testing.T) {
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
 		sess := newSession(nil, &SessionOption{Codec: codec})
 
-		c := newContext(sess, message)
+		c := newContext(sess, entry)
 		respMsg, err := c.Response(1, "test")
 		assert.NoError(t, err)
-		assert.Equal(t, respMsg, message)
+		assert.Equal(t, respMsg, entry)
 	})
 }

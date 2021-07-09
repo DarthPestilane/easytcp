@@ -89,7 +89,7 @@ func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
 	}
 
 	// create context
-	ctx := newContext(s, reqMsg)
+	ctx := &Context{session: s, reqMsg: reqMsg}
 
 	// create the handlers stack
 	wrapped := r.wrapHandlers(handler, mws)

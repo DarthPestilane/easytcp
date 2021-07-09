@@ -100,7 +100,3 @@ func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, er
 	}
 	return respMsg, nil
 }
-
-func newContext(sess *Session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqMsg: msg}
-}
