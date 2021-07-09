@@ -158,7 +158,7 @@ func TestServer_handleConn(t *testing.T) {
 	}
 
 	// register route
-	server.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	server.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
 		assert.EqualValues(t, 1, ctx.Message().ID)

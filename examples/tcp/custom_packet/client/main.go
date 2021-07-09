@@ -16,7 +16,7 @@ func main() {
 	}
 	log := logrus.New()
 	codec := &easytcp.JsonCodec{}
-	packer := &fixture.Packer16bit{}
+	packer := &fixture.CustomPacker{}
 	go func() {
 		// write loop
 		for {
@@ -31,7 +31,7 @@ func main() {
 				panic(err)
 			}
 			msg := &message.Entry{
-				ID:   fixture.MsgIdJson01Req,
+				ID:   "json01-req",
 				Data: data,
 			}
 			packedMsg, err := packer.Pack(msg)
@@ -54,7 +54,7 @@ func main() {
 			// if err := codec.Decode(msg.Data, &data); err != nil {
 			// 	panic(err)
 			// }
-			log.Infof("ack received | id:(%d) size:(%d) data: %s", msg.ID, len(msg.Data), msg.Data)
+			log.Infof("ack received | id:(%v) size:(%d) data: %s", msg.ID, len(msg.Data), msg.Data)
 		}
 	}()
 	select {}

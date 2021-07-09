@@ -4,52 +4,35 @@ import (
 	"bytes"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
-	"github.com/zhuangsirui/binpacker"
 	"testing"
 )
 
-func TestDefaultPacker_Pack(t *testing.T) {
-	id := uint(123)
-	data := []byte("hello")
-	size := uint32(len(data))
-	rawMsg := &message.Entry{
-		ID:   id,
-		Data: data,
+func TestDefaultPacker(t *testing.T) {
+	packer := &DefaultPacker{}
+	ids := []interface{}{1, uint(1), uint32(1), uint64(1)}
+	for _, id := range ids {
+		entry := &message.Entry{
+			ID:   id,
+			Data: []byte("test"),
+		}
+		msg, err := packer.Pack(entry)
+		assert.NoError(t, err)
+		assert.NotNil(t, msg)
+
+		r := bytes.NewBuffer(msg)
+		newEntry, err := packer.Unpack(r)
+		assert.NoError(t, err)
+		assert.NotNil(t, newEntry)
+		assert.EqualValues(t, newEntry.ID, entry.ID)
+		assert.Equal(t, newEntry.Data, entry.Data)
 	}
 
-	p := &DefaultPacker{}
-	packedMsg, err := p.Pack(rawMsg)
-	assert.NoError(t, err)
-
-	unpacker := binpacker.NewUnpacker(p.bytesOrder(), bytes.NewReader(packedMsg))
-	size2, err := unpacker.ShiftUint32()
-	assert.NoError(t, err)
-	assert.Equal(t, size, size2)
-
-	id2, err := unpacker.ShiftUint32()
-	assert.NoError(t, err)
-	assert.EqualValues(t, id, id2)
-
-	data2, err := unpacker.ShiftBytes(uint64(size))
-	assert.NoError(t, err)
-	assert.Equal(t, data, data2)
-}
-
-func TestDefaultPacker_Unpack(t *testing.T) {
-	id := uint(123)
-	data := []byte("hello")
-	size := len(data)
-
-	p := &DefaultPacker{}
-	buff := bytes.NewBuffer(nil)
-	packer := binpacker.NewPacker(p.bytesOrder(), buff)
-	err := packer.PushUint32(uint32(size)).PushUint32(uint32(id)).PushBytes(data).Error()
-	assert.NoError(t, err)
-
-	msg, err := p.Unpack(buff)
-	assert.NoError(t, err)
-	assert.IsType(t, &message.Entry{}, msg)
-	assert.Len(t, msg.Data, size)
-	assert.EqualValues(t, msg.ID, id)
-	assert.Equal(t, msg.Data, data)
+	// if id is a invalid type
+	entry := &message.Entry{
+		ID:   "invalid",
+		Data: []byte("test"),
+	}
+	msg, err := packer.Pack(entry)
+	assert.Error(t, err)
+	assert.Nil(t, msg)
 }

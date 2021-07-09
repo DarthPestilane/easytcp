@@ -59,7 +59,7 @@ func BenchmarkServer_OneHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(2, []byte("pong"))
 	})
 	go s.Serve(":0") // nolint
@@ -91,7 +91,7 @@ func BenchmarkServer_ManyHandlers(b *testing.B) {
 		}
 	}
 
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(2, []byte("pong"))
 	}, m, m)
 
@@ -117,7 +117,7 @@ func BenchmarkServer_OneRouteSet(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		ctx.Set("key", "value")
 		return ctx.Response(2, []byte("pong"))
 	})
@@ -144,7 +144,7 @@ func BenchmarkServer_OneRouteJsonCodec(b *testing.B) {
 		Codec:           &JsonCodec{},
 		DontPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		req := make(map[string]string)
 		if err := ctx.Bind(&req); err != nil {
 			panic(err)

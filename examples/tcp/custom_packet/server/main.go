@@ -6,7 +6,6 @@ import (
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,12 +22,12 @@ func main() {
 	easytcp.Log = log
 
 	s := easytcp.NewServer(&easytcp.ServerOption{
-		// customize codec and packer
+		// specify codec and packer
 		Codec:  &easytcp.JsonCodec{},
-		Packer: &fixture.Packer16bit{},
+		Packer: &fixture.CustomPacker{},
 	})
 
-	s.AddRoute(fixture.MsgIdJson01Req, handler, fixture.RecoverMiddleware(log), logMiddleware)
+	s.AddRoute("json01-req", handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
 		if err := s.Serve(fixture.ServerAddr); err != nil {
@@ -48,12 +47,12 @@ func handler(ctx *easytcp.Context) (*message.Entry, error) {
 	var data fixture.Json01Req
 	_ = ctx.Bind(&data)
 
-	// make a random panic
-	if rand.Intn(2) == 0 {
-		panic("random panic here")
-	}
+	// make a random panic to exam the `fixture.RecoverMiddleware`
+	// if rand.Intn(2) == 0 {
+	// 	panic("random panic here")
+	// }
 
-	return ctx.Response(fixture.MsgIdJson01Ack, &fixture.Json01Resp{
+	return ctx.Response("json01-resp", &fixture.Json01Resp{
 		Success: true,
 		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
 	})
@@ -63,14 +62,14 @@ func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		// var data fixture.Json01Req
 		// _ = ctx.Bind(&data)
-		log.Infof("recv request | id:(%d) size:(%d) data: %s", ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
+		log.Infof("recv request  | id:(%v) size:(%d) data: %s", ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
 		defer func() {
 			if err != nil {
 				return
 			}
 			if resp != nil {
-				log.Infof("send response | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
+				log.Infof("send response | id:(%v) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 			} else {
 				log.Infof("don't send response since nil")
 			}

@@ -28,7 +28,7 @@ func main() {
 
 	go func() {
 		for {
-			var id = uint(message.ID_FooReqID)
+			var id = uint32(message.ID_FooReqID)
 			req := &message.FooReq{
 				Bar: "bar",
 				Buz: 22,

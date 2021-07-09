@@ -36,6 +36,21 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
+func (d *DefaultPacker) assertID(id interface{}) (uint32, bool) {
+	switch v := id.(type) {
+	case uint:
+		return uint32(v), true
+	case uint32:
+		return v, true
+	case uint64:
+		return uint32(v), true
+	case int:
+		return uint32(v), true
+	default:
+		return 0, false
+	}
+}
+
 // Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 	size := len(entry.Data) // size without ID
@@ -45,7 +60,11 @@ func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 	if err := p.PushUint32(uint32(size)).Error(); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := p.PushUint32(uint32(entry.ID)).Error(); err != nil {
+	id, ok := d.assertID(entry.ID)
+	if !ok {
+		return nil, fmt.Errorf("invalid type of entry.ID: %v(%T)", entry.ID, entry.ID)
+	}
+	if err := p.PushUint32(id).Error(); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
 	if err := p.PushBytes(entry.Data).Error(); err != nil {
@@ -76,7 +95,7 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	}
 
 	msg := &message.Entry{
-		ID:   uint(id),
+		ID:   id,
 		Data: data,
 	}
 	return msg, nil

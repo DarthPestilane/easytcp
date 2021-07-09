@@ -170,7 +170,7 @@ func (s *Server) Stop() error {
 }
 
 // AddRoute registers message handler and middlewares to the router.
-func (s *Server) AddRoute(msgID uint, handler HandlerFunc, middlewares ...MiddlewareFunc) {
+func (s *Server) AddRoute(msgID interface{}, handler HandlerFunc, middlewares ...MiddlewareFunc) {
 	s.router.register(msgID, handler, middlewares...)
 }
 

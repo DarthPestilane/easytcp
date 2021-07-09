@@ -61,13 +61,13 @@ import (
 )
 
 func main() {
-	// create a new server
+	// create a new server with default options
 	s := easytcp.NewServer(&easytcp.ServerOption{})
 
-	// add a route to message id
-	s.AddRoute(uint(1001), func(c *easytcp.Context) (*message.Entry, error) {
+	// add a route with message's ID
+	s.AddRoute(uint32(1001), func(c *easytcp.Context) (*message.Entry, error) {
 		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
-		return c.Response(uint(1002), []byte("copy that"))
+		return c.Response(uint32(1002), []byte("copy that"))
 	})
 
 	// set custom logger (optional)
@@ -98,14 +98,14 @@ Above is the server side example. There are client and more detailed examples in
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-BenchmarkServer_NoRoute-8             	  200031	      8456 ns/op	     108 B/op	       4 allocs/op
-BenchmarkServer_NotFoundHandler-8     	  306708	      7478 ns/op	     753 B/op	      14 allocs/op
-BenchmarkServer_OneHandler-8          	  213714	      8024 ns/op	     501 B/op	      14 allocs/op
-BenchmarkServer_ManyHandlers-8        	  268362	      6308 ns/op	     479 B/op	      14 allocs/op
-BenchmarkServer_OneRouteSet-8         	  195421	      5655 ns/op	     447 B/op	      14 allocs/op
-BenchmarkServer_OneRouteJsonCodec-8   	  199507	      8946 ns/op	    1483 B/op	      28 allocs/op
+BenchmarkServer_NoRoute-8             	  174753	      9224 ns/op	     128 B/op	       5 allocs/op
+BenchmarkServer_NotFoundHandler-8     	  357021	      9741 ns/op	     838 B/op	      14 allocs/op
+BenchmarkServer_OneHandler-8          	  288699	      7050 ns/op	     492 B/op	      13 allocs/op
+BenchmarkServer_ManyHandlers-8        	  260398	      8360 ns/op	     531 B/op	      16 allocs/op
+BenchmarkServer_OneRouteSet-8         	  280366	      8427 ns/op	     650 B/op	      20 allocs/op
+BenchmarkServer_OneRouteJsonCodec-8   	  211809	      8474 ns/op	    1528 B/op	      30 allocs/op
 PASS
-ok  	github.com/DarthPestilane/easytcp	11.856s
+ok  	github.com/DarthPestilane/easytcp	16.146s
 ```
 
 ## Architecture
@@ -211,16 +211,16 @@ func (p *Packer16bit) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
-func (p *Packer16bit) Pack(msg *message.Entry) ([]byte, error) {
-	size := len(msg.Data) // without id
+func (p *Packer16bit) Pack(entry *message.Entry) ([]byte, error) {
+	size := len(entry.Data) // without id
 	buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
 	if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), uint16(msg.ID)); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), uint16(entry.ID.(uint16))); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), msg.Data); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), entry.Data); err != nil {
 		return nil, fmt.Errorf("write data err: %s", err)
 	}
 	return buff.Bytes(), nil
@@ -244,10 +244,12 @@ func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 
-	msg := &message.Entry{ID: uint(id), Data: data}
-	return msg, nil
+	entry := &message.Entry{ID: id, Data: data}
+	return entry, nil
 }
 ```
+
+And see the custom packer [here](./examples/fixture/packer.go).
 
 ### Codec
 

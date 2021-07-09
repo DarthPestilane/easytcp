@@ -73,7 +73,7 @@ func (c *Context) Session() *Session {
 }
 
 // Response creates a response message.
-func (c *Context) Response(id uint, data interface{}) (*message.Entry, error) {
+func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, error) {
 	c.Set(RespKey, data)
 	var dataRaw []byte
 	if codec := c.session.codec; codec == nil {
@@ -99,8 +99,4 @@ func (c *Context) Response(id uint, data interface{}) (*message.Entry, error) {
 		Data: dataRaw,
 	}
 	return respMsg, nil
-}
-
-func newContext(sess *Session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqMsg: msg}
 }
