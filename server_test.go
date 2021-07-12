@@ -143,6 +143,7 @@ func TestServer_handleConn(t *testing.T) {
 	server := NewServer(&ServerOption{
 		SocketReadBufferSize:  1,
 		SocketWriteBufferSize: 1,
+		SocketSendDelay:       true,
 		Codec:                 codec,
 		Packer:                packer,
 		ReadBufferSize:        -1,
