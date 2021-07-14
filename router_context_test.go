@@ -124,6 +124,12 @@ func TestContext_Response(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, respMsg.Data, []byte("data"))
 			assert.EqualValues(t, respMsg.ID, 1)
+
+			data := "ptr"
+			respMsg, err = c.Response(1, &data)
+			assert.NoError(t, err)
+			assert.Equal(t, respMsg.Data, []byte("ptr"))
+			assert.EqualValues(t, respMsg.ID, 1)
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
 			entry := &message.Entry{}
@@ -131,6 +137,12 @@ func TestContext_Response(t *testing.T) {
 
 			c := newContext(sess, entry)
 			respMsg, err := c.Response(1, []byte("data"))
+			assert.NoError(t, err)
+			assert.Equal(t, respMsg.Data, []byte("data"))
+			assert.EqualValues(t, respMsg.ID, 1)
+
+			data := []byte("data")
+			respMsg, err = c.Response(1, &data)
 			assert.NoError(t, err)
 			assert.Equal(t, respMsg.Data, []byte("data"))
 			assert.EqualValues(t, respMsg.ID, 1)
