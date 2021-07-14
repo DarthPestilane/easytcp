@@ -89,7 +89,13 @@ func main() {
 }
 ```
 
-Above is the server side example. There are client and more detailed examples in [examples/tcp](./examples/tcp)
+Above is the server side example. There are client and more detailed examples including:
+
+- [broadcasting](./examples/tcp/broadcast)
+- [custom packet](./examples/tcp/custom_packet)
+- [communicating with protobuf](./examples/tcp/proto_packet)
+
+in [examples/tcp](./examples/tcp).
 
 ## Benchmark
 
@@ -145,7 +151,7 @@ in route handler:
 
 ### Routing
 
-EasyTCP considers every message has a `ID` segment.
+EasyTCP considers every message has a `ID` segment to distinguish one another.
 A message will be routed, according to it's id, to the handler through middelwares.
 
 ```
