@@ -20,18 +20,15 @@ $ ./start
 
 ## Introduction
 
-`EasyTCP` is a light-weight TCP server framework written in Go (Golang), featured with:
+`EasyTCP` is a light-weight and less painful TCP server framework written in Go (Golang), featured with:
 
 - Non-invasive design
 - Pipelined middlewares for route handler
-- Customizable message packer and codec
+- Customizable message packer and codec, and logger
 - Handy functions to handle request data and send response
 - Common hooks
-- Customizable logger
 
 `EasyTCP` helps you build a TCP server easily and fast.
-
-## Install
 
 This package, so far, has been tested with
 
@@ -40,6 +37,8 @@ This package, so far, has been tested with
 - go1.16.x
 
 on the latest Linux, Macos and Windows.
+
+## Install
 
 Use the below Go command to install EasyTCP.
 
@@ -217,7 +216,7 @@ func (p *Packer16bit) Pack(entry *message.Entry) ([]byte, error) {
 	if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	if err := binary.Write(buff, p.bytesOrder(), uint16(entry.ID.(uint16))); err != nil {
+	if err := binary.Write(buff, p.bytesOrder(), entry.ID.(uint16)); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
 	}
 	if err := binary.Write(buff, p.bytesOrder(), entry.Data); err != nil {
@@ -238,6 +237,8 @@ func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
 		return nil, fmt.Errorf("read id err: %s", err)
 	}
 	id := p.bytesOrder().Uint16(idBuff)
+	// since id here is the type of uint16, we need to use a uint16 when adding routes.
+	// eg: server.AddRoute(uint16(123), ...)
 
 	data := make([]byte, size)
 	if _, err := io.ReadFull(reader, data); err != nil {

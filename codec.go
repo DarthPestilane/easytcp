@@ -10,7 +10,7 @@ import (
 type Codec interface {
 	// Encode encodes data into []byte.
 	// Returns error when error occurred.
-	Encode(data interface{}) ([]byte, error)
+	Encode(v interface{}) ([]byte, error)
 
 	// Decode decodes data into v.
 	// Returns error when error occurred.
@@ -24,8 +24,8 @@ var _ Codec = &JsonCodec{}
 type JsonCodec struct{}
 
 // Encode implements the Codec Encode method.
-func (c *JsonCodec) Encode(data interface{}) ([]byte, error) {
-	return json.Marshal(data)
+func (c *JsonCodec) Encode(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
 }
 
 // Decode implements the Codec Decode method.
