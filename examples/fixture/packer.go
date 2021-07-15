@@ -97,6 +97,8 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	}
 
 	entry := &message.Entry{
+		// ID is a string, so we should use a string-type id to register routes.
+		// eg: server.AddRoute("string-id", handler)
 		ID:   string(typeBuff),
 		Data: dataBuff,
 	}

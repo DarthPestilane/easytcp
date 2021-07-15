@@ -27,7 +27,7 @@ var _ Packer = &DefaultPacker{}
 // DefaultPacker is the default Packer used in session.
 // DefaultPacker treats the packet with the format:
 // 	(size)(id)(data):
-// 		size: uint32 | took 4 bytes
+// 		size: uint32 | took 4 bytes, only the size of data
 // 		id: uint32   | took 4 bytes
 // 		data: []byte | length is the size
 type DefaultPacker struct{}

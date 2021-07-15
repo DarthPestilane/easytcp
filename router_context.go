@@ -80,8 +80,12 @@ func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, er
 		switch v := data.(type) {
 		case []byte:
 			dataRaw = v
+		case *[]byte:
+			dataRaw = *v
 		case string:
 			dataRaw = []byte(v)
+		case *string:
+			dataRaw = []byte(*v)
 		case fmt.Stringer:
 			dataRaw = []byte(v.String())
 		default:

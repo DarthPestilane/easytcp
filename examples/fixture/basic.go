@@ -1,6 +1,6 @@
 package fixture
 
-const ServerAddr = "127.0.0.1:8888"
+const ServerAddr = "0.0.0.0:8888"
 
 // a group of message ids
 const (

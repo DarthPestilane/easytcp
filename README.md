@@ -89,7 +89,13 @@ func main() {
 }
 ```
 
-Above is the server side example. There are client and more detailed examples in [examples/tcp](./examples/tcp)
+Above is the server side example. There are client and more detailed examples including:
+
+- [broadcasting](./examples/tcp/broadcast)
+- [custom packet](./examples/tcp/custom_packet)
+- [communicating with protobuf](./examples/tcp/proto_packet)
+
+in [examples/tcp](./examples/tcp).
 
 ## Benchmark
 
@@ -97,14 +103,14 @@ Above is the server side example. There are client and more detailed examples in
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-BenchmarkServer_NoRoute-8               201159      9679 ns/op      127 B/op      5 allocs/op
-BenchmarkServer_NotFoundHandler-8       233755      7077 ns/op      677 B/op     12 allocs/op
-BenchmarkServer_OneHandler-8            309848      9029 ns/op      614 B/op     14 allocs/op
-BenchmarkServer_ManyHandlers-8          202014      7156 ns/op      461 B/op     14 allocs/op
-BenchmarkServer_OneRouteSet-8           224008      6717 ns/op      700 B/op     18 allocs/op
-BenchmarkServer_OneRouteJsonCodec-8     180741      7949 ns/op     1442 B/op     27 allocs/op
+BenchmarkServer_NoRoute-8               218911      8034 ns/op     160 B/op       6 allocs/op
+BenchmarkServer_NotFoundHandler-8       314193      7995 ns/op     854 B/op      14 allocs/op
+BenchmarkServer_OneHandler-8            290245      7507 ns/op     544 B/op      13 allocs/op
+BenchmarkServer_ManyHandlers-8          263216      7042 ns/op     568 B/op      15 allocs/op
+BenchmarkServer_OneRouteSet-8           260194      7183 ns/op     796 B/op      19 allocs/op
+BenchmarkServer_OneRouteJsonCodec-8     223332      9271 ns/op    1602 B/op      29 allocs/op
 PASS
-ok      github.com/DarthPestilane/easytcp       12.507s
+ok  	github.com/DarthPestilane/easytcp	13.807s
 ```
 
 ## Architecture
@@ -129,13 +135,23 @@ in session:
 +------------------+    +-----------------------+    |                                  |
 | write connection |<---| pack packet payload   |<---|                                  |
 +------------------+    +-----------------------+    +----------------------------------+
+
+in route handler:
+
++----------------------------+    +------------+
+| codec decode request data  |--->|            |
++----------------------------+    |            |
+                                  | user logic |
++----------------------------+    |            |
+| codec encode response data |<---|            |
++----------------------------+    +------------+
 ```
 
 ## API
 
 ### Routing
 
-EasyTCP considers every message has a `ID` segment.
+EasyTCP considers every message has a `ID` segment to distinguish one another.
 A message will be routed, according to it's id, to the handler through middelwares.
 
 ```
@@ -279,6 +295,9 @@ s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
 
 Codec's encoding will be invoked before message packed,
 and decoding should be invoked in the route handler which is after message unpacked.
+
+> If the Codec is not set (or is `nil`), EasyTCP will try to convert the respData (the second parameter of `c.Response`) into a []byte.
+> So the type of respData should be one of `string`, `[]byte` or `fmt.Stringer`.
 
 ## Contribute
 
