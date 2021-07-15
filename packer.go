@@ -24,13 +24,19 @@ type Packer interface {
 
 var _ Packer = &DefaultPacker{}
 
+func newDefaultPacker() *DefaultPacker {
+	return &DefaultPacker{MaxSize: 1024 * 1024}
+}
+
 // DefaultPacker is the default Packer used in session.
 // DefaultPacker treats the packet with the format:
 // 	(size)(id)(data):
 // 		size: uint32 | took 4 bytes, only the size of data
 // 		id: uint32   | took 4 bytes
 // 		data: []byte | length is the size
-type DefaultPacker struct{}
+type DefaultPacker struct {
+	MaxSize int
+}
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
@@ -82,6 +88,10 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 		return nil, fmt.Errorf("read size err: %s", err)
 	}
 	size := d.bytesOrder().Uint32(sizeBuff)
+
+	if d.MaxSize > 0 && int(size) > d.MaxSize {
+		return nil, fmt.Errorf("the size %d is beyond the max: %d", size, d.MaxSize)
+	}
 
 	idBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, idBuff); err != nil {

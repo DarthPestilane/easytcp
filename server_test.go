@@ -19,7 +19,7 @@ func TestNewServer(t *testing.T) {
 		Codec:        &JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
-	assert.Equal(t, s.Packer, &DefaultPacker{})
+	assert.Equal(t, s.Packer, newDefaultPacker())
 	assert.Equal(t, s.Codec, &JsonCodec{})
 }
 

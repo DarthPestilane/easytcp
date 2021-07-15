@@ -103,12 +103,12 @@ in [examples/tcp](./examples/tcp).
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-BenchmarkServer_NoRoute-8               218911      8034 ns/op     160 B/op       6 allocs/op
-BenchmarkServer_NotFoundHandler-8       314193      7995 ns/op     854 B/op      14 allocs/op
-BenchmarkServer_OneHandler-8            290245      7507 ns/op     544 B/op      13 allocs/op
-BenchmarkServer_ManyHandlers-8          263216      7042 ns/op     568 B/op      15 allocs/op
-BenchmarkServer_OneRouteSet-8           260194      7183 ns/op     796 B/op      19 allocs/op
-BenchmarkServer_OneRouteJsonCodec-8     223332      9271 ns/op    1602 B/op      29 allocs/op
+BenchmarkServer_NoRoute-8               175436      7067 ns/op     150 B/op       5 allocs/op
+BenchmarkServer_NotFoundHandler-8       177615      7913 ns/op     689 B/op      12 allocs/op
+BenchmarkServer_OneHandler-8            187723      7622 ns/op     438 B/op      11 allocs/op
+BenchmarkServer_ManyHandlers-8          151287      8559 ns/op     572 B/op      16 allocs/op
+BenchmarkServer_OneRouteSet-8           307644      8583 ns/op     999 B/op      20 allocs/op
+BenchmarkServer_OneRouteJsonCodec-8     232851      8693 ns/op    1596 B/op      29 allocs/op
 PASS
 ok  	github.com/DarthPestilane/easytcp	13.807s
 ```
