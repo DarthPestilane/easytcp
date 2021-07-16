@@ -12,7 +12,8 @@ func TestDefaultPacker(t *testing.T) {
 	packer := &DefaultPacker{MaxSize: 1024}
 
 	t.Run("when handle different types of id", func(t *testing.T) {
-		ids := []interface{}{1, uint(1), uint32(1), uint64(1)}
+		var testId uint32 = 1
+		ids := []interface{}{testId, &testId}
 		for _, id := range ids {
 			entry := &message.Entry{
 				ID:   id,
@@ -26,7 +27,11 @@ func TestDefaultPacker(t *testing.T) {
 			newEntry, err := packer.Unpack(r)
 			assert.NoError(t, err)
 			assert.NotNil(t, newEntry)
-			assert.EqualValues(t, newEntry.ID, entry.ID)
+			if d, ok := entry.ID.(*uint32); ok {
+				assert.Equal(t, newEntry.ID, *d)
+			} else {
+				assert.EqualValues(t, newEntry.ID, entry.ID)
+			}
 			assert.Equal(t, newEntry.Data, entry.Data)
 		}
 	})

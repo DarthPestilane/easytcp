@@ -60,29 +60,31 @@ import (
 )
 
 func main() {
-	// create a new server with default options
+	// Create a new server with default options.
 	s := easytcp.NewServer(&easytcp.ServerOption{})
 
-	// add a route with message's ID
+	// Register a route with message's ID.
+	// The `DefaultPacker` treats id as uint32,
+	// so when we add routes or return response, we should use uint32 or *uint32.
 	s.AddRoute(uint32(1001), func(c *easytcp.Context) (*message.Entry, error) {
 		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
 		return c.Response(uint32(1002), []byte("copy that"))
 	})
 
-	// set custom logger (optional)
+	// Set custom logger (optional).
 	easytcp.SetLogger(lg)
 
-	// add global middlewares (optional)
+	// Add global middlewares (optional).
 	s.Use(recoverMiddleware)
 
-	// set hooks (optional)
+	// Set hooks (optional).
 	s.OnSessionCreate = func(sess *easytcp.Session) {}
 	s.OnSessionClose = func(sess *easytcp.Session) {}
 
-	// set not-found route handler (optional)
+	// Set not-found route handler (optional).
 	s.NotFoundHandler(handler)
 
-	// listen and serve
+	// Listen and serve.
 	if err := s.Serve(":5896"); err != nil && err != server.ErrServerStopped {
 		fmt.Println("serve error: ", err.Error())
 	}
@@ -147,7 +149,7 @@ in route handler:
 +----------------------------+    +------------+
 ```
 
-## API
+## Conception
 
 ### Routing
 
