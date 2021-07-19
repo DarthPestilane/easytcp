@@ -55,7 +55,7 @@ type ServerOption struct {
 // NewServer creates a Server pointer according to opt.
 func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
-		opt.Packer = newDefaultPacker()
+		opt.Packer = NewDefaultPacker()
 	}
 	if opt.WriteBufferSize < 0 {
 		opt.WriteBufferSize = 1024

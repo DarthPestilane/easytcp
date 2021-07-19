@@ -27,10 +27,10 @@ func main() {
 		SocketWriteBufferSize: 1024 * 1024,
 		ReadTimeout:           time.Second * 3,
 		WriteTimeout:          time.Second * 3,
-		// ReadBufferSize:        0, // with default read buffer size: a blocking channel
-		// WriteBufferSize:       0, // with default write buffer size: a blocking channel
-		// Packer:                &easytcp.DefaultPacker{}, // with default packer
-		// Codec:                 nil,                      // without codec
+		// ReadBufferSize:        0,                          // with default read buffer size: a blocking channel
+		// WriteBufferSize:       0,                          // with default write buffer size: a blocking channel
+		// Packer:                easytcp.NewDefaultPacker(), // with default packer
+		// Codec:                 nil,                        // without codec
 	})
 	s.OnSessionCreate = func(sess *easytcp.Session) {
 		log.Infof("session created: %s", sess.ID())

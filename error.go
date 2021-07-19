@@ -4,11 +4,13 @@ import (
 	"fmt"
 )
 
+// Error is a generic interface for error handling.
 type Error interface {
 	error
-	Fatal() bool
+	Fatal() bool // should return true if the error is fatal, otherwise false.
 }
 
+// UnpackError is the error returned in packer.Unpack.
 type UnpackError struct {
 	Err error
 }

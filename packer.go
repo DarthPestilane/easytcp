@@ -24,7 +24,8 @@ type Packer interface {
 
 var _ Packer = &DefaultPacker{}
 
-func newDefaultPacker() *DefaultPacker {
+// NewDefaultPacker create a *DefaultPacker with initial field value.
+func NewDefaultPacker() *DefaultPacker {
 	return &DefaultPacker{MaxSize: 1024 * 1024}
 }
 
