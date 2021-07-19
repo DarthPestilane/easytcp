@@ -86,7 +86,10 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
 			Log.Tracef("unpack incoming message err: %s", err)
-			break
+			if e, ok := err.(Error); ok && e.Fatal() {
+				break
+			}
+			continue
 		}
 		if !s.safelyPushReqQueue(entry) {
 			break

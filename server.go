@@ -191,6 +191,3 @@ func (s *Server) Use(middlewares ...MiddlewareFunc) {
 func (s *Server) NotFoundHandler(handler HandlerFunc) {
 	s.router.setNotFoundHandler(handler)
 }
-
-// ErrServerStopped is used when server stopped.
-var ErrServerStopped = fmt.Errorf("server stopped")
