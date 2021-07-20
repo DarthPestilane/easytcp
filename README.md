@@ -101,19 +101,14 @@ in [examples/tcp](./examples/tcp).
 
 ## Benchmark
 
-```
-goos: darwin
-goarch: amd64
-pkg: github.com/DarthPestilane/easytcp
-BenchmarkServer_NoRoute-8               175436      7067 ns/op     150 B/op       5 allocs/op
-BenchmarkServer_NotFoundHandler-8       177615      7913 ns/op     689 B/op      12 allocs/op
-BenchmarkServer_OneHandler-8            187723      7622 ns/op     438 B/op      11 allocs/op
-BenchmarkServer_ManyHandlers-8          151287      8559 ns/op     572 B/op      16 allocs/op
-BenchmarkServer_OneRouteSet-8           307644      8583 ns/op     999 B/op      20 allocs/op
-BenchmarkServer_OneRouteJsonCodec-8     232851      8693 ns/op    1596 B/op      29 allocs/op
-PASS
-ok  	github.com/DarthPestilane/easytcp	13.807s
-```
+| Benchmark name                      | (1)    | (2)        | (3)       | (4)          |
+| ----------------------------------- | ------ | ---------- | --------- | ------------ |
+| BenchmarkServer_NoRoute-8           | 197164 | 8799 ns/op | 159 B/op  | 5 allocs/op  |
+| BenchmarkServer_NotFoundHandler-8   | 300993 | 7285 ns/op | 811 B/op  | 13 allocs/op |
+| BenchmarkServer_OneHandler-8        | 201592 | 8907 ns/op | 670 B/op  | 20 allocs/op |
+| BenchmarkServer_ManyHandlers-8      | 276344 | 8057 ns/op | 796 B/op  | 15 allocs/op |
+| BenchmarkServer_OneRouteSet-8       | 248247 | 8245 ns/op | 1002 B/op | 19 allocs/op |
+| BenchmarkServer_OneRouteJsonCodec-8 | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op |
 
 ## Architecture
 

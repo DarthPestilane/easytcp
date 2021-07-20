@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// go test -bench='^BenchmarkTCPServer_\w+$' -run=none -benchmem
+// go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem
 
 func BenchmarkServer_NoRoute(b *testing.B) {
 	Log = &MuteLogger{}
@@ -23,7 +23,8 @@ func BenchmarkServer_NoRoute(b *testing.B) {
 		panic(err)
 	}
 	defer client.Close() // nolint
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
@@ -35,7 +36,7 @@ func BenchmarkServer_NotFoundHandler(b *testing.B) {
 		DontPrintRoutes: true,
 	})
 	s.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
-		return ctx.Response(0, []byte("not found"))
+		return ctx.Response(uint32(0), []byte("not found"))
 	})
 	go s.Serve(":0") // nolint
 
@@ -48,7 +49,8 @@ func BenchmarkServer_NotFoundHandler(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
@@ -73,7 +75,8 @@ func BenchmarkServer_OneHandler(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
@@ -92,7 +95,7 @@ func BenchmarkServer_ManyHandlers(b *testing.B) {
 	}
 
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
-		return ctx.Response(2, []byte("pong"))
+		return ctx.Response(uint32(2), []byte("pong"))
 	}, m, m)
 
 	go s.Serve(":0") // nolint
@@ -106,7 +109,8 @@ func BenchmarkServer_ManyHandlers(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
@@ -120,7 +124,7 @@ func BenchmarkServer_OneRouteSet(b *testing.B) {
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		ctx.Set("key", "value")
 		v, _ := ctx.Get("key")
-		return ctx.Response(2, []byte(v.(string)))
+		return ctx.Response(uint32(2), []byte(v.(string)))
 	})
 	go s.Serve(":0") // nolint
 
@@ -133,7 +137,8 @@ func BenchmarkServer_OneRouteSet(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
@@ -163,8 +168,14 @@ func BenchmarkServer_OneRouteJsonCodec(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte(`{"data": "ping"}`)})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte(`{"data": "ping"}`)})
+	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
 	}
+}
+
+func beforeBench(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
 }
