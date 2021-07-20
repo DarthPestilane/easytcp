@@ -55,7 +55,7 @@ type ServerOption struct {
 // NewServer creates a Server pointer according to opt.
 func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
-		opt.Packer = newDefaultPacker()
+		opt.Packer = NewDefaultPacker()
 	}
 	if opt.WriteBufferSize < 0 {
 		opt.WriteBufferSize = 1024
@@ -191,6 +191,3 @@ func (s *Server) Use(middlewares ...MiddlewareFunc) {
 func (s *Server) NotFoundHandler(handler HandlerFunc) {
 	s.router.setNotFoundHandler(handler)
 }
-
-// ErrServerStopped is used when server stopped.
-var ErrServerStopped = fmt.Errorf("server stopped")
