@@ -10,6 +10,11 @@ type Error interface {
 	Fatal() bool // should return true if the error is fatal, otherwise false.
 }
 
+var (
+	_ error = &UnpackError{}
+	_ Error = &UnpackError{}
+)
+
 // UnpackError is the error returned in packer.Unpack.
 type UnpackError struct {
 	Err error
