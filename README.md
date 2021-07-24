@@ -101,14 +101,18 @@ in [examples/tcp](./examples/tcp).
 
 ## Benchmark
 
-| Benchmark name                      | (1)    | (2)        | (3)       | (4)          |
-| ----------------------------------- | ------ | ---------- | --------- | ------------ |
-| BenchmarkServer_NoRoute-8           | 197164 | 8799 ns/op | 159 B/op  | 5 allocs/op  |
-| BenchmarkServer_NotFoundHandler-8   | 300993 | 7285 ns/op | 811 B/op  | 13 allocs/op |
-| BenchmarkServer_OneHandler-8        | 201592 | 8907 ns/op | 670 B/op  | 20 allocs/op |
-| BenchmarkServer_ManyHandlers-8      | 276344 | 8057 ns/op | 796 B/op  | 15 allocs/op |
-| BenchmarkServer_OneRouteSet-8       | 248247 | 8245 ns/op | 1002 B/op | 19 allocs/op |
-| BenchmarkServer_OneRouteJsonCodec-8 | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op |
+- goos: darwin
+- goarch: amd64
+
+| Benchmark name                      | (1)    | (2)        | (3)       | (4)          | remark                        |
+| ----------------------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
+| BenchmarkServer_NoRoute-8           | 197164 | 8799 ns/op | 159 B/op  | 5 allocs/op  |                               |
+| BenchmarkServer_NotFoundHandler-8   | 300993 | 7285 ns/op | 811 B/op  | 13 allocs/op |                               |
+| BenchmarkServer_OneHandler-8        | 201592 | 8907 ns/op | 670 B/op  | 20 allocs/op |                               |
+| BenchmarkServer_ManyHandlers-8      | 276344 | 8057 ns/op | 796 B/op  | 15 allocs/op |                               |
+| BenchmarkServer_OneRouteSet-8       | 248247 | 8245 ns/op | 1002 B/op | 19 allocs/op |                               |
+| BenchmarkServer_OneRouteJsonCodec-8 | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op | build `encoding/json`         |
+| BenchmarkServer_OneRouteJsonCodec-8 | 189723 | 5985 ns/op | 1347 B/op | 27 allocs/op | build with `json-jsoniter/go` |
 
 ## Architecture
 
@@ -181,7 +185,7 @@ s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
 
 ```go
 // register global middlewares.
-// global middlewares are priorer than per-route middlewares, they will be invoked first
+// global middlewares are prior than per-route middlewares, they will be invoked first
 s.Use(recoverMiddleware, logMiddleware, ...)
 
 // register middlewares for one route
@@ -295,6 +299,15 @@ and decoding should be invoked in the route handler which is after message unpac
 
 > If the Codec is not set (or is `nil`), EasyTCP will try to convert the respData (the second parameter of `c.Response`) into a []byte.
 > So the type of respData should be one of `string`, `[]byte` or `fmt.Stringer`.
+
+`JsonCodec` is an EasyTCP's built-in codec, which uses `encoding/json` as the default implementation.
+Can be changed by build from other tags.
+
+[jsoniter](https://github.com/json-iterator/go) :
+
+```sh
+go build -tags=jsoniter .
+```
 
 ## Contribute
 

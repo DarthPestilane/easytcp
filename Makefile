@@ -27,6 +27,7 @@ test:
 
 .PHONY: coverage
 coverage:
+	CGO_ENABLED=0 go tool cover -func ${coverprofile}
 	CGO_ENABLED=0 go tool cover -html ${coverprofile}
 
 .PHONY: spec
