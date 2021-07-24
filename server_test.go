@@ -102,6 +102,7 @@ func TestServer_acceptLoop(t *testing.T) {
 		go func() {
 			assert.Error(t, server.acceptLoop())
 		}()
+		time.Sleep(time.Millisecond * 5)
 		<-server.accepting
 		time.Sleep(time.Millisecond * 20)
 	})

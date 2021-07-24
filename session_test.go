@@ -173,7 +173,7 @@ func TestTCPSession_writeLoop(t *testing.T) {
 		go sess.writeLoop(0)
 		time.Sleep(time.Millisecond * 5)
 		sess.respQueue <- entry
-		time.Sleep(time.Millisecond * 5)
+		time.Sleep(time.Millisecond * 15)
 		sess.Close() // should break the write loop
 		assert.True(t, true)
 	})
