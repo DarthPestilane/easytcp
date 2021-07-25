@@ -1,5 +1,5 @@
 # EasyTCP
-<!-- ![Downloads](https://goproxy.cn/stats/github.com/DarthPestilane/easytcp/badges/download-count.svg) -->
+
 [![Run Actions](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml/badge.svg?branch=master&event=push)](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml)
 [![Go Report](https://goreportcard.com/badge/github.com/darthPestilane/easytcp)](https://goreportcard.com/report/github.com/darthPestilane/easytcp)
 [![codecov](https://codecov.io/gh/DarthPestilane/easytcp/branch/master/graph/badge.svg?token=002KJ5IV4Z)](https://codecov.io/gh/DarthPestilane/easytcp)
@@ -54,40 +54,40 @@ Note: EasyTCP uses **Go Modules** to manage dependencies.
 package main
 
 import (
-	"fmt"
-	"github.com/DarthPestilane/easytcp"
-	"github.com/DarthPestilane/easytcp/message"
+    "fmt"
+    "github.com/DarthPestilane/easytcp"
+    "github.com/DarthPestilane/easytcp/message"
 )
 
 func main() {
-	// Create a new server with default options.
-	s := easytcp.NewServer(&easytcp.ServerOption{})
+    // Create a new server with default options.
+    s := easytcp.NewServer(&easytcp.ServerOption{})
 
-	// Register a route with message's ID.
-	// The `DefaultPacker` treats id as uint32,
-	// so when we add routes or return response, we should use uint32 or *uint32.
-	s.AddRoute(uint32(1001), func(c *easytcp.Context) (*message.Entry, error) {
-		fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
-		return c.Response(uint32(1002), []byte("copy that"))
-	})
+    // Register a route with message's ID.
+    // The `DefaultPacker` treats id as uint32,
+    // so when we add routes or return response, we should use uint32 or *uint32.
+    s.AddRoute(uint32(1001), func(c *easytcp.Context) (*message.Entry, error) {
+        fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
+        return c.Response(uint32(1002), []byte("copy that"))
+    })
 
-	// Set custom logger (optional).
-	easytcp.SetLogger(lg)
+    // Set custom logger (optional).
+    easytcp.SetLogger(lg)
 
-	// Add global middlewares (optional).
-	s.Use(recoverMiddleware)
+    // Add global middlewares (optional).
+    s.Use(recoverMiddleware)
 
-	// Set hooks (optional).
-	s.OnSessionCreate = func(sess *easytcp.Session) {}
-	s.OnSessionClose = func(sess *easytcp.Session) {}
+    // Set hooks (optional).
+    s.OnSessionCreate = func(sess *easytcp.Session) {}
+    s.OnSessionClose = func(sess *easytcp.Session) {}
 
-	// Set not-found route handler (optional).
-	s.NotFoundHandler(handler)
+    // Set not-found route handler (optional).
+    s.NotFoundHandler(handler)
 
-	// Listen and serve.
-	if err := s.Serve(":5896"); err != nil && err != server.ErrServerStopped {
-		fmt.Println("serve error: ", err.Error())
-	}
+    // Listen and serve.
+    if err := s.Serve(":5896"); err != nil && err != server.ErrServerStopped {
+        fmt.Println("serve error: ", err.Error())
+    }
 }
 ```
 
@@ -172,13 +172,13 @@ request flow:
 
 ```go
 s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
-	// handle the request via ctx
-	fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
+    // handle the request via ctx
+    fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
 
-	// do things...
+    // do things...
 
-	// return response
-	return c.Response(respID, []byte("copy that"))
+    // return response
+    return c.Response(respID, []byte("copy that"))
 })
 ```
 
@@ -194,12 +194,12 @@ s.AddRoute(reqID, handler, middleware1, middleware2)
 
 // a middleware looks like:
 var exampleMiddleware easytcp.MiddlewareFunc = func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(c *easytcp.Context) (*message.Entry, error) {
-		// do things before...
-		resp, err := next(c)
-		// do things after...
-		return resp, err
-	}
+    return func(c *easytcp.Context) (*message.Entry, error) {
+        // do things before...
+        resp, err := next(c)
+        // do things after...
+        return resp, err
+    }
 }
 ```
 
@@ -209,7 +209,7 @@ A packer is to pack and unpack packets' payload. We can set the Packer when crea
 
 ```go
 s := easytcp.NewServer(&easytcp.ServerOption{
-	Packer: new(MyPacker), // this is optional, the default one is DefaultPacker
+    Packer: new(MyPacker), // this is optional, the default one is DefaultPacker
 })
 ```
 
@@ -225,48 +225,48 @@ This may not covery some particular cases, but fortunately, we can create our ow
 type Packer16bit struct{}
 
 func (p *Packer16bit) bytesOrder() binary.ByteOrder {
-	return binary.BigEndian
+    return binary.BigEndian
 }
 
 func (p *Packer16bit) Pack(entry *message.Entry) ([]byte, error) {
-	size := len(entry.Data) // without id
-	buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
-	if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
-		return nil, fmt.Errorf("write size err: %s", err)
-	}
-	if err := binary.Write(buff, p.bytesOrder(), entry.ID.(uint16)); err != nil {
-		return nil, fmt.Errorf("write id err: %s", err)
-	}
-	if err := binary.Write(buff, p.bytesOrder(), entry.Data); err != nil {
-		return nil, fmt.Errorf("write data err: %s", err)
-	}
-	return buff.Bytes(), nil
+    size := len(entry.Data) // without id
+    buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
+    if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
+        return nil, fmt.Errorf("write size err: %s", err)
+    }
+    if err := binary.Write(buff, p.bytesOrder(), entry.ID.(uint16)); err != nil {
+        return nil, fmt.Errorf("write id err: %s", err)
+    }
+    if err := binary.Write(buff, p.bytesOrder(), entry.Data); err != nil {
+        return nil, fmt.Errorf("write data err: %s", err)
+    }
+    return buff.Bytes(), nil
 }
 
 func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
-	sizeBuff := make([]byte, 2)
-	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
-		return nil, fmt.Errorf("read size err: %s", err)
-	}
-	size := p.bytesOrder().Uint16(sizeBuff)
+    sizeBuff := make([]byte, 2)
+    if _, err := io.ReadFull(reader, sizeBuff); err != nil {
+        return nil, fmt.Errorf("read size err: %s", err)
+    }
+    size := p.bytesOrder().Uint16(sizeBuff)
 
-	idBuff := make([]byte, 2)
-	if _, err := io.ReadFull(reader, idBuff); err != nil {
-		return nil, fmt.Errorf("read id err: %s", err)
-	}
-	id := p.bytesOrder().Uint16(idBuff)
-	// since id here is the type of uint16, we need to use a uint16 when adding routes.
-	// eg: server.AddRoute(uint16(123), ...)
+    idBuff := make([]byte, 2)
+    if _, err := io.ReadFull(reader, idBuff); err != nil {
+        return nil, fmt.Errorf("read id err: %s", err)
+    }
+    id := p.bytesOrder().Uint16(idBuff)
+    // since id here is the type of uint16, we need to use a uint16 when adding routes.
+    // eg: server.AddRoute(uint16(123), ...)
 
-	data := make([]byte, size)
-	if _, err := io.ReadFull(reader, data); err != nil {
-		return nil, fmt.Errorf("read data err: %s", err)
-	}
+    data := make([]byte, size)
+    if _, err := io.ReadFull(reader, data); err != nil {
+        return nil, fmt.Errorf("read data err: %s", err)
+    }
 
-	entry := &message.Entry{ID: id, Data: data}
-	entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
-	// c.Message().Get("theWholeLength")  // and get them in route handler.
-	return entry, nil
+    entry := &message.Entry{ID: id, Data: data}
+    entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
+    // c.Message().Get("theWholeLength")  // and get them in route handler.
+    return entry, nil
 }
 ```
 
@@ -280,7 +280,7 @@ We can set Codec when creating the server.
 
 ```go
 s := easytcp.NewServer(&easytcp.ServerOption{
-	Codec: &easytcp.JsonCodec{}, // this is optional. The JsonCodec is a built-in codec
+    Codec: &easytcp.JsonCodec{}, // this is optional. The JsonCodec is a built-in codec
 })
 ```
 
@@ -288,13 +288,13 @@ Since we set the codec, we may want to decode the request data in route handler.
 
 ```go
 s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
-	var reqData map[string]interface{}
-	if err := c.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
-		// handle error...
-	}
-	fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", c.Message().ID, len(c.Message().Data), reqData)
-	respData := map[string]string{"key": "value"}
-	return c.Response(respID, respData)
+    var reqData map[string]interface{}
+    if err := c.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
+        // handle error...
+    }
+    fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", c.Message().ID, len(c.Message().Data), reqData)
+    respData := map[string]string{"key": "value"}
+    return c.Response(respID, respData)
 })
 ```
 
