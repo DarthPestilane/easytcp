@@ -62,14 +62,15 @@ func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		// var data fixture.Json01Req
 		// _ = ctx.Bind(&data)
-		log.Infof("recv request  | id:(%v) size:(%d) data: %s", ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
+		fullSize, _ := ctx.Message().Get("fullSize")
+		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
 		defer func() {
 			if err != nil {
 				return
 			}
 			if resp != nil {
-				log.Infof("send response | id:(%v) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
+				log.Infof("send response | dataSize:(%d) id:(%v) data: %s", len(resp.Data), resp.ID, resp.Data)
 			} else {
 				log.Infof("don't send response since nil")
 			}

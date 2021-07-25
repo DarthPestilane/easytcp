@@ -102,5 +102,6 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 		ID:   string(typeBuff),
 		Data: dataBuff,
 	}
+	entry.Set("fullSize", 4+totalSizeVal)
 	return entry, nil
 }
