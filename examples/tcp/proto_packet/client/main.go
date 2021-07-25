@@ -4,7 +4,7 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/message"
-	message2 "github.com/DarthPestilane/easytcp/message"
+	easytcpMsg "github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
@@ -24,7 +24,7 @@ func main() {
 	}
 
 	packer := &easytcp.DefaultPacker{}
-	codec := &fixture.ProtoCodec{}
+	codec := &easytcp.ProtobufCodec{}
 
 	go func() {
 		for {
@@ -37,7 +37,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg := &message2.Entry{ID: id, Data: data}
+			msg := &easytcpMsg.Entry{ID: id, Data: data}
 			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)

@@ -1,5 +1,5 @@
 # EasyTCP
-![Downloads](https://goproxy.cn/stats/github.com/DarthPestilane/easytcp/badges/download-count.svg)
+<!-- ![Downloads](https://goproxy.cn/stats/github.com/DarthPestilane/easytcp/badges/download-count.svg) -->
 [![Run Actions](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml/badge.svg?branch=master&event=push)](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml)
 [![Go Report](https://goreportcard.com/badge/github.com/darthPestilane/easytcp)](https://goreportcard.com/report/github.com/darthPestilane/easytcp)
 [![codecov](https://codecov.io/gh/DarthPestilane/easytcp/branch/master/graph/badge.svg?token=002KJ5IV4Z)](https://codecov.io/gh/DarthPestilane/easytcp)
@@ -104,15 +104,16 @@ in [examples/tcp](./examples/tcp).
 - goos: darwin
 - goarch: amd64
 
-| Benchmark name                      | (1)    | (2)        | (3)       | (4)          | remark                        |
-| ----------------------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
-| BenchmarkServer_NoRoute-8           | 197164 | 8799 ns/op | 159 B/op  | 5 allocs/op  |                               |
-| BenchmarkServer_NotFoundHandler-8   | 300993 | 7285 ns/op | 811 B/op  | 13 allocs/op |                               |
-| BenchmarkServer_OneHandler-8        | 201592 | 8907 ns/op | 670 B/op  | 20 allocs/op |                               |
-| BenchmarkServer_ManyHandlers-8      | 276344 | 8057 ns/op | 796 B/op  | 15 allocs/op |                               |
-| BenchmarkServer_OneRouteSet-8       | 248247 | 8245 ns/op | 1002 B/op | 19 allocs/op |                               |
-| BenchmarkServer_OneRouteJsonCodec-8 | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op | build with `encoding/json`    |
-| BenchmarkServer_OneRouteJsonCodec-8 | 189723 | 5985 ns/op | 1347 B/op | 27 allocs/op | build with `json-jsoniter/go` |
+| Benchmark name                    | (1)    | (2)        | (3)       | (4)          | remark                        |
+| --------------------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
+| Benchmark_NoRoute-8               | 197164 | 8799 ns/op | 159 B/op  | 5 allocs/op  |                               |
+| Benchmark_NotFoundHandler-8       | 300993 | 7285 ns/op | 811 B/op  | 13 allocs/op |                               |
+| Benchmark_OneHandler-8            | 201592 | 8907 ns/op | 670 B/op  | 20 allocs/op |                               |
+| Benchmark_ManyHandlers-8          | 276344 | 8057 ns/op | 796 B/op  | 15 allocs/op |                               |
+| Benchmark_OneRouteSet-8           | 248247 | 8245 ns/op | 1002 B/op | 19 allocs/op |                               |
+| Benchmark_OneRouteJsonCodec-8     | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op | build with `encoding/json`    |
+| Benchmark_OneRouteJsonCodec-8     | 189723 | 5985 ns/op | 1347 B/op | 27 allocs/op | build with `json-jsoniter/go` |
+| Benchmark_OneRouteProtobufCodec-8 | 210532 | 6346 ns/op | 708 B/op  | 19 allocs/op |                               |
 
 ## Architecture
 
@@ -216,7 +217,7 @@ We can set our own Packer or EasyTCP uses [`DefaultPacker`](./packer.go).
 
 The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format.
 
-This may not covery some particular cases, fortunately, we can create our own Packer.
+This may not covery some particular cases, but fortunately, we can create our own Packer.
 
 ```go
 // Packer16bit is a custom packer, implements Packer interafce.
@@ -263,6 +264,8 @@ func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
 	}
 
 	entry := &message.Entry{ID: id, Data: data}
+	entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
+	// c.Message().Get("theWholeLength")  // and get them in route handler.
 	return entry, nil
 }
 ```
@@ -271,7 +274,8 @@ And see the custom packer [here](./examples/fixture/packer.go).
 
 ### Codec
 
-A Codec is to encode and decode message data. The Codec is optional, EasyTCP won't encode/decode message data if Codec is not set.
+A Codec is to encode and decode message data. The Codec is optional, EasyTCP won't encode or decode message data if the Codec is not set.
+
 We can set Codec when creating the server.
 
 ```go
@@ -297,8 +301,12 @@ s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
 Codec's encoding will be invoked before message packed,
 and decoding should be invoked in the route handler which is after message unpacked.
 
-> If the Codec is not set (or is `nil`), EasyTCP will try to convert the respData (the second parameter of `c.Response`) into a []byte.
-> So the type of respData should be one of `string`, `[]byte` or `fmt.Stringer`.
+> NOTE:
+>
+> If the Codec is not set (or is `nil`), EasyTCP will try to convert the `respData` (the second parameter of `c.Response`) into a `[]byte`.
+> So the type of `respData` should be one of `string`, `[]byte` or `fmt.Stringer`.
+
+### JSON Codec
 
 `JsonCodec` is an EasyTCP's built-in codec, which uses `encoding/json` as the default implementation.
 Can be changed by build from other tags.
@@ -308,6 +316,10 @@ Can be changed by build from other tags.
 ```sh
 go build -tags=jsoniter .
 ```
+
+### Protobuf Codec
+
+`ProtobufCodec` is an EasyTCP's built-in codec, which uses `google.golang.org/protobuf` as the implementation.
 
 ## Contribute
 

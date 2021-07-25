@@ -18,7 +18,7 @@ func init() {
 func main() {
 	srv := easytcp.NewServer(&easytcp.ServerOption{
 		Packer: &easytcp.DefaultPacker{},
-		Codec:  &fixture.ProtoCodec{},
+		Codec:  &easytcp.ProtobufCodec{},
 	})
 
 	srv.AddRoute(uint32(message.ID_FooReqID), handle, logMiddleware)

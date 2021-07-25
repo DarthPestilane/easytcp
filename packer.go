@@ -32,9 +32,9 @@ func NewDefaultPacker() *DefaultPacker {
 // DefaultPacker is the default Packer used in session.
 // DefaultPacker treats the packet with the format:
 // 	(size)(id)(data):
-// 		size: uint32 | took 4 bytes, only the size of data
-// 		id: uint32   | took 4 bytes
-// 		data: []byte | length is the size
+// 		size: uint32 | took 4 bytes, only the size of `data`
+// 		id:   uint32 | took 4 bytes
+// 		data: []byte | took `size` bytes
 type DefaultPacker struct {
 	MaxSize int
 }
@@ -105,9 +105,9 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 		return nil, &UnpackError{Err: fmt.Errorf("read data err: %s", err)}
 	}
 
-	msg := &message.Entry{
+	entry := &message.Entry{
 		ID:   id,
 		Data: data,
 	}
-	return msg, nil
+	return entry, nil
 }
