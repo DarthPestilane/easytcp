@@ -16,7 +16,7 @@ func TestDefaultLogger_Tracef(t *testing.T) {
 }
 
 func TestSetLogger(t *testing.T) {
-	lg := &MuteLogger{}
+	lg := &mutedLogger{}
 	SetLogger(lg)
 	assert.Equal(t, Log, lg)
 }

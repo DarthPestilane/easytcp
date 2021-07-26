@@ -9,8 +9,12 @@ import (
 
 // go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem
 
+type mutedLogger struct{}
+
+func (m *mutedLogger) Errorf(_ string, _ ...interface{}) {}
+func (m *mutedLogger) Tracef(_ string, _ ...interface{}) {}
+
 func Benchmark_NoRoute(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
@@ -32,7 +36,6 @@ func Benchmark_NoRoute(b *testing.B) {
 }
 
 func Benchmark_NotFoundHandler(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
@@ -58,7 +61,6 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 }
 
 func Benchmark_OneHandler(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
@@ -84,7 +86,6 @@ func Benchmark_OneHandler(b *testing.B) {
 }
 
 func Benchmark_ManyHandlers(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
@@ -118,7 +119,6 @@ func Benchmark_ManyHandlers(b *testing.B) {
 }
 
 func Benchmark_OneRouteSet(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		DontPrintRoutes: true,
 	})
@@ -146,7 +146,6 @@ func Benchmark_OneRouteSet(b *testing.B) {
 }
 
 func Benchmark_OneRouteJsonCodec(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		Codec:           &JsonCodec{},
 		DontPrintRoutes: true,
@@ -177,7 +176,6 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 }
 
 func Benchmark_OneRouteProtobufCodec(b *testing.B) {
-	Log = &MuteLogger{}
 	s := NewServer(&ServerOption{
 		Codec:           &ProtobufCodec{},
 		DontPrintRoutes: true,
@@ -209,6 +207,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 }
 
 func beforeBench(b *testing.B) {
+	Log = &mutedLogger{}
 	b.ReportAllocs()
 	b.ResetTimer()
 }
