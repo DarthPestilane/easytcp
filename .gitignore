@@ -1,8 +1,7 @@
 .idea/
 .vscode/
 vender/
-demo/
 
 *.exe
-.testCoverage.txt
 *.test
+.testCoverage.txt
