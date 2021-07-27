@@ -1,5 +1,4 @@
-ldflags = -ldflags="-s"
-coverprofile=.testCoverage.txt
+ldflags=-ldflags="-s"
 os=`${OS}`
 
 .PHONY: default
@@ -23,15 +22,16 @@ lint-fix:
 
 .PHONY: test
 test:
-	CGO_ENABLED=0 go test -count=1 -covermode=set -coverprofile=${coverprofile} .
+	CGO_ENABLED=0 go test -count=1 -covermode=set -coverprofile=.testCoverage.txt .
 
-.PHONY: coverage
-coverage:
-	CGO_ENABLED=0 go tool cover -func ${coverprofile}
-	CGO_ENABLED=0 go tool cover -html ${coverprofile}
+.PHONY: cover-view
+cover-view:
+	CGO_ENABLED=0 go tool cover -func .testCoverage.txt
+	CGO_ENABLED=0 go tool cover -html .testCoverage.txt
 
 .PHONY: spec
 spec: lint test
+	CGO_ENABLED=0 go tool cover -func .testCoverage.txt
 
 .PHONY: bench
 bench:

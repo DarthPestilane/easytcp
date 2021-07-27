@@ -39,17 +39,6 @@ func (d *DefaultLogger) Tracef(format string, args ...interface{}) {
 	d.rawLogger.Printf("[TRACE] %s", fmt.Sprintf(format, args...))
 }
 
-// MuteLogger is the empty logger instance.
-type MuteLogger struct{}
-
-var _ Logger = &MuteLogger{}
-
-// Errorf is an empty implementation to Logger Errorf method.
-func (m *MuteLogger) Errorf(format string, args ...interface{}) {}
-
-// Tracef is an empty implementation to Logger Tracef method.
-func (m *MuteLogger) Tracef(format string, args ...interface{}) {}
-
 // SetLogger sets the package logger.
 func SetLogger(lg Logger) {
 	Log = lg
