@@ -154,7 +154,7 @@ in route handler:
 ### Routing
 
 EasyTCP considers every message has a `ID` segment to distinguish one another.
-A message will be routed, according to it's id, to the handler through middelwares.
+A message will be routed, according to it's id, to the handler through middlewares.
 
 ```
 request flow:
