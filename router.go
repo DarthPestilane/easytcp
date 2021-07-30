@@ -157,7 +157,6 @@ func (r *Router) printHandlers(addr string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Message ID", "Route Handler"})
 	table.SetAutoFormatHeaders(false)
-	// table.SetHeaderColor([]int{tablewriter.FgHiGreenColor}, []int{tablewriter.FgHiGreenColor})
 	r.handlerMapper.Range(func(key, value interface{}) bool {
 		id := key
 		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
