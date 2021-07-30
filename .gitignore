@@ -3,5 +3,11 @@
 vender/
 
 *.exe
+*.exe~
 *.test
+*.out
+*.dll
+*.so
+*.dylib
+
 .testCoverage.txt
