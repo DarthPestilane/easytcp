@@ -18,10 +18,10 @@ type Server struct {
 	// Codec is the message codec, will be passed to session.
 	Codec Codec
 
-	// OnSessionCreate is a event hook, will be invoked when session's created.
+	// OnSessionCreate is an event hook, will be invoked when session's created.
 	OnSessionCreate func(sess *Session)
 
-	// OnSessionClose is a event hook, will be invoked when session's closed.
+	// OnSessionClose is an event hook, will be invoked when session's closed.
 	OnSessionClose func(sess *Session)
 
 	socketReadBufferSize  int
@@ -47,8 +47,8 @@ type ServerOption struct {
 	WriteTimeout          time.Duration // sets the timeout for connection write.
 	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil
-	WriteBufferSize       int           // sets the write channel buffer size, 1024 will be used if < 0.
-	ReadBufferSize        int           // sets the read channel buffer size, 1024 will be used if < 0.
+	WriteBufferSize       int           // sets the writing channel buffer size, 1024 will be used if < 0.
+	ReadBufferSize        int           // sets the reading channel buffer size, 1024 will be used if < 0.
 	DontPrintRoutes       bool          // whether to print registered route handlers to the console.
 }
 

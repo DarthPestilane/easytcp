@@ -11,7 +11,7 @@ import (
 
 // Session represents a TCP session.
 type Session struct {
-	id        string              // session's ID. it's a uuid
+	id        string              // session's ID. it's a UUID
 	conn      net.Conn            // tcp connection
 	closeOnce sync.Once           // to make sure we can only close each session one time
 	closed    chan struct{}       // to close()
