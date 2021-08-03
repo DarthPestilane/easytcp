@@ -170,9 +170,9 @@ func TestTCPSession_writeLoop(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := newSession(nil, &SessionOption{Packer: packer})
+		go func() { sess.respQueue <- entry }()
+		time.Sleep(time.Microsecond * 15)
 		go sess.writeLoop(0)
-		time.Sleep(time.Millisecond * 5)
-		sess.respQueue <- entry
 		time.Sleep(time.Millisecond * 15)
 		sess.Close() // should break the write loop
 		assert.True(t, true)
