@@ -116,6 +116,7 @@ in [examples/tcp](./examples/tcp).
 | Benchmark_OneRouteJsonCodec-8     | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op | build with `encoding/json`    |
 | Benchmark_OneRouteJsonCodec-8     | 189723 | 5985 ns/op | 1347 B/op | 27 allocs/op | build with `json-jsoniter/go` |
 | Benchmark_OneRouteProtobufCodec-8 | 210532 | 6346 ns/op | 708 B/op  | 19 allocs/op |                               |
+| Benchmark_OneRouteMsgpackCodec-8  | 181495 | 6196 ns/op | 868 B/op  | 22 allocs/op |                               |
 
 ## Architecture
 
