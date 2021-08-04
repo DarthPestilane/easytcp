@@ -16,7 +16,7 @@ func (m *mutedLogger) Tracef(_ string, _ ...interface{}) {}
 
 func Benchmark_NoRoute(b *testing.B) {
 	s := NewServer(&ServerOption{
-		DontPrintRoutes: true,
+		DoNotPrintRoutes: true,
 	})
 	go s.Serve(":0") // nolint
 
@@ -37,7 +37,7 @@ func Benchmark_NoRoute(b *testing.B) {
 
 func Benchmark_NotFoundHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
-		DontPrintRoutes: true,
+		DoNotPrintRoutes: true,
 	})
 	s.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(uint32(0), []byte("not found"))
@@ -62,7 +62,7 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 
 func Benchmark_OneHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
-		DontPrintRoutes: true,
+		DoNotPrintRoutes: true,
 	})
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(2, []byte("pong"))
@@ -87,7 +87,7 @@ func Benchmark_OneHandler(b *testing.B) {
 
 func Benchmark_ManyHandlers(b *testing.B) {
 	s := NewServer(&ServerOption{
-		DontPrintRoutes: true,
+		DoNotPrintRoutes: true,
 	})
 
 	var m MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
@@ -120,7 +120,7 @@ func Benchmark_ManyHandlers(b *testing.B) {
 
 func Benchmark_OneRouteSet(b *testing.B) {
 	s := NewServer(&ServerOption{
-		DontPrintRoutes: true,
+		DoNotPrintRoutes: true,
 	})
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		ctx.Set("key", "value")
@@ -147,8 +147,8 @@ func Benchmark_OneRouteSet(b *testing.B) {
 
 func Benchmark_OneRouteJsonCodec(b *testing.B) {
 	s := NewServer(&ServerOption{
-		Codec:           &JsonCodec{},
-		DontPrintRoutes: true,
+		Codec:            &JsonCodec{},
+		DoNotPrintRoutes: true,
 	})
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		req := make(map[string]string)
@@ -177,8 +177,8 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 
 func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 	s := NewServer(&ServerOption{
-		Codec:           &ProtobufCodec{},
-		DontPrintRoutes: true,
+		Codec:            &ProtobufCodec{},
+		DoNotPrintRoutes: true,
 	})
 	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
 		var req pb.Sample

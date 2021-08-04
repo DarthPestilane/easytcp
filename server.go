@@ -49,7 +49,7 @@ type ServerOption struct {
 	Codec                 Codec         // encodes and decodes the message data, can be nil
 	WriteBufferSize       int           // sets the writing channel buffer size, 1024 will be used if < 0.
 	ReadBufferSize        int           // sets the reading channel buffer size, 1024 will be used if < 0.
-	DontPrintRoutes       bool          // whether to print registered route handlers to the console.
+	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 }
 
 // NewServer creates a Server pointer according to opt.
@@ -73,7 +73,7 @@ func NewServer(opt *ServerOption) *Server {
 		writeTimeout:          opt.WriteTimeout,
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
-		printRoutes:           !opt.DontPrintRoutes,
+		printRoutes:           !opt.DoNotPrintRoutes,
 		router:                newRouter(),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),

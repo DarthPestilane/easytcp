@@ -20,7 +20,9 @@ $ ./start
 
 ## Introduction
 
-`EasyTCP` is a light-weight and less painful TCP server framework written in Go (Golang), featured with:
+`EasyTCP` is a light-weight and less painful TCP server framework written in Go (Golang) based on the standard `net` package.
+
+✨ Features:
 
 - Non-invasive design
 - Pipelined middlewares for route handler
