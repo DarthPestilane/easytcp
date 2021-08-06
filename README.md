@@ -116,6 +116,7 @@ in [examples/tcp](./examples/tcp).
 | Benchmark_OneRouteJsonCodec-8     | 176893 | 6413 ns/op | 1618 B/op | 32 allocs/op | build with `encoding/json`    |
 | Benchmark_OneRouteJsonCodec-8     | 189723 | 5985 ns/op | 1347 B/op | 27 allocs/op | build with `json-jsoniter/go` |
 | Benchmark_OneRouteProtobufCodec-8 | 210532 | 6346 ns/op | 708 B/op  | 19 allocs/op |                               |
+| Benchmark_OneRouteMsgpackCodec-8  | 181495 | 6196 ns/op | 868 B/op  | 22 allocs/op |                               |
 
 ## Architecture
 
@@ -308,7 +309,7 @@ and decoding should be invoked in the route handler which is after message unpac
 > If the Codec is not set (or is `nil`), EasyTCP will try to convert the `respData` (the second parameter of `c.Response`) into a `[]byte`.
 > So the type of `respData` should be one of `string`, `[]byte` or `fmt.Stringer`.
 
-### JSON Codec
+#### JSON Codec
 
 `JsonCodec` is an EasyTCP's built-in codec, which uses `encoding/json` as the default implementation.
 Can be changed by build from other tags.
@@ -319,9 +320,13 @@ Can be changed by build from other tags.
 go build -tags=jsoniter .
 ```
 
-### Protobuf Codec
+#### Protobuf Codec
 
 `ProtobufCodec` is an EasyTCP's built-in codec, which uses `google.golang.org/protobuf` as the implementation.
+
+#### Msgpack Codec
+
+`MsgpackCodec` is an EasyTCP's built-in codec, which uses `github.com/vmihailenco/msgpack` as the implementation.
 
 ## Contribute
 

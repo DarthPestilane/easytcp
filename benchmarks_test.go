@@ -2,6 +2,7 @@ package easytcp
 
 import (
 	"github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/test_data/msgpack"
 	"github.com/DarthPestilane/easytcp/test_data/pb"
 	"net"
 	"testing"
@@ -199,6 +200,37 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 	defer client.Close() // nolint
 
 	data, _ := s.Codec.Encode(&pb.Sample{Foo: "test", Bar: 1})
+	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: data})
+	beforeBench(b)
+	for i := 0; i < b.N; i++ {
+		_, _ = client.Write(packedMsg)
+	}
+}
+
+func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
+	s := NewServer(&ServerOption{
+		Codec:            &MsgpackCodec{},
+		DoNotPrintRoutes: true,
+	})
+	s.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
+		var req msgpack.Sample
+		if err := ctx.Bind(&req); err != nil {
+			panic(err)
+		}
+		return ctx.Response(2, &msgpack.Sample{Foo: "test-resp", Bar: req.Bar + 1})
+	})
+	go s.Serve(":0") // nolint
+
+	<-s.accepting
+
+	// client
+	client, err := net.Dial("tcp", s.Listener.Addr().String())
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close() // nolint
+
+	data, _ := s.Codec.Encode(&msgpack.Sample{Foo: "test", Bar: 1})
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: data})
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {

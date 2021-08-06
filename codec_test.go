@@ -1,6 +1,7 @@
 package easytcp
 
 import (
+	"github.com/DarthPestilane/easytcp/test_data/msgpack"
 	"github.com/DarthPestilane/easytcp/test_data/pb"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
@@ -53,4 +54,20 @@ func TestProtobufCodec(t *testing.T) {
 		// comparing
 		assert.True(t, proto.Equal(v, sample))
 	})
+}
+
+func TestMsgpackCodec(t *testing.T) {
+	item := msgpack.Sample{
+		Foo: "test",
+		Bar: 1,
+		Baz: map[int]string{2: "2"},
+	}
+	c := &MsgpackCodec{}
+	b, err := c.Encode(item)
+	assert.NoError(t, err)
+	assert.NotNil(t, b)
+
+	var itemDec msgpack.Sample
+	assert.NoError(t, c.Decode(b, &itemDec))
+	assert.Equal(t, item, itemDec)
 }
