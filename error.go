@@ -20,10 +20,12 @@ type UnpackError struct {
 	Err error
 }
 
+// Error implements error interface.
 func (pe *UnpackError) Error() string {
 	return pe.Err.Error()
 }
 
+// Fatal implements Error interface.
 func (pe *UnpackError) Fatal() bool {
 	return true
 }
