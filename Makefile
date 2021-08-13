@@ -26,6 +26,10 @@ lint-fix:
 test:
 	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt .
 
+.PHONY: test-v
+test-v:
+	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -v .
+
 .PHONY: cover-view
 cover-view:
 	go tool cover -func .testCoverage.txt
