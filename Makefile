@@ -1,5 +1,5 @@
 ldflags=-ldflags="-s"
-os=`${OS}`
+os=`uname`
 
 export CGO_ENABLED=0
 
