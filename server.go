@@ -74,7 +74,7 @@ func NewServer(opt *ServerOption) *Server {
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
-		router:                newRouter(),
+		router:                &Router{},
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 	}
@@ -151,11 +151,11 @@ func (s *Server) handleConn(conn net.Conn) {
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	go s.router.routeLoop(sess)
-	go sess.readLoop(s.readTimeout)
-	go sess.writeLoop(s.writeTimeout)
-	<-sess.closed
-	Sessions().Remove(sess.ID()) // session has been closed, remove it
+	go s.router.routeLoop(sess)       // start routing messages to handlers for this session.
+	go sess.readLoop(s.readTimeout)   // start reading messages from connection.
+	go sess.writeLoop(s.writeTimeout) // start writing messages to connection.
+	<-sess.closed                     // wait for session finished.
+	Sessions().Remove(sess.ID())      // session has been closed, remove it.
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
 	}

@@ -9,9 +9,8 @@ import (
 	"testing"
 )
 
-func Test_newRouter(t *testing.T) {
-	rt := newRouter()
-	assert.NotNil(t, rt.globalMiddlewares)
+func newRouter() *Router {
+	return &Router{}
 }
 
 func TestRouter_routeLoop(t *testing.T) {

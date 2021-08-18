@@ -45,13 +45,6 @@ var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 	return nil, nil
 }
 
-// newRouter creates a new Router pointer.
-func newRouter() *Router {
-	return &Router{
-		globalMiddlewares: make([]MiddlewareFunc, 0),
-	}
-}
-
 // routeLoop reads message from session.Session s in a loop way,
 // and routes the message to corresponding handler and middlewares if message is not nil.
 // routeLoop will break if session.Session s is closed.
