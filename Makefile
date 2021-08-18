@@ -24,11 +24,11 @@ lint-fix:
 
 .PHONY: test
 test:
-	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt .
+	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -timeout=2m .
 
 .PHONY: test-v
 test-v:
-	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -v .
+	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -timeout=2m -v .
 
 .PHONY: cover-view
 cover-view:
