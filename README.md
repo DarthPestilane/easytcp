@@ -37,6 +37,7 @@ This package, so far, has been tested with
 - go1.14.x
 - go1.15.x
 - go1.16.x
+- go1.17.x
 
 on the latest Linux, Macos and Windows.
 
