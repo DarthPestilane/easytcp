@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
@@ -12,8 +13,23 @@ func TestDefaultPacker(t *testing.T) {
 	packer := &DefaultPacker{MaxSize: 1024}
 
 	t.Run("when handle different types of id", func(t *testing.T) {
-		var testId uint32 = 1
-		ids := []interface{}{testId, &testId}
+		var testIdInt = 1
+		var testIdInt32 int32 = 1
+		var testIdInt64 int64 = 1
+
+		var testIdUint uint = 1
+		var testIdUint32 uint32 = 1
+		var testIdUint64 uint64 = 1
+
+		ids := []interface{}{
+			testIdInt, &testIdInt,
+			testIdInt32, &testIdInt32,
+			testIdInt64, &testIdInt64,
+
+			testIdUint, &testIdUint,
+			testIdUint32, &testIdUint32,
+			testIdUint64, &testIdUint64,
+		}
 		for _, id := range ids {
 			entry := &message.Entry{
 				ID:   id,
@@ -27,11 +43,7 @@ func TestDefaultPacker(t *testing.T) {
 			newEntry, err := packer.Unpack(r)
 			assert.NoError(t, err)
 			assert.NotNil(t, newEntry)
-			if d, ok := entry.ID.(*uint32); ok {
-				assert.Equal(t, newEntry.ID, *d)
-			} else {
-				assert.EqualValues(t, newEntry.ID, entry.ID)
-			}
+			assert.EqualValues(t, reflect.Indirect(reflect.ValueOf(entry.ID)).Interface(), newEntry.ID)
 			assert.Equal(t, newEntry.Data, entry.Data)
 		}
 	})
