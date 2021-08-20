@@ -45,10 +45,32 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 
 func (d *DefaultPacker) assertID(id interface{}) (uint32, bool) {
 	switch v := id.(type) {
+	case int:
+		return uint32(v), true
+	case *int:
+		return uint32(*v), true
+	case int32:
+		return uint32(v), true
+	case *int32:
+		return uint32(*v), true
+	case int64:
+		return uint32(v), true
+	case *int64:
+		return uint32(*v), true
+
+	case uint:
+		return uint32(v), true
+	case *uint:
+		return uint32(*v), true
 	case uint32:
 		return v, true
 	case *uint32:
 		return *v, true
+	case uint64:
+		return uint32(v), true
+	case *uint64:
+		return uint32(*v), true
+
 	default:
 		return 0, false
 	}
