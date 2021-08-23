@@ -79,13 +79,13 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 	for {
 		if readTimeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-				Log.Tracef("set read deadline err: %s", err)
+				Log.Tracef("session set read deadline err: %s", err)
 				break
 			}
 		}
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
-			Log.Tracef("unpack incoming message err: %s", err)
+			Log.Tracef("session unpack incoming message err: %s", err)
 			if e, ok := err.(Error); ok && e.Fatal() {
 				break
 			}
@@ -95,7 +95,7 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 			break
 		}
 	}
-	Log.Tracef("read loop exit")
+	Log.Tracef("session read loop exit")
 	s.Close()
 }
 
@@ -113,21 +113,21 @@ func (s *Session) writeLoop(writeTimeout time.Duration) {
 		// pack message
 		ackMsg, err := s.packer.Pack(respMsg)
 		if err != nil {
-			Log.Tracef("pack response message err: %s", err)
+			Log.Tracef("session pack response message err: %s", err)
 			continue
 		}
 		if writeTimeout > 0 {
 			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-				Log.Tracef("set write deadline err: %s", err)
+				Log.Tracef("session set write deadline err: %s", err)
 				break
 			}
 		}
 		if _, err := s.conn.Write(ackMsg); err != nil {
-			Log.Tracef("conn write err: %s", err)
+			Log.Tracef("session conn write err: %s", err)
 			break
 		}
 	}
-	Log.Tracef("write loop exit")
+	Log.Tracef("session write loop exit")
 	s.Close()
 }
 
@@ -136,7 +136,7 @@ func (s *Session) safelyPushReqQueue(reqMsg *message.Entry) (ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			Log.Tracef("push reqQueue panics: %+v", r)
+			Log.Tracef("session push reqQueue panics: %+v", r)
 		}
 	}()
 	s.reqQueue <- reqMsg
@@ -148,7 +148,7 @@ func (s *Session) safelyPushRespQueue(respMsg *message.Entry) (ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			Log.Tracef("push respQueue panics: %+v", r)
+			Log.Tracef("session push respQueue panics: %+v", r)
 		}
 	}()
 	s.respQueue <- respMsg

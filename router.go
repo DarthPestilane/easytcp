@@ -52,7 +52,7 @@ func (r *Router) routeLoop(s *Session) {
 	for {
 		req, ok := <-s.reqQueue
 		if !ok {
-			Log.Tracef("loop stopped since session is closed")
+			Log.Tracef("router loop stopped since session is closed")
 			break
 		}
 		if req == nil {
@@ -60,11 +60,11 @@ func (r *Router) routeLoop(s *Session) {
 		}
 		go func() {
 			if err := r.handleReq(s, req); err != nil {
-				Log.Tracef("handle request err: %s", err)
+				Log.Tracef("router handle request err: %s", err)
 			}
 		}()
 	}
-	Log.Tracef("loop exit")
+	Log.Tracef("router loop exit")
 }
 
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
