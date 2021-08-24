@@ -100,8 +100,6 @@ func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 
 // Unpack implements the Packer Unpack method.
 func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
-	// We should use io.ReadFull method, especially called conn.SetReadBuffer(n).
-
 	sizeBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
 		theErr := fmt.Errorf("read size err: %s", err)
