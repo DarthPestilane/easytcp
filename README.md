@@ -220,7 +220,7 @@ s := easytcp.NewServer(&easytcp.ServerOption{
 
 We can set our own Packer or EasyTCP uses [`DefaultPacker`](./packer.go).
 
-The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format.
+The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format. (`Size` only represents the length of `Data` instead of the whole payload length)
 
 This may not covery some particular cases, but fortunately, we can create our own Packer.
 
