@@ -11,6 +11,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	github.com/zhuangsirui/binpacker v1.0.0

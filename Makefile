@@ -45,7 +45,7 @@ bench:
 
 .PHONY: tidy
 tidy:
-	go mod tidy
+	go mod tidy -v
 
 .PHONY: gen
 gen:

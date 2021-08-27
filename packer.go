@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/message"
+	"github.com/spf13/cast"
 	"github.com/zhuangsirui/binpacker"
 	"io"
 )
@@ -43,39 +44,6 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 	return binary.BigEndian
 }
 
-func (d *DefaultPacker) assertID(id interface{}) (uint32, bool) {
-	switch v := id.(type) {
-	case int:
-		return uint32(v), true
-	case *int:
-		return uint32(*v), true
-	case int32:
-		return uint32(v), true
-	case *int32:
-		return uint32(*v), true
-	case int64:
-		return uint32(v), true
-	case *int64:
-		return uint32(*v), true
-
-	case uint:
-		return uint32(v), true
-	case *uint:
-		return uint32(*v), true
-	case uint32:
-		return v, true
-	case *uint32:
-		return *v, true
-	case uint64:
-		return uint32(v), true
-	case *uint64:
-		return uint32(*v), true
-
-	default:
-		return 0, false
-	}
-}
-
 // Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 	size := len(entry.Data) // size without ID
@@ -85,9 +53,9 @@ func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 	if err := p.PushUint32(uint32(size)).Error(); err != nil {
 		return nil, fmt.Errorf("write size err: %s", err)
 	}
-	id, ok := d.assertID(entry.ID)
-	if !ok {
-		return nil, fmt.Errorf("invalid type of entry.ID: %v(%T)", entry.ID, entry.ID)
+	id, err := cast.ToUint32E(entry.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid type of entry.ID: %s", err)
 	}
 	if err := p.PushUint32(id).Error(); err != nil {
 		return nil, fmt.Errorf("write id err: %s", err)
