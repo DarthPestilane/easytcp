@@ -10,7 +10,7 @@ import (
 	"io"
 )
 
-//go:generate mockgen -destination mock/packer_mock.go -package mock . Packer
+//go:generate mockgen -destination internal/mock/packer_mock.go -package mock . Packer
 
 // Packer is a generic interface to pack and unpack message packet.
 type Packer interface {
