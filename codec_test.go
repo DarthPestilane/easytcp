@@ -1,8 +1,8 @@
 package easytcp
 
 import (
-	"github.com/DarthPestilane/easytcp/test_data/msgpack"
-	"github.com/DarthPestilane/easytcp/test_data/pb"
+	"github.com/DarthPestilane/easytcp/internal/test_data/msgpack"
+	"github.com/DarthPestilane/easytcp/internal/test_data/pb"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 	"testing"

@@ -2,8 +2,8 @@ package easytcp
 
 import (
 	"fmt"
+	"github.com/DarthPestilane/easytcp/internal/mock"
 	"github.com/DarthPestilane/easytcp/message"
-	"github.com/DarthPestilane/easytcp/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"

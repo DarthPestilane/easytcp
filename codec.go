@@ -1,6 +1,6 @@
 package easytcp
 
-//go:generate mockgen -destination mock/codec_mock.go -package mock . Codec
+//go:generate mockgen -destination internal/mock/codec_mock.go -package mock . Codec
 
 // Codec is a generic codec for encoding and decoding data.
 type Codec interface {

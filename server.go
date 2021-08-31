@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mock/net_mock.go -package mock net Listener,Error
+//go:generate mockgen -destination internal/mock/net_mock.go -package mock net Listener,Error
 
 // Server is a server for TCP connections.
 type Server struct {
