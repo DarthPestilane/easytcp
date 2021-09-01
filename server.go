@@ -112,7 +112,7 @@ func (s *Server) acceptLoop() error {
 			}
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				tempDelay := time.Millisecond * 5
-				Log.Tracef("accept err: %s; retrying in %v", err, tempDelay)
+				Log.Errorf("accept err: %s; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -160,7 +160,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionClose(sess)
 	}
 	if err := conn.Close(); err != nil {
-		Log.Tracef("connection close err: %s", err)
+		Log.Errorf("connection close err: %s", err)
 	}
 }
 
