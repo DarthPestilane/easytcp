@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestDefaultPacker(t *testing.T) {
+func TestDefaultPacker_PackAndUnpack(t *testing.T) {
 	packer := &DefaultPacker{MaxSize: 1024}
 
 	t.Run("when handle different types of id", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestDefaultPacker(t *testing.T) {
 
 	t.Run("when handle invalid type of id", func(t *testing.T) {
 		entry := &message.Entry{
-			ID:   "invalid",
+			ID:   "cannot cast to uint32",
 			Data: []byte("test"),
 		}
 		msg, err := packer.Pack(entry)

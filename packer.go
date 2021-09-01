@@ -1,12 +1,10 @@
 package easytcp
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/spf13/cast"
-	"github.com/zhuangsirui/binpacker"
 	"io"
 )
 
@@ -46,49 +44,33 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 
 // Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
-	size := len(entry.Data) // size without ID
-	buff := bytes.NewBuffer(make([]byte, 0, size+4+4))
-
-	p := binpacker.NewPacker(d.bytesOrder(), buff)
-	if err := p.PushUint32(uint32(size)).Error(); err != nil {
-		return nil, fmt.Errorf("write size err: %s", err)
-	}
+	size := len(entry.Data) // only the size of `data`
+	buffer := make([]byte, 4+4+size)
+	d.bytesOrder().PutUint32(buffer[0:4], uint32(size)) // push size
 	id, err := cast.ToUint32E(entry.ID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid type of entry.ID: %s", err)
 	}
-	if err := p.PushUint32(id).Error(); err != nil {
-		return nil, fmt.Errorf("write id err: %s", err)
-	}
-	if err := p.PushBytes(entry.Data).Error(); err != nil {
-		return nil, fmt.Errorf("write data err: %s", err)
-	}
-	return buff.Bytes(), nil
+	d.bytesOrder().PutUint32(buffer[4:8], id) // push id
+	copy(buffer[8:], entry.Data)              // push data
+	return buffer, nil
 }
 
 // Unpack implements the Packer Unpack method.
 func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
-	sizeBuff := make([]byte, 4)
-	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
-		return nil, fmt.Errorf("read size err: %s", err)
+	headerBuffer := make([]byte, 4+4)
+	if _, err := io.ReadFull(reader, headerBuffer); err != nil {
+		return nil, fmt.Errorf("read size and id err: %s", err)
 	}
-	size := d.bytesOrder().Uint32(sizeBuff)
-
+	size := d.bytesOrder().Uint32(headerBuffer[0:4])
 	if d.MaxSize > 0 && int(size) > d.MaxSize {
 		return nil, fmt.Errorf("the size %d is beyond the max: %d", size, d.MaxSize)
 	}
-
-	idBuff := make([]byte, 4)
-	if _, err := io.ReadFull(reader, idBuff); err != nil {
-		return nil, fmt.Errorf("read id err: %s", err)
-	}
-	id := d.bytesOrder().Uint32(idBuff)
-
+	id := d.bytesOrder().Uint32(headerBuffer[4:8])
 	data := make([]byte, size)
 	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
-
 	entry := &message.Entry{
 		ID:   id,
 		Data: data,
