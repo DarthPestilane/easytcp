@@ -85,7 +85,7 @@ func TestRouter_routeLoop(t *testing.T) {
 func TestRouter_register(t *testing.T) {
 	rt := newRouter()
 
-	var id uint = 1
+	var id = 1
 
 	rt.register(id, nil)
 	_, ok := rt.handlerMapper.Load(id)
@@ -173,7 +173,7 @@ func TestRouter_handleReq(t *testing.T) {
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
 		rt := newRouter()
-		var id uint = 1
+		var id = 1
 		rt.register(id, nilHandler, func(next HandlerFunc) HandlerFunc {
 			return func(ctx *Context) (*message.Entry, error) { return next(ctx) }
 		})
@@ -188,7 +188,7 @@ func TestRouter_handleReq(t *testing.T) {
 	})
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := newRouter()
-		var id uint = 1
+		var id = 1
 		rt.register(id, func(ctx *Context) (*message.Entry, error) {
 			return nil, fmt.Errorf("some err")
 		})
@@ -205,7 +205,7 @@ func TestRouter_handleReq(t *testing.T) {
 	})
 	t.Run("when handler returns a non-nil response", func(t *testing.T) {
 		t.Run("when session send resp failed", func(t *testing.T) {
-			var id uint = 1
+			var id = 1
 			rt := newRouter()
 
 			// register route
@@ -225,7 +225,7 @@ func TestRouter_handleReq(t *testing.T) {
 		})
 		t.Run("when session send resp without error", func(t *testing.T) {
 			rt := newRouter()
-			var id uint = 1
+			var id = 1
 
 			rt.register(id, func(ctx *Context) (*message.Entry, error) {
 				return &message.Entry{}, nil

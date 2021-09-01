@@ -152,12 +152,12 @@ func TestServer_handleConn(t *testing.T) {
 	}
 
 	// register route
-	server.AddRoute(uint32(1), func(ctx *Context) (*message.Entry, error) {
+	server.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
 		assert.EqualValues(t, 1, ctx.Message().ID)
 		assert.Equal(t, reqData.Param, "hello test")
-		return ctx.Response(uint32(2), &TestResp{Success: true})
+		return ctx.Response(2, &TestResp{Success: true})
 	})
 	// use middleware
 	server.Use(func(next HandlerFunc) HandlerFunc {
@@ -190,7 +190,7 @@ func TestServer_handleConn(t *testing.T) {
 	reqDataByte, err := codec.Encode(reqData)
 	assert.NoError(t, err)
 	msg := &message.Entry{
-		ID:   uint32(1),
+		ID:   1,
 		Data: reqDataByte,
 	}
 	reqMsg, err := packer.Pack(msg)
@@ -213,7 +213,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 		Packer: &DefaultPacker{},
 	})
 	server.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
-		return ctx.Response(uint32(101), []byte("handler not found"))
+		return ctx.Response(101, []byte("handler not found"))
 	})
 	go func() {
 		err := server.Serve(":0")
@@ -230,7 +230,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 
 	// send msg
 	msg := &message.Entry{
-		ID:   uint32(1),
+		ID:   1,
 		Data: []byte("test"),
 	}
 	reqMsg, err := server.Packer.Pack(msg)
