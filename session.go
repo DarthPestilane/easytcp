@@ -77,13 +77,13 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 	for {
 		if readTimeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-				Log.Tracef("session set read deadline err: %s", err)
+				Log.Errorf("session set read deadline err: %s", err)
 				break
 			}
 		}
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
-			Log.Tracef("session unpack incoming message err: %s", err)
+			Log.Errorf("session unpack incoming message err: %s", err)
 			if e, ok := err.(Error); ok && e.Fatal() {
 				break
 			}
@@ -118,17 +118,17 @@ FOR:
 			// pack message
 			ackMsg, err := s.packer.Pack(respMsg)
 			if err != nil {
-				Log.Tracef("session pack response message err: %s", err)
+				Log.Errorf("session pack response message err: %s", err)
 				continue
 			}
 			if writeTimeout > 0 {
 				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-					Log.Tracef("session set write deadline err: %s", err)
+					Log.Errorf("session set write deadline err: %s", err)
 					break FOR
 				}
 			}
 			if _, err := s.conn.Write(ackMsg); err != nil {
-				Log.Tracef("session conn write err: %s", err)
+				Log.Errorf("session conn write err: %s", err)
 				break FOR
 			}
 		}

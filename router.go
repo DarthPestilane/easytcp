@@ -63,7 +63,7 @@ func (r *Router) routeLoop(s *Session) {
 			}
 			go func() {
 				if err := r.handleReq(s, req); err != nil {
-					Log.Tracef("router handle request err: %s", err)
+					Log.Errorf("router handle request err: %s", err)
 				}
 			}()
 		}
