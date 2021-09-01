@@ -110,15 +110,15 @@ in [examples/tcp](./examples/tcp).
 
 | Benchmark name                    | (1)    | (2)        | (3)       | (4)          | remark                        |
 | --------------------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
-| Benchmark_NoRoute-8               | 212359 | 8080 ns/op | 156 B/op  | 4 allocs/op  |                               |
-| Benchmark_NotFoundHandler-8       | 277510 | 7877 ns/op | 787 B/op  | 12 allocs/op |                               |
-| Benchmark_OneHandler-8            | 241728 | 7598 ns/op | 827 B/op  | 13 allocs/op |                               |
-| Benchmark_ManyHandlers-8          | 257841 | 7220 ns/op | 753 B/op  | 13 allocs/op |                               |
-| Benchmark_OneRouteSet-8           | 222523 | 9126 ns/op | 942 B/op  | 17 allocs/op |                               |
-| Benchmark_OneRouteJsonCodec-8     | 207643 | 9459 ns/op | 1903 B/op | 29 allocs/op | build with `encoding/json`    |
-| Benchmark_OneRouteJsonCodec-8     | 219768 | 9523 ns/op | 1644 B/op | 24 allocs/op | build with `json-jsoniter/go` |
-| Benchmark_OneRouteProtobufCodec-8 | 347409 | 9000 ns/op | 1036 B/op | 16 allocs/op |                               |
-| Benchmark_OneRouteMsgpackCodec-8  | 227836 | 9493 ns/op | 1197 B/op | 19 allocs/op |                               |
+| Benchmark_NoRoute-8               | 250000 | 8715 ns/op | 155 B/op  | 4 allocs/op  |                               |
+| Benchmark_NotFoundHandler-8       | 250000 | 7993 ns/op | 837 B/op  | 13 allocs/op |                               |
+| Benchmark_OneHandler-8            | 250000 | 7912 ns/op | 786 B/op  | 13 allocs/op |                               |
+| Benchmark_ManyHandlers-8          | 250000 | 8480 ns/op | 829 B/op  | 15 allocs/op |                               |
+| Benchmark_OneRouteSet-8           | 250000 | 7793 ns/op | 1032 B/op | 18 allocs/op |                               |
+| Benchmark_OneRouteJsonCodec-8     | 250000 | 9744 ns/op | 1964 B/op | 29 allocs/op | build with `encoding/json`    |
+| Benchmark_OneRouteJsonCodec-8     | 250000 | 9676 ns/op | 1696 B/op | 24 allocs/op | build with `json-jsoniter/go` |
+| Benchmark_OneRouteProtobufCodec-8 | 250000 | 9034 ns/op | 1021 B/op | 16 allocs/op |                               |
+| Benchmark_OneRouteMsgpackCodec-8  | 250000 | 9585 ns/op | 1283 B/op | 20 allocs/op |                               |
 
 ## Architecture
 

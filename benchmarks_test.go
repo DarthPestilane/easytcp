@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem
+// go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem -benchtime=250000x
 
 type mutedLogger struct{}
 
