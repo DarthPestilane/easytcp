@@ -7,7 +7,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
-	"runtime"
 	"testing"
 	"time"
 )
@@ -24,7 +23,6 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestServer_Serve(t *testing.T) {
-	goroutineNum := runtime.NumGoroutine()
 	server := NewServer(&ServerOption{})
 	go func() {
 		err := server.Serve("localhost:0")
@@ -34,12 +32,6 @@ func TestServer_Serve(t *testing.T) {
 	<-server.accepting
 	err := server.Stop()
 	assert.NoError(t, err)
-	// no goroutine leak
-	for goroutineNum != runtime.NumGoroutine() {
-		time.Sleep(time.Millisecond * 10)
-	}
-	// <-time.After(time.Millisecond * 10)
-	// assert.Equal(t, goroutineNum, runtime.NumGoroutine()) // no goroutine leak
 }
 
 func TestServer_acceptLoop(t *testing.T) {
