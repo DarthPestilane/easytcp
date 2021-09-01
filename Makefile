@@ -24,11 +24,11 @@ lint-fix:
 
 .PHONY: test
 test:
-	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -timeout=2m . ./message
+	CGO_ENABLED=1 go test -race -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m . ./message
 
 .PHONY: test-v
 test-v:
-	go test -count=1 -covermode=set -coverprofile=.testCoverage.txt -timeout=2m -v . ./message
+	CGO_ENABLED=1 go test -race -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m -v . ./message
 
 .PHONY: cover-view
 cover-view:
@@ -51,8 +51,8 @@ tidy:
 gen:
 ifeq (${os}, $(filter ${os}, Windows Windows_NT)) # If on windows, there might be something unexpected.
 	rm -rf ./**/gomock_reflect_*
-	CGO_ENABLED=0 go generate 2>/dev/null
+	go generate 2>/dev/null
 	rm -rf ./**/gomock_reflect_*
 else
-	CGO_ENABLED=0 go generate
+	go generate
 endif

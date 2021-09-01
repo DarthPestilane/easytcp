@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func TestDefaultPacker(t *testing.T) {
-	packer := &DefaultPacker{MaxSize: 1024}
+func TestDefaultPacker_PackAndUnpack(t *testing.T) {
+	packer := &DefaultPacker{MaxDataSize: 1024}
 
 	t.Run("when handle different types of id", func(t *testing.T) {
 		var testIdInt = 1
@@ -50,7 +50,7 @@ func TestDefaultPacker(t *testing.T) {
 
 	t.Run("when handle invalid type of id", func(t *testing.T) {
 		entry := &message.Entry{
-			ID:   "invalid",
+			ID:   "cannot cast to uint32",
 			Data: []byte("test"),
 		}
 		msg, err := packer.Pack(entry)
@@ -60,7 +60,7 @@ func TestDefaultPacker(t *testing.T) {
 
 	t.Run("when size is too big", func(t *testing.T) {
 		r := bytes.NewBuffer(nil)
-		assert.NoError(t, binary.Write(r, binary.BigEndian, uint32(packer.MaxSize+1)))
+		assert.NoError(t, binary.Write(r, binary.BigEndian, uint32(packer.MaxDataSize+1)))
 		assert.NoError(t, binary.Write(r, binary.BigEndian, uint32(1)))
 		assert.NoError(t, binary.Write(r, binary.BigEndian, []byte("test")))
 		entry, err := packer.Unpack(r)

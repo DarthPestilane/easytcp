@@ -50,21 +50,21 @@ var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 // routeLoop will break if session.Session s is closed.
 func (r *Router) routeLoop(s *Session) {
 	for {
-		req, ok := <-s.reqQueue
-		if !ok {
-			Log.Tracef("router loop stopped since session is closed")
-			break
-		}
-		if req == nil {
-			continue
-		}
-		go func() {
-			if err := r.handleReq(s, req); err != nil {
-				Log.Tracef("router handle request err: %s", err)
+		select {
+		case <-s.closed:
+			Log.Tracef("router loop exit because session is closed")
+			return
+		case req := <-s.reqQueue:
+			if req == nil {
+				continue
 			}
-		}()
+			go func() {
+				if err := r.handleReq(s, req); err != nil {
+					Log.Errorf("router handle request err: %s", err)
+				}
+			}()
+		}
 	}
-	Log.Tracef("router loop exit")
 }
 
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
@@ -95,10 +95,7 @@ func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
 	if resp == nil {
 		return nil
 	}
-	if err := s.SendResp(resp); err != nil {
-		return fmt.Errorf("send response err: %s", err)
-	}
-	return nil
+	return s.SendResp(resp)
 }
 
 // wrapHandlers wraps handler and middlewares into a right order call stack.

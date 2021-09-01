@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/simple/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -43,8 +44,8 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
-	s.AddRoute(fixture.MsgIdPingReq, func(c *easytcp.Context) (*message.Entry, error) {
-		return c.Response(fixture.MsgIdPingAck, "pong, pong, pong")
+	s.AddRoute(common.MsgIdPingReq, func(c *easytcp.Context) (*message.Entry, error) {
+		return c.Response(common.MsgIdPingAck, "pong, pong, pong")
 	})
 
 	go func() {

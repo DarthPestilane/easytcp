@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/simple/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -22,7 +23,7 @@ func main() {
 			time.Sleep(time.Second)
 			rawData := []byte("ping, ping, ping")
 			msg := &message.Entry{
-				ID:   fixture.MsgIdPingReq,
+				ID:   common.MsgIdPingReq,
 				Data: rawData,
 			}
 			packedMsg, err := packer.Pack(msg)

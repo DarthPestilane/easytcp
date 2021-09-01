@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/message"
-	message2 "github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/common"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,31 +17,31 @@ func init() {
 
 func main() {
 	srv := easytcp.NewServer(&easytcp.ServerOption{
-		Packer: &easytcp.DefaultPacker{},
+		Packer: &common.CustomPacker{},
 		Codec:  &easytcp.ProtobufCodec{},
 	})
 
-	srv.AddRoute(uint32(message.ID_FooReqID), handle, logMiddleware)
+	srv.AddRoute(common.ID_FooReqID, handle, logMiddleware)
 
 	if err := srv.Serve(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
 	}
 }
 
-func handle(c *easytcp.Context) (*message2.Entry, error) {
-	var reqData message.FooReq
+func handle(c *easytcp.Context) (*message.Entry, error) {
+	var reqData common.FooReq
 	if err := c.Bind(&reqData); err != nil {
 		return nil, err
 	}
-	return c.Response(uint32(message.ID_FooRespID), &message.FooResp{
+	return c.Response(common.ID_FooRespID, &common.FooResp{
 		Code:    2,
 		Message: "success",
 	})
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(c *easytcp.Context) (*message2.Entry, error) {
-		var reqData message.FooReq
+	return func(c *easytcp.Context) (*message.Entry, error) {
+		var reqData common.FooReq
 		if err := c.Bind(&reqData); err == nil {
 			log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), reqData.String())
 		}

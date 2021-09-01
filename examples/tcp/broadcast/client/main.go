@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/broadcast/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -44,7 +45,7 @@ func senderClient() {
 			time.Sleep(time.Second)
 			data := []byte(fmt.Sprintf("hello everyone @%d", time.Now().Unix()))
 			msg := &message.Entry{
-				ID:   fixture.MsgIdBroadCastReq,
+				ID:   common.MsgIdBroadCastReq,
 				Data: data,
 			}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/custom_packet/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -24,7 +25,7 @@ func main() {
 	s := easytcp.NewServer(&easytcp.ServerOption{
 		// specify codec and packer
 		Codec:  &easytcp.JsonCodec{},
-		Packer: &fixture.CustomPacker{},
+		Packer: &common.CustomPacker{},
 	})
 
 	s.AddRoute("json01-req", handler, fixture.RecoverMiddleware(log), logMiddleware)
@@ -44,15 +45,10 @@ func main() {
 }
 
 func handler(ctx *easytcp.Context) (*message.Entry, error) {
-	var data fixture.Json01Req
+	var data common.Json01Req
 	_ = ctx.Bind(&data)
 
-	// make a random panic to exam the `fixture.RecoverMiddleware`
-	// if rand.Intn(2) == 0 {
-	// 	panic("random panic here")
-	// }
-
-	return ctx.Response("json01-resp", &fixture.Json01Resp{
+	return ctx.Response("json01-resp", &common.Json01Resp{
 		Success: true,
 		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
 	})
