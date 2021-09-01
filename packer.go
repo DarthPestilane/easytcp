@@ -13,11 +13,10 @@ import (
 // Packer is a generic interface to pack and unpack message packet.
 type Packer interface {
 	// Pack packs Message into the packet to be written.
-	// Pack(msg Message) ([]byte, error)
 	Pack(entry *message.Entry) ([]byte, error)
 
 	// Unpack unpacks the message packet from reader,
-	// returns the Message interface, and error if error occurred.
+	// returns the message.Entry, and error if error occurred.
 	Unpack(reader io.Reader) (*message.Entry, error)
 }
 
