@@ -214,7 +214,7 @@ func TestRouter_handleReq(t *testing.T) {
 			})
 
 			sess := newSession(nil, &SessionOption{})
-			close(sess.respQueue)
+			sess.Close()
 
 			entry := &message.Entry{
 				ID:   id,
@@ -232,15 +232,13 @@ func TestRouter_handleReq(t *testing.T) {
 			})
 
 			sess := newSession(nil, &SessionOption{})
-			go func() {
-				<-sess.respQueue
-			}()
+			go func() { <-sess.respQueue }()
 
-			message := &message.Entry{
+			entry := &message.Entry{
 				ID:   id,
 				Data: []byte("test"),
 			}
-			err := rt.handleReq(sess, message)
+			err := rt.handleReq(sess, entry)
 			assert.NoError(t, err)
 		})
 	})

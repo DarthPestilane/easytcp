@@ -54,19 +54,17 @@ func (s *Session) ID() string {
 // SendResp pushes response message entry to respQueue.
 // If respQueue is closed, returns error.
 func (s *Session) SendResp(respMsg *message.Entry) error {
-	if !s.safelyPushRespQueue(respMsg) {
-		return fmt.Errorf("session's closed")
+	select {
+	case <-s.closed:
+		return fmt.Errorf("sessions is closed")
+	case s.respQueue <- respMsg:
+		return nil
 	}
-	return nil
 }
 
 // Close closes the session by closing all the channels.
 func (s *Session) Close() {
-	s.closeOnce.Do(func() {
-		close(s.closed)
-		close(s.reqQueue)
-		close(s.respQueue)
-	})
+	s.closeOnce.Do(func() { close(s.closed) })
 }
 
 // readLoop reads TCP connection, unpacks packet payload
@@ -91,11 +89,14 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 			}
 			continue
 		}
-		if !s.safelyPushReqQueue(entry) {
-			break
+		select {
+		case s.reqQueue <- entry:
+		case <-s.closed:
+			Log.Tracef("session read loop exit because session is closed")
+			return
 		}
 	}
-	Log.Tracef("session read loop exit")
+	Log.Tracef("session read loop exit because of error")
 	s.Close()
 }
 
@@ -105,52 +106,33 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 // The loop will break if any error occurred, or the session is closed.
 // After loop ended, this session will be closed.
 func (s *Session) writeLoop(writeTimeout time.Duration) {
+	tick := time.NewTicker(time.Millisecond * 5)
+FOR:
 	for {
-		respMsg, ok := <-s.respQueue
-		if !ok {
-			break
-		}
-		// pack message
-		ackMsg, err := s.packer.Pack(respMsg)
-		if err != nil {
-			Log.Tracef("session pack response message err: %s", err)
-			continue
-		}
-		if writeTimeout > 0 {
-			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-				Log.Tracef("session set write deadline err: %s", err)
-				break
+		select {
+		case <-tick.C:
+		case <-s.closed:
+			Log.Tracef("session write loop exit because session is closed")
+			return
+		case respMsg := <-s.respQueue:
+			// pack message
+			ackMsg, err := s.packer.Pack(respMsg)
+			if err != nil {
+				Log.Tracef("session pack response message err: %s", err)
+				continue
+			}
+			if writeTimeout > 0 {
+				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+					Log.Tracef("session set write deadline err: %s", err)
+					break FOR
+				}
+			}
+			if _, err := s.conn.Write(ackMsg); err != nil {
+				Log.Tracef("session conn write err: %s", err)
+				break FOR
 			}
 		}
-		if _, err := s.conn.Write(ackMsg); err != nil {
-			Log.Tracef("session conn write err: %s", err)
-			break
-		}
 	}
-	Log.Tracef("session write loop exit")
 	s.Close()
-}
-
-func (s *Session) safelyPushReqQueue(reqMsg *message.Entry) (ok bool) {
-	ok = true
-	defer func() {
-		if r := recover(); r != nil {
-			ok = false
-			Log.Tracef("session push reqQueue panics: %+v", r)
-		}
-	}()
-	s.reqQueue <- reqMsg
-	return ok
-}
-
-func (s *Session) safelyPushRespQueue(respMsg *message.Entry) (ok bool) {
-	ok = true
-	defer func() {
-		if r := recover(); r != nil {
-			ok = false
-			Log.Tracef("session push respQueue panics: %+v", r)
-		}
-	}()
-	s.respQueue <- respMsg
-	return ok
+	Log.Tracef("session write loop exit because of error")
 }

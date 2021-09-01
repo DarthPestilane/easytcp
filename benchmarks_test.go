@@ -28,7 +28,7 @@ func Benchmark_NoRoute(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
@@ -52,7 +52,7 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
 	beforeBench(b)
@@ -77,7 +77,7 @@ func Benchmark_OneHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
 	beforeBench(b)
@@ -110,7 +110,7 @@ func Benchmark_ManyHandlers(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
 	beforeBench(b)
@@ -137,7 +137,7 @@ func Benchmark_OneRouteSet(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte("ping")})
 	beforeBench(b)
@@ -167,7 +167,7 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: []byte(`{"data": "ping"}`)})
 	beforeBench(b)
@@ -197,7 +197,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	data, _ := s.Codec.Encode(&pb.Sample{Foo: "test", Bar: 1})
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: data})
@@ -228,7 +228,7 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close() // nolint
+	// defer client.Close() // nolint
 
 	data, _ := s.Codec.Encode(&msgpack.Sample{Foo: "test", Bar: 1})
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: uint32(1), Data: data})
