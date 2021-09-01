@@ -63,15 +63,18 @@ import (
 )
 
 func main() {
-    // Create a new server with default options.
-    s := easytcp.NewServer(&easytcp.ServerOption{})
+    // Create a new server with options.
+    s := easytcp.NewServer(&easytcp.ServerOption{
+        Packer: easytcp.NewDefaultPacker(), // use default packer
+        Codec:  nil,                        // don't use codec
+    })
 
     // Register a route with message's ID.
     // The `DefaultPacker` treats id as uint32,
     // so when we add routes or return response, we should use uint32 or *uint32.
-    s.AddRoute(uint32(1001), func(c *easytcp.Context) (*message.Entry, error) {
+    s.AddRoute(1001, func(c *easytcp.Context) (*message.Entry, error) {
         fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
-        return c.Response(uint32(1002), []byte("copy that"))
+        return c.Response(1002, []byte("copy that"))
     })
 
     // Set custom logger (optional).
@@ -225,15 +228,15 @@ The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` form
 This may not covery some particular cases, but fortunately, we can create our own Packer.
 
 ```go
-// Packer16bit is a custom packer, implements Packer interafce.
-// THe Packet format is `size[2]id[2]data`
-type Packer16bit struct{}
+// CustomPacker is a custom packer, implements Packer interafce.
+// Treats Packet format as `size(2)id(2)data(n)`
+type CustomPacker struct{}
 
-func (p *Packer16bit) bytesOrder() binary.ByteOrder {
+func (p *CustomPacker) bytesOrder() binary.ByteOrder {
     return binary.BigEndian
 }
 
-func (p *Packer16bit) Pack(entry *message.Entry) ([]byte, error) {
+func (p *CustomPacker) Pack(entry *message.Entry) ([]byte, error) {
     size := len(entry.Data) // without id
     buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
     if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
@@ -248,7 +251,7 @@ func (p *Packer16bit) Pack(entry *message.Entry) ([]byte, error) {
     return buff.Bytes(), nil
 }
 
-func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
+func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
     sizeBuff := make([]byte, 2)
     if _, err := io.ReadFull(reader, sizeBuff); err != nil {
         return nil, fmt.Errorf("read size err: %s", err)
@@ -260,15 +263,18 @@ func (p *Packer16bit) Unpack(reader io.Reader) (*message.Entry, error) {
         return nil, fmt.Errorf("read id err: %s", err)
     }
     id := p.bytesOrder().Uint16(idBuff)
-    // since id here is the type of uint16, we need to use a uint16 when adding routes.
-    // eg: server.AddRoute(uint16(123), ...)
 
     data := make([]byte, size)
     if _, err := io.ReadFull(reader, data); err != nil {
         return nil, fmt.Errorf("read data err: %s", err)
     }
 
-    entry := &message.Entry{ID: id, Data: data}
+    entry := &message.Entry{
+        // since entry.ID is type of uint16, we need to use uint16 as well when adding routes.
+        // eg: server.AddRoute(uint16(123), ...)
+        ID: id,
+        Data: data,
+    }
     entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
     // c.Message().Get("theWholeLength")  // and get them in route handler.
     return entry, nil
