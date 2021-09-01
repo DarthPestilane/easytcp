@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"time"
 )
 
 // Router is a router for incoming message.
@@ -50,10 +49,8 @@ var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 // and routes the message to corresponding handler and middlewares if message is not nil.
 // routeLoop will break if session.Session s is closed.
 func (r *Router) routeLoop(s *Session) {
-	tick := time.NewTicker(time.Millisecond * 5)
 	for {
 		select {
-		case <-tick.C:
 		case <-s.closed:
 			Log.Tracef("router loop exit because session is closed")
 			return

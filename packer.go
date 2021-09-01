@@ -70,11 +70,7 @@ func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
 func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	sizeBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, sizeBuff); err != nil {
-		theErr := fmt.Errorf("read size err: %s", err)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			return nil, &UnpackError{Err: theErr}
-		}
-		return nil, theErr
+		return nil, fmt.Errorf("read size err: %s", err)
 	}
 	size := d.bytesOrder().Uint32(sizeBuff)
 
@@ -84,13 +80,13 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 
 	idBuff := make([]byte, 4)
 	if _, err := io.ReadFull(reader, idBuff); err != nil {
-		return nil, &UnpackError{Err: fmt.Errorf("read id err: %s", err)}
+		return nil, fmt.Errorf("read id err: %s", err)
 	}
 	id := d.bytesOrder().Uint32(idBuff)
 
 	data := make([]byte, size)
 	if _, err := io.ReadFull(reader, data); err != nil {
-		return nil, &UnpackError{Err: fmt.Errorf("read data err: %s", err)}
+		return nil, fmt.Errorf("read data err: %s", err)
 	}
 
 	entry := &message.Entry{

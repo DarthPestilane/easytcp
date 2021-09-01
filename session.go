@@ -84,11 +84,13 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
 			Log.Errorf("session unpack incoming message err: %s", err)
-			if e, ok := err.(Error); ok && e.Fatal() {
-				break
-			}
+			break
+		}
+		if entry == nil {
 			continue
 		}
+
+		// send entry to request queue
 		select {
 		case s.reqQueue <- entry:
 		case <-s.closed:
@@ -106,11 +108,9 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 // The loop will break if any error occurred, or the session is closed.
 // After loop ended, this session will be closed.
 func (s *Session) writeLoop(writeTimeout time.Duration) {
-	tick := time.NewTicker(time.Millisecond * 5)
 FOR:
 	for {
 		select {
-		case <-tick.C:
 		case <-s.closed:
 			Log.Tracef("session write loop exit because session is closed")
 			return

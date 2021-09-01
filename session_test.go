@@ -65,28 +65,28 @@ func TestTCPSession_readLoop(t *testing.T) {
 		_ = p1.Close()
 		<-sess.closed
 	})
-	t.Run("when unpack message failed with non-fatal error", func(t *testing.T) {
+	t.Run("when unpack message failed with error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(nil, fmt.Errorf("some err"))
+		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some error"))
 
 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
 		go sess.readLoop(0)
-		time.Sleep(time.Millisecond * 10)
-		sess.Close()
 		<-sess.closed
 	})
-	t.Run("when unpack message failed with fatal error", func(t *testing.T) {
+	t.Run("when unpack message returns nil entry", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).Return(nil, &UnpackError{Err: fmt.Errorf("some fatal error")})
+		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
 		go sess.readLoop(0)
+		time.Sleep(time.Millisecond * 5)
+		sess.Close()
 		<-sess.closed
 	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
