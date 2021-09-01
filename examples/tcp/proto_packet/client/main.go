@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/message"
-	easytcpMsg "github.com/DarthPestilane/easytcp/message"
+	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/common"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
@@ -23,13 +23,13 @@ func main() {
 		panic(err)
 	}
 
-	packer := &easytcp.DefaultPacker{}
+	packer := &common.CustomPacker{}
 	codec := &easytcp.ProtobufCodec{}
 
 	go func() {
 		for {
-			var id = uint32(message.ID_FooReqID)
-			req := &message.FooReq{
+			var id = common.ID_FooReqID
+			req := &common.FooReq{
 				Bar: "bar",
 				Buz: 22,
 			}
@@ -37,7 +37,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			msg := &easytcpMsg.Entry{ID: id, Data: data}
+			msg := &message.Entry{ID: id, Data: data}
 			packedMsg, err := packer.Pack(msg)
 			if err != nil {
 				panic(err)
@@ -55,7 +55,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		var respData message.FooResp
+		var respData common.FooResp
 		if err := codec.Decode(msg.Data, &respData); err != nil {
 			panic(err)
 		}

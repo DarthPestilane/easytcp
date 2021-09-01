@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/custom_packet/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -16,12 +17,12 @@ func main() {
 	}
 	log := logrus.New()
 	codec := &easytcp.JsonCodec{}
-	packer := &fixture.CustomPacker{}
+	packer := &common.CustomPacker{}
 	go func() {
 		// write loop
 		for {
 			time.Sleep(time.Second)
-			req := &fixture.Json01Req{
+			req := &common.Json01Req{
 				Key1: "hello",
 				Key2: 10,
 				Key3: true,
@@ -50,7 +51,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			// var data fixture.Json01Resp
+			// var data message.Json01Resp
 			// if err := codec.Decode(msg.Data, &data); err != nil {
 			// 	panic(err)
 			// }

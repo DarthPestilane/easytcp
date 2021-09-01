@@ -1,4 +1,4 @@
-package fixture
+package common
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ func TestCustomPacker(t *testing.T) {
 	packer := &CustomPacker{}
 
 	entry := &message.Entry{
-		ID:   "test",
+		ID:   ID(123),
 		Data: []byte("data"),
 	}
 	msg, err := packer.Pack(entry)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
+	"github.com/DarthPestilane/easytcp/examples/tcp/broadcast/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -24,7 +25,7 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(fixture.MsgIdBroadCastReq, func(ctx *easytcp.Context) (*message.Entry, error) {
+	s.AddRoute(common.MsgIdBroadCastReq, func(ctx *easytcp.Context) (*message.Entry, error) {
 		var reqData string
 		_ = ctx.Bind(&reqData)
 
@@ -33,7 +34,7 @@ func main() {
 			if ctx.Session().ID() == id {
 				return true // next iteration
 			}
-			msg, err := ctx.Response(fixture.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID()))
+			msg, err := ctx.Response(common.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID()))
 			if err != nil {
 				log.Errorf("create response err: %s", err)
 				return true
@@ -44,7 +45,7 @@ func main() {
 			return true
 		})
 
-		return ctx.Response(fixture.MsgIdBroadCastAck, "broadcast done")
+		return ctx.Response(common.MsgIdBroadCastAck, "broadcast done")
 	})
 
 	go func() {

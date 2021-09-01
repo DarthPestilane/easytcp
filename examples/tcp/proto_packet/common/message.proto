@@ -1,8 +1,8 @@
 syntax = 'proto3';
 
-package message;
+package common;
 
-option go_package = '/message';
+option go_package = '/common';
 
 enum ID {
   _ = 0;
