@@ -31,9 +31,7 @@ func main() {
 
 func handle(c *easytcp.Context) (*message.Entry, error) {
 	var reqData common.FooReq
-	if err := c.Bind(&reqData); err != nil {
-		return nil, err
-	}
+	c.MustBind(&reqData)
 	return c.Response(common.ID_FooRespID, &common.FooResp{
 		Code:    2,
 		Message: "success",

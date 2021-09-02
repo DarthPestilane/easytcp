@@ -46,7 +46,7 @@ func main() {
 
 func handler(ctx *easytcp.Context) (*message.Entry, error) {
 	var data common.Json01Req
-	_ = ctx.Bind(&data)
+	ctx.MustBind(&data)
 
 	return ctx.Response("json01-resp", &common.Json01Resp{
 		Success: true,
@@ -56,8 +56,6 @@ func handler(ctx *easytcp.Context) (*message.Entry, error) {
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
-		// var data fixture.Json01Req
-		// _ = ctx.Bind(&data)
 		fullSize, _ := ctx.Message().Get("fullSize")
 		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
