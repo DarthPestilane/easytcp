@@ -66,6 +66,7 @@ func (r *Router) routeLoop(s *Session) {
 				resp, err := r.handleReq(s, req)
 				if err != nil {
 					Log.Errorf("router handle request err: %s", err)
+					return
 				}
 				if resp == nil {
 					return
