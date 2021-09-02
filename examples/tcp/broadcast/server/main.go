@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var log *logrus.Logger
@@ -26,8 +27,7 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	s.AddRoute(common.MsgIdBroadCastReq, func(ctx *easytcp.Context) (*message.Entry, error) {
-		var reqData string
-		_ = ctx.Bind(&reqData)
+		reqData := ctx.Message().Data
 
 		// broadcasting
 		go easytcp.Sessions().Range(func(id string, sess *easytcp.Session) (next bool) {
@@ -60,18 +60,18 @@ func main() {
 	if err := s.Stop(); err != nil {
 		log.Errorf("server stopped err: %s", err)
 	}
+	time.Sleep(time.Second)
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		log.Infof("recv request | %s", ctx.Message().Data)
-		defer func() {
-			if err != nil || resp == nil {
-				return
-			}
-			r, _ := ctx.Get(easytcp.RespKey)
-			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
-		}()
+		// defer func() {
+		// 	if err != nil || resp == nil {
+		// 		return
+		// 	}
+		// 	log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), resp.Data)
+		// }()
 		return next(ctx)
 	}
 }

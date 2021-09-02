@@ -21,6 +21,13 @@ func TestRouter_routeLoop(t *testing.T) {
 		sess.Close()
 		rt.routeLoop(sess)
 	})
+	t.Run("when reqQueue is closed", func(t *testing.T) {
+		rt := newRouter()
+
+		sess := newSession(nil, &SessionOption{})
+		close(sess.reqQueue)
+		rt.routeLoop(sess)
+	})
 	t.Run("when received a nil request", func(t *testing.T) {
 		rt := newRouter()
 

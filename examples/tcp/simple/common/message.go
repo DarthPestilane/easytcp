@@ -1,7 +1,7 @@
 package common
 
 const (
-	_ uint32 = iota
+	_ int = iota
 	MsgIdPingReq
 	MsgIdPingAck
 )

@@ -51,11 +51,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			// var data message.Json01Resp
-			// if err := codec.Decode(msg.Data, &data); err != nil {
-			// 	panic(err)
-			// }
-			fullSize, _ := msg.Get("fullSize")
+			fullSize := msg.MustGet("fullSize")
 			log.Infof("ack received | fullSize:(%d) id:(%v) dataSize:(%d) data: %s", fullSize, msg.ID, len(msg.Data), msg.Data)
 		}
 	}()

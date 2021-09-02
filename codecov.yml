@@ -1,2 +1,4 @@
 ignore:
   - "examples"
+  - "internal/mock"
+  - "internal/test_data"

@@ -52,14 +52,19 @@ func (s *Session) ID() string {
 }
 
 // SendResp pushes response message entry to respQueue.
-// If respQueue is closed, returns error.
+// Returns error if session is closed.
 func (s *Session) SendResp(respMsg *message.Entry) error {
 	select {
 	case <-s.closed:
+		// This method is the producer of respQueue,
+		// so we close respQueue only in here.
+		close(s.respQueue)
 		return fmt.Errorf("sessions is closed")
-	case s.respQueue <- respMsg:
-		return nil
+	default:
 	}
+
+	s.respQueue <- respMsg
+	return nil
 }
 
 // Close closes the session by closing all the channels.
@@ -90,22 +95,24 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 			continue
 		}
 
-		// send entry to request queue
 		select {
-		case s.reqQueue <- entry:
 		case <-s.closed:
+			// This method is the producer of reqQueue,
+			// so we close reqQueue only in here.
+			close(s.reqQueue)
+
 			Log.Tracef("session read loop exit because session is closed")
 			return
+		case s.reqQueue <- entry:
 		}
 	}
 	Log.Tracef("session read loop exit because of error")
 	s.Close()
 }
 
-// writeLoop fetches message from respQueue channel and writes to TCP connection.
-// The above operations are in a loop.
+// writeLoop fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
-// The loop will break if any error occurred, or the session is closed.
+// The loop will break if errors occurred, or the session is closed.
 // After loop ended, this session will be closed.
 func (s *Session) writeLoop(writeTimeout time.Duration) {
 FOR:
@@ -114,11 +121,18 @@ FOR:
 		case <-s.closed:
 			Log.Tracef("session write loop exit because session is closed")
 			return
-		case respMsg := <-s.respQueue:
+		case respMsg, ok := <-s.respQueue:
+			if !ok {
+				Log.Tracef("session write loop exit because session is closed")
+				return
+			}
 			// pack message
 			ackMsg, err := s.packer.Pack(respMsg)
 			if err != nil {
 				Log.Errorf("session pack response message err: %s", err)
+				continue
+			}
+			if ackMsg == nil {
 				continue
 			}
 			if writeTimeout > 0 {

@@ -54,7 +54,11 @@ func (r *Router) routeLoop(s *Session) {
 		case <-s.closed:
 			Log.Tracef("router loop exit because session is closed")
 			return
-		case req := <-s.reqQueue:
+		case req, ok := <-s.reqQueue:
+			if !ok {
+				Log.Tracef("router loop exit because session is closed")
+				return
+			}
 			if req == nil {
 				continue
 			}
