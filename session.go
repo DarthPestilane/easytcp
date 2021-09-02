@@ -56,9 +56,6 @@ func (s *Session) ID() string {
 func (s *Session) SendResp(respMsg *message.Entry) error {
 	select {
 	case <-s.closed:
-		// This method is the producer of respQueue,
-		// so we close respQueue only in here.
-		close(s.respQueue)
 		return fmt.Errorf("sessions is closed")
 	default:
 	}
@@ -97,9 +94,7 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 
 		select {
 		case <-s.closed:
-			// This method is the producer of reqQueue,
-			// so we close reqQueue only in here.
-			close(s.reqQueue)
+			close(s.reqQueue) // close reqQueue only once and only in here.
 
 			Log.Tracef("session read loop exit because session is closed")
 			return
@@ -120,6 +115,7 @@ FOR:
 		select {
 		case <-s.closed:
 			Log.Tracef("session write loop exit because session is closed")
+			close(s.respQueue) // close respQueue only once and only in here
 			return
 		case respMsg, ok := <-s.respQueue:
 			if !ok {

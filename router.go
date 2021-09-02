@@ -63,8 +63,15 @@ func (r *Router) routeLoop(s *Session) {
 				continue
 			}
 			go func() {
-				if err := r.handleReq(s, req); err != nil {
+				resp, err := r.handleReq(s, req)
+				if err != nil {
 					Log.Errorf("router handle request err: %s", err)
+				}
+				if resp == nil {
+					return
+				}
+				if err := s.SendResp(resp); err != nil {
+					Log.Errorf("router send resp err: %s", err)
 				}
 			}()
 		}
@@ -74,7 +81,7 @@ func (r *Router) routeLoop(s *Session) {
 // handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
 // and call the handler functions, and send response to session.Session s if response is not nil.
 // Returns error when calling handler functions or sending response failed.
-func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
+func (r *Router) handleReq(s *Session, reqMsg *message.Entry) (*message.Entry, error) {
 	var handler HandlerFunc
 	if v, has := r.handlerMapper.Load(reqMsg.ID); has {
 		handler = v.(HandlerFunc)
@@ -92,14 +99,15 @@ func (r *Router) handleReq(s *Session, reqMsg *message.Entry) error {
 	wrapped := r.wrapHandlers(handler, mws)
 
 	// call the handlers stack now
-	resp, err := wrapped(ctx)
-	if err != nil {
-		return fmt.Errorf("handler err: %s", err)
-	}
-	if resp == nil {
-		return nil
-	}
-	return s.SendResp(resp)
+	return wrapped(ctx)
+	// resp, err := wrapped(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("handler err: %s", err)
+	// }
+	// if resp == nil {
+	// 	return nil
+	// }
+	// return s.SendResp(resp)
 }
 
 // wrapHandlers wraps handler and middlewares into a right order call stack.
