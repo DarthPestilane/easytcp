@@ -41,7 +41,7 @@ spec: lint test
 
 .PHONY: bench
 bench:
-	go test -bench=. -run=none -benchmem
+	go test -bench=. -run=none -benchmem -benchtime=250000x
 
 .PHONY: tidy
 tidy:
