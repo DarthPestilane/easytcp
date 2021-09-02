@@ -53,6 +53,15 @@ func TestContext_Get(t *testing.T) {
 	assert.True(t, v.(bool))
 }
 
+func TestContext_MustGet(t *testing.T) {
+	c := newContext(nil, nil)
+	assert.Panics(t, func() { c.MustGet("not found") })
+
+	c.storage.Store("found", true)
+	v := c.MustGet("found")
+	assert.True(t, v.(bool))
+}
+
 func TestContext_Set(t *testing.T) {
 	c := newContext(nil, nil)
 	c.Set("found", true)
@@ -73,6 +82,10 @@ func TestContext_Bind(t *testing.T) {
 		data := make(map[string]string)
 		assert.NoError(t, c.Bind(&data))
 		assert.EqualValues(t, data["data"], "test")
+
+		// when dst is invalid
+		var dst string
+		assert.Error(t, c.Bind(&dst))
 	})
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		entry := &message.Entry{
@@ -85,6 +98,30 @@ func TestContext_Bind(t *testing.T) {
 		var data string
 		assert.Error(t, c.Bind(&data))
 		assert.Empty(t, data)
+	})
+}
+
+func TestContext_MustBind(t *testing.T) {
+	t.Run("when session has codec", func(t *testing.T) {
+		entry := &message.Entry{
+			ID:   1,
+			Data: []byte(`{"data":"test"}`),
+		}
+		sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+		c := newContext(sess, entry)
+		data := make(map[string]string)
+		c.MustBind(&data)
+		assert.EqualValues(t, data["data"], "test")
+
+		// when dst is invalid
+		var dst string
+		assert.Panics(t, func() { c.MustBind(&dst) })
+	})
+	t.Run("when codec is nil", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{})
+		c := newContext(sess, &message.Entry{})
+		var dst interface{}
+		assert.Panics(t, func() { c.MustBind(&dst) }) // should panic
 	})
 }
 
@@ -188,5 +225,44 @@ func TestContext_Response(t *testing.T) {
 		respMsg, err := c.Response(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, respMsg, entry)
+	})
+}
+
+func TestContext_DecodeTo(t *testing.T) {
+	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	ctx := newContext(sess, &message.Entry{})
+	var dst struct {
+		Data string `json:"data"`
+	}
+	assert.NoError(t, ctx.DecodeTo([]byte(`{"data":"test"}`), &dst))
+	assert.Equal(t, dst.Data, "test")
+}
+
+func TestContext_DecodeTo_when_codec_is_nil(t *testing.T) {
+	sess := newSession(nil, &SessionOption{Codec: nil})
+	ctx := newContext(sess, &message.Entry{})
+	var dst struct {
+		Data string `json:"data"`
+	}
+	assert.Error(t, ctx.DecodeTo([]byte(`{"data":"test"}`), &dst))
+	assert.Zero(t, dst.Data)
+}
+
+func TestContext_MustDecodeTo(t *testing.T) {
+	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	ctx := newContext(sess, &message.Entry{})
+	var dst struct {
+		Data string `json:"data"`
+	}
+	ctx.MustDecodeTo([]byte(`{"data":"test"}`), &dst)
+	assert.Equal(t, dst.Data, "test")
+}
+
+func TestContext_MustDecodeTo_when_decode_fail(t *testing.T) {
+	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	ctx := newContext(sess, &message.Entry{})
+	var dst string
+	assert.Panics(t, func() {
+		ctx.MustDecodeTo([]byte(`{"data":"test"}`), &dst)
 	})
 }

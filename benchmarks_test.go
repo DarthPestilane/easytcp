@@ -125,8 +125,8 @@ func Benchmark_OneRouteSet(b *testing.B) {
 	})
 	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		ctx.Set("key", "value")
-		v, _ := ctx.Get("key")
-		return ctx.Response(2, []byte(v.(string)))
+		v := ctx.MustGet("key").(string)
+		return ctx.Response(2, []byte(v))
 	})
 	go s.Serve(":0") // nolint
 

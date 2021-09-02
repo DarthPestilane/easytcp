@@ -6,6 +6,7 @@ import (
 	"github.com/DarthPestilane/easytcp/examples/tcp/proto_packet/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 var log *logrus.Logger
@@ -21,7 +22,7 @@ func main() {
 		Codec:  &easytcp.ProtobufCodec{},
 	})
 
-	srv.AddRoute(common.ID_FooReqID, handle, logMiddleware)
+	srv.AddRoute(common.ID_FooReqID, handle, logTransmission(&common.FooReq{}, &common.FooResp{}))
 
 	if err := srv.Serve(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
@@ -39,20 +40,20 @@ func handle(c *easytcp.Context) (*message.Entry, error) {
 	})
 }
 
-func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(c *easytcp.Context) (*message.Entry, error) {
-		var reqData common.FooReq
-		if err := c.Bind(&reqData); err == nil {
-			log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), reqData.String())
+func logTransmission(req, resp proto.Message) easytcp.MiddlewareFunc {
+	return func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
+		return func(c *easytcp.Context) (*message.Entry, error) {
+			if err := c.Bind(req); err == nil {
+				log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), req)
+			}
+
+			respEntry, err := next(c)
+
+			if err == nil && respEntry != nil {
+				c.MustDecodeTo(respEntry.Data, resp)
+				log.Infof("send | id: %d; size: %d; data: %s", respEntry.ID, len(respEntry.Data), resp)
+			}
+			return respEntry, err
 		}
-		resp, err := next(c)
-		if err != nil {
-			return resp, err
-		}
-		if resp != nil {
-			r, _ := c.Get(easytcp.RespKey)
-			log.Infof("send | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
-		}
-		return resp, err
 	}
 }

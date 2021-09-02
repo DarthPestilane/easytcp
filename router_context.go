@@ -7,9 +7,6 @@ import (
 	"time"
 )
 
-// RespKey is the preset key to the response data before encoding.
-const RespKey = "easytcp.router.context.response"
-
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
 // Context implements the context.Context interface.
@@ -48,6 +45,13 @@ func (c *Context) Get(key string) (interface{}, bool) {
 	return c.storage.Load(key)
 }
 
+func (c *Context) MustGet(key string) interface{} {
+	if val, ok := c.Get(key); ok {
+		return val
+	}
+	panic(fmt.Errorf("key `%s` not exist", key))
+}
+
 // Set sets the value in c.storage.
 func (c *Context) Set(key string, value interface{}) {
 	c.storage.Store(key, value)
@@ -67,6 +71,26 @@ func (c *Context) Bind(v interface{}) error {
 	return codec.Decode(c.reqMsg.Data, v)
 }
 
+func (c *Context) MustBind(v interface{}) {
+	if err := c.Bind(v); err != nil {
+		panic(err)
+	}
+}
+
+func (c *Context) DecodeTo(data []byte, v interface{}) error {
+	codec := c.session.codec
+	if codec == nil {
+		return fmt.Errorf("message codec is nil")
+	}
+	return codec.Decode(data, v)
+}
+
+func (c *Context) MustDecodeTo(data []byte, v interface{}) {
+	if err := c.DecodeTo(data, v); err != nil {
+		panic(err)
+	}
+}
+
 // Session returns current session.
 func (c *Context) Session() *Session {
 	return c.session
@@ -74,7 +98,6 @@ func (c *Context) Session() *Session {
 
 // Response creates a response message.
 func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, error) {
-	c.Set(RespKey, data)
 	var dataRaw []byte
 	if codec := c.session.codec; codec == nil {
 		switch v := data.(type) {

@@ -65,13 +65,12 @@ func main() {
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
 		log.Infof("recv request | %s", ctx.Message().Data)
-		defer func() {
-			if err != nil || resp == nil {
-				return
-			}
-			r, _ := ctx.Get(easytcp.RespKey)
-			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), r)
-		}()
+		// defer func() {
+		// 	if err != nil || resp == nil {
+		// 		return
+		// 	}
+		// 	log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), resp.Data)
+		// }()
 		return next(ctx)
 	}
 }
