@@ -45,11 +45,13 @@ func (c *Context) Get(key string) (interface{}, bool) {
 	return c.storage.Load(key)
 }
 
+// MustGet returns the value from c.storage by key.
+// Panics if key does not exist.
 func (c *Context) MustGet(key string) interface{} {
 	if val, ok := c.Get(key); ok {
 		return val
 	}
-	panic(fmt.Errorf("key `%s` not exist", key))
+	panic(fmt.Errorf("key `%s` does not exist", key))
 }
 
 // Set sets the value in c.storage.
@@ -71,12 +73,15 @@ func (c *Context) Bind(v interface{}) error {
 	return codec.Decode(c.reqMsg.Data, v)
 }
 
+// MustBind binds the request message's raw data to v.
+// Panics if any error occurred.
 func (c *Context) MustBind(v interface{}) {
 	if err := c.Bind(v); err != nil {
 		panic(err)
 	}
 }
 
+// DecodeTo decodes data to v via codec.
 func (c *Context) DecodeTo(data []byte, v interface{}) error {
 	codec := c.session.codec
 	if codec == nil {
@@ -85,6 +90,8 @@ func (c *Context) DecodeTo(data []byte, v interface{}) error {
 	return codec.Decode(data, v)
 }
 
+// MustDecodeTo decodes data to v via codec.
+// Panics if any error occurred.
 func (c *Context) MustDecodeTo(data []byte, v interface{}) {
 	if err := c.DecodeTo(data, v); err != nil {
 		panic(err)
