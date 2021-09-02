@@ -56,7 +56,7 @@ func handler(ctx *easytcp.Context) (*message.Entry, error) {
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx *easytcp.Context) (resp *message.Entry, err error) {
-		fullSize, _ := ctx.Message().Get("fullSize")
+		fullSize := ctx.Message().MustGet("fullSize")
 		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
 		defer func() {
