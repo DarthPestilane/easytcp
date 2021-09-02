@@ -36,10 +36,6 @@ func TestTCPSession_Close(t *testing.T) {
 	wg.Wait()
 	_, ok := <-sess.closed
 	assert.False(t, ok)
-	// _, ok = <-sess.reqQueue
-	// assert.False(t, ok)
-	// _, ok = <-sess.respQueue
-	// assert.False(t, ok)
 }
 
 func TestTCPSession_ID(t *testing.T) {
@@ -89,6 +85,23 @@ func TestTCPSession_readLoop(t *testing.T) {
 		sess.Close()
 		<-sess.closed
 	})
+	t.Run("when session is closed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
+
+		sess := newSession(nil, &SessionOption{Packer: packer, ReadBufferSize: 1024})
+		loopDone := make(chan struct{})
+		go func() {
+			sess.readLoop(0)
+			close(loopDone)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		sess.Close()
+		<-loopDone
+	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -109,6 +122,7 @@ func TestTCPSession_readLoop(t *testing.T) {
 			close(readDone)
 		}()
 		req := <-sess.reqQueue
+		time.Sleep(time.Millisecond * 5)
 		sess.Close() // close session once we fetched a req from channel
 		assert.Equal(t, msg, req)
 		<-readDone
@@ -140,12 +154,41 @@ func TestTCPSession_SendResp(t *testing.T) {
 }
 
 func TestTCPSession_writeLoop(t *testing.T) {
-	t.Run("when session is already closed", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{})
+	t.Run("when session is closed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
+
+		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 1024})
+		sess.respQueue <- &message.Entry{}
+		doneLoop := make(chan struct{})
+		go func() {
+			sess.writeLoop(0) // should stop looping and return
+			close(doneLoop)
+		}()
+		time.Sleep(time.Millisecond * 5)
 		sess.Close()
-		sess.writeLoop(0) // should stop looping and return
-		_, ok := <-sess.closed
-		assert.False(t, ok)
+		<-doneLoop
+	})
+	t.Run("when respQueue is closed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
+
+		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 1024})
+		sess.respQueue <- &message.Entry{}
+		doneLoop := make(chan struct{})
+		go func() {
+			sess.writeLoop(0) // should stop looping and return
+			close(doneLoop)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		close(sess.respQueue)
+		<-doneLoop
 	})
 	t.Run("when pack response message failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -164,7 +207,27 @@ func TestTCPSession_writeLoop(t *testing.T) {
 		go sess.writeLoop(0)
 		time.Sleep(time.Millisecond * 15)
 		sess.Close() // should break the write loop
-		assert.True(t, true)
+	})
+	t.Run("when pack returns nil data", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		entry := &message.Entry{
+			ID:   1,
+			Data: []byte("test"),
+		}
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
+
+		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 100})
+		sess.respQueue <- entry // push to queue
+		doneLoop := make(chan struct{})
+		go func() {
+			sess.writeLoop(0)
+			close(doneLoop)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		sess.Close() // should break the write loop
 	})
 	t.Run("when set write deadline failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
