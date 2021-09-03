@@ -6,6 +6,7 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/spf13/cast"
 	"io"
+	"sync"
 )
 
 //go:generate mockgen -destination internal/mock/packer_mock.go -package mock . Packer
@@ -24,7 +25,10 @@ var _ Packer = &DefaultPacker{}
 
 // NewDefaultPacker create a *DefaultPacker with initial field value.
 func NewDefaultPacker() *DefaultPacker {
-	return &DefaultPacker{MaxDataSize: 1024 * 1024}
+	return &DefaultPacker{
+		MaxDataSize: 1024 * 1024,
+		entryPool:   sync.Pool{New: func() interface{} { return new(message.Entry) }},
+	}
 }
 
 // DefaultPacker is the default Packer used in session.
@@ -41,6 +45,8 @@ func NewDefaultPacker() *DefaultPacker {
 type DefaultPacker struct {
 	// MaxDataSize represents the max size of `data`
 	MaxDataSize int
+
+	entryPool sync.Pool
 }
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
@@ -49,6 +55,7 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 
 // Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
+	defer d.entryPool.Put(entry)
 	dataSize := len(entry.Data)
 	buffer := make([]byte, 4+4+dataSize)
 	d.bytesOrder().PutUint32(buffer[:4], uint32(dataSize)) // write dataSize
@@ -78,9 +85,8 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
-	entry := &message.Entry{
-		ID:   int(id), // convert id to int type
-		Data: data,
-	}
+	entry := d.entryPool.Get().(*message.Entry)
+	entry.ID = int(id) // convert id to int type
+	entry.Data = data
 	return entry, nil
 }

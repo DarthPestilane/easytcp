@@ -18,7 +18,7 @@ func TestNewServer(t *testing.T) {
 		Codec:        &JsonCodec{},
 	})
 	assert.NotNil(t, s.accepting)
-	assert.Equal(t, s.Packer, NewDefaultPacker())
+	assert.IsType(t, s.Packer, NewDefaultPacker())
 	assert.Equal(t, s.Codec, &JsonCodec{})
 }
 
@@ -130,7 +130,7 @@ func TestServer_handleConn(t *testing.T) {
 
 	// options
 	codec := &JsonCodec{}
-	packer := &DefaultPacker{}
+	packer := NewDefaultPacker()
 
 	// server
 	server := NewServer(&ServerOption{
@@ -210,7 +210,7 @@ func TestServer_handleConn(t *testing.T) {
 func TestServer_NotFoundHandler(t *testing.T) {
 	// server
 	server := NewServer(&ServerOption{
-		Packer: &DefaultPacker{},
+		Packer: NewDefaultPacker(),
 	})
 	server.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
 		return ctx.Response(101, []byte("handler not found"))

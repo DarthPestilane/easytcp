@@ -10,7 +10,7 @@ import (
 )
 
 func TestDefaultPacker_PackAndUnpack(t *testing.T) {
-	packer := &DefaultPacker{MaxDataSize: 1024}
+	packer := NewDefaultPacker()
 
 	t.Run("when handle different types of id", func(t *testing.T) {
 		var testIdInt = 1
