@@ -78,13 +78,13 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 	for {
 		if timeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-				Log.Errorf("session set read deadline err: %s", err)
+				Log.Errorf("session %s set read deadline err: %s", s.id, err)
 				break
 			}
 		}
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
-			Log.Errorf("session unpack inbound packet err: %s", err)
+			Log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
 			break
 		}
 		if entry == nil {
@@ -94,11 +94,11 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 		select {
 		case reqQueue <- &Context{session: s, reqMsgEntry: entry}:
 		case <-s.closed:
-			Log.Tracef("session readInbound exit because session is closed")
+			Log.Tracef("session %s readInbound exit because session is closed", s.id)
 			return
 		}
 	}
-	Log.Tracef("session readInbound exit because of error")
+	Log.Tracef("session %s readInbound exit because of error", s.id)
 	s.close()
 }
 
@@ -110,17 +110,17 @@ FOR:
 	for {
 		select {
 		case <-s.closed:
-			Log.Tracef("session writeOutbound exit because session is closed")
+			Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 			return
 		case respMsg, ok := <-s.respQueue:
 			if !ok {
-				Log.Tracef("session writeOutbound exit because session is closed")
+				Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 				return
 			}
 			// pack message
 			outboundMsg, err := s.packer.Pack(respMsg)
 			if err != nil {
-				Log.Errorf("session pack outbound message err: %s", err)
+				Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 				continue
 			}
 			if outboundMsg == nil {
@@ -128,16 +128,16 @@ FOR:
 			}
 			if writeTimeout > 0 {
 				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-					Log.Errorf("session set write deadline err: %s", err)
+					Log.Errorf("session %s set write deadline err: %s", s.id, err)
 					break FOR
 				}
 			}
 			if _, err := s.conn.Write(outboundMsg); err != nil {
-				Log.Errorf("session conn write err: %s", err)
+				Log.Errorf("session %s conn write err: %s", s.id, err)
 				break FOR
 			}
 		}
 	}
 	s.close()
-	Log.Tracef("session writeOutbound exit because of error")
+	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
