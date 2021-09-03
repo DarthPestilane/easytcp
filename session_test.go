@@ -30,7 +30,7 @@ func TestTCPSession_Close(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			sess.Close() // goroutine safe
+			sess.close() // goroutine safe
 		}()
 	}
 	wg.Wait()
@@ -82,7 +82,7 @@ func TestTCPSession_readLoop(t *testing.T) {
 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
 		go sess.readLoop(0)
 		time.Sleep(time.Millisecond * 5)
-		sess.Close()
+		sess.close()
 		<-sess.closed
 	})
 	t.Run("when session is closed", func(t *testing.T) {
@@ -99,7 +99,7 @@ func TestTCPSession_readLoop(t *testing.T) {
 			close(loopDone)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.Close()
+		sess.close()
 		<-loopDone
 	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
@@ -123,7 +123,7 @@ func TestTCPSession_readLoop(t *testing.T) {
 		}()
 		req := <-sess.reqQueue
 		time.Sleep(time.Millisecond * 5)
-		sess.Close() // close session once we fetched a req from channel
+		sess.close() // close session once we fetched a req from channel
 		assert.Equal(t, msg, req)
 		<-readDone
 	})
@@ -136,7 +136,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 			Data: []byte("test"),
 		}
 		sess := newSession(nil, &SessionOption{})
-		sess.Close() // close session
+		sess.close() // close session
 		assert.Error(t, sess.SendResp(entry))
 	})
 	t.Run("when safelyPushRespQueue succeed", func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 		sess.respQueue = make(chan *message.Entry) // no buffer
 		go func() { <-sess.respQueue }()
 		assert.NoError(t, sess.SendResp(entry))
-		sess.Close()
+		sess.close()
 	})
 }
 
@@ -169,7 +169,7 @@ func TestTCPSession_writeLoop(t *testing.T) {
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.Close()
+		sess.close()
 		<-doneLoop
 	})
 	t.Run("when respQueue is closed", func(t *testing.T) {
@@ -206,7 +206,7 @@ func TestTCPSession_writeLoop(t *testing.T) {
 		time.Sleep(time.Microsecond * 15)
 		go sess.writeLoop(0)
 		time.Sleep(time.Millisecond * 15)
-		sess.Close() // should break the write loop
+		sess.close() // should break the write loop
 	})
 	t.Run("when pack returns nil data", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -227,7 +227,7 @@ func TestTCPSession_writeLoop(t *testing.T) {
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.Close() // should break the write loop
+		sess.close() // should break the write loop
 	})
 	t.Run("when set write deadline failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)

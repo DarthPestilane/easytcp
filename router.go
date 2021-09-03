@@ -10,6 +10,19 @@ import (
 	"sync"
 )
 
+func newRouter(queueSize ...int) *Router {
+	size := 0
+	if len(queueSize) != 0 {
+		if qs := queueSize[0]; qs > 0 {
+			size = qs
+		}
+	}
+	return &Router{
+		reqCtxQueue: make(chan *Context, size),
+		stopped:     make(chan struct{}),
+	}
+}
+
 // Router is a router for incoming message.
 // Router routes the message to its handler and middlewares.
 type Router struct {
@@ -26,6 +39,8 @@ type Router struct {
 	globalMiddlewares []MiddlewareFunc
 
 	notFoundHandler HandlerFunc
+	reqCtxQueue     chan *Context
+	stopped         chan struct{}
 }
 
 // HandlerFunc is the function type for handlers.
@@ -43,6 +58,64 @@ type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 	return nil, nil
+}
+
+func (r *Router) stop() {
+	close(r.stopped)
+}
+
+func (r *Router) consumeRequest() {
+	for {
+		select {
+		case <-r.stopped:
+			close(r.reqCtxQueue)
+
+			Log.Tracef("router stopped")
+			return
+		case reqCtx, ok := <-r.reqCtxQueue:
+			if !ok {
+				Log.Tracef("router stopped")
+				return
+			}
+			select {
+			case <-reqCtx.session.closed:
+				continue
+			default:
+			}
+
+			go func() {
+				respEntry, err := r.handleRequest(reqCtx)
+				if err != nil {
+					Log.Errorf("router handle request err: %s", err)
+					return
+				}
+				if respEntry == nil {
+					return
+				}
+				if err := reqCtx.session.SendResp(respEntry); err != nil {
+					Log.Errorf("router send resp err: %s", err)
+				}
+			}()
+		}
+	}
+}
+
+func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
+	var handler HandlerFunc
+	if v, has := r.handlerMapper.Load(ctx.reqMsg.ID); has {
+		handler = v.(HandlerFunc)
+	}
+
+	var mws = r.globalMiddlewares
+	if v, has := r.middlewaresMapper.Load(ctx.reqMsg.ID); has {
+		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
+	}
+
+	// create the handlers stack
+	wrapped := r.wrapHandlers(handler, mws)
+
+	// and call the handlers stack
+	return wrapped(ctx)
 }
 
 // routeLoop reads message from session.Session s in a loop way,

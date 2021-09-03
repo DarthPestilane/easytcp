@@ -49,6 +49,7 @@ type ServerOption struct {
 	Codec                 Codec         // encodes and decodes the message data, can be nil
 	WriteBufferSize       int           // sets the writing channel buffer size, 1024 will be used if < 0.
 	ReadBufferSize        int           // sets the reading channel buffer size, 1024 will be used if < 0.
+	RouterQueueSize       int           // sets the reading channel buffer size of router, 1024 will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 }
 
@@ -74,7 +75,7 @@ func NewServer(opt *ServerOption) *Server {
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
-		router:                &Router{},
+		router:                newRouter(opt.RouterQueueSize),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 	}
@@ -95,6 +96,7 @@ func (s *Server) Serve(addr string) error {
 	if s.printRoutes {
 		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
+	go s.router.consumeRequest()
 	return s.acceptLoop()
 }
 
@@ -107,6 +109,7 @@ func (s *Server) acceptLoop() error {
 		if err != nil {
 			select {
 			case <-s.stopped:
+				Log.Tracef("server accept loop stopped")
 				return ErrServerStopped
 			default:
 			}
@@ -151,11 +154,11 @@ func (s *Server) handleConn(conn net.Conn) {
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	go s.router.routeLoop(sess)       // start routing messages to handlers for this session.
-	go sess.readLoop(s.readTimeout)   // start reading messages from connection.
-	go sess.writeLoop(s.writeTimeout) // start writing messages to connection.
-	<-sess.closed                     // wait for session finished.
-	Sessions().Remove(sess.ID())      // session has been closed, remove it.
+	// go s.router.routeLoop(sess)       // start routing messages to handlers for this session.
+	go sess.readInbound(s.router.reqCtxQueue, s.readTimeout) // start reading messages from connection.
+	go sess.writeLoop(s.writeTimeout)                        // start writing messages to connection.
+	<-sess.closed                                            // wait for session finished.
+	Sessions().Remove(sess.ID())                             // session has been closed, remove it.
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
 	}
@@ -168,11 +171,12 @@ func (s *Server) handleConn(conn net.Conn) {
 func (s *Server) Stop() error {
 	closedNum := 0
 	Sessions().Range(func(id string, sess *Session) (next bool) {
-		sess.Close()
+		sess.close()
 		closedNum++
 		return true
 	})
 	Log.Tracef("%d session(s) closed", closedNum)
+	s.router.stop()
 	close(s.stopped)
 	return s.Listener.Close()
 }

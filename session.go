@@ -5,7 +5,6 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -13,7 +12,6 @@ import (
 type Session struct {
 	id        string              // session's ID. it's a UUID
 	conn      net.Conn            // tcp connection
-	closeOnce sync.Once           // to make sure we can only close each session one time
 	closed    chan struct{}       // to close()
 	reqQueue  chan *message.Entry // request queue channel, pushed in readLoop() and popped in router.Router
 	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeLoop()
@@ -54,19 +52,50 @@ func (s *Session) ID() string {
 // SendResp pushes response message entry to respQueue.
 // Returns error if session is closed.
 func (s *Session) SendResp(respMsg *message.Entry) error {
+	defer func() { _ = recover() }()
+
 	select {
+	case s.respQueue <- respMsg:
 	case <-s.closed:
+		close(s.respQueue)
 		return fmt.Errorf("sessions is closed")
-	default:
 	}
 
-	s.respQueue <- respMsg
 	return nil
 }
 
-// Close closes the session by closing all the channels.
-func (s *Session) Close() {
-	s.closeOnce.Do(func() { close(s.closed) })
+// close closes the session.
+func (s *Session) close() {
+	defer func() { _ = recover() }()
+	close(s.closed)
+}
+
+func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
+	for {
+		if timeout > 0 {
+			if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+				Log.Errorf("session set read deadline err: %s", err)
+				break
+			}
+		}
+		entry, err := s.packer.Unpack(s.conn)
+		if err != nil {
+			Log.Errorf("session unpack inbound packet err: %s", err)
+			break
+		}
+		if entry == nil {
+			continue
+		}
+
+		select {
+		case <-s.closed:
+			Log.Tracef("session readInbound exit because session is closed")
+			return
+		case reqQueue <- &Context{session: s, reqMsg: entry}:
+		}
+	}
+	Log.Tracef("session readInbound exit because of error")
+	s.close()
 }
 
 // readLoop reads TCP connection, unpacks packet payload
@@ -102,7 +131,7 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 		}
 	}
 	Log.Tracef("session read loop exit because of error")
-	s.Close()
+	s.close()
 }
 
 // writeLoop fetches message from respQueue channel and writes to TCP connection in a loop.
@@ -115,7 +144,6 @@ FOR:
 		select {
 		case <-s.closed:
 			Log.Tracef("session write loop exit because session is closed")
-			close(s.respQueue) // close respQueue only once and only in here
 			return
 		case respMsg, ok := <-s.respQueue:
 			if !ok {
@@ -143,6 +171,6 @@ FOR:
 			}
 		}
 	}
-	s.Close()
+	s.close()
 	Log.Tracef("session write loop exit because of error")
 }

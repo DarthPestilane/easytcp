@@ -10,16 +10,12 @@ import (
 	"time"
 )
 
-func newRouter() *Router {
-	return &Router{}
-}
-
 func TestRouter_routeLoop(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
 		rt := newRouter()
 
 		sess := newSession(nil, &SessionOption{})
-		sess.Close()
+		sess.close()
 		rt.routeLoop(sess)
 	})
 	t.Run("when reqQueue is closed", func(t *testing.T) {
@@ -40,7 +36,7 @@ func TestRouter_routeLoop(t *testing.T) {
 		sess := newSession(nil, &SessionOption{})
 		go func() {
 			sess.reqQueue <- nil
-			sess.Close()
+			sess.close()
 		}()
 		rt.routeLoop(sess) // should not call to handler
 	})
@@ -62,7 +58,7 @@ func TestRouter_routeLoop(t *testing.T) {
 			sess := newSession(nil, &SessionOption{})
 			go func() {
 				sess.reqQueue <- entry
-				sess.Close()
+				sess.close()
 			}()
 			rt.routeLoop(sess) // should receive entry only once
 		})
@@ -78,7 +74,7 @@ func TestRouter_routeLoop(t *testing.T) {
 			sess := newSession(nil, &SessionOption{})
 			go func() {
 				sess.reqQueue <- entry
-				sess.Close()
+				sess.close()
 			}()
 			loopDone := make(chan struct{})
 			go func() {
@@ -109,7 +105,7 @@ func TestRouter_routeLoop(t *testing.T) {
 				close(loopDone)
 			}()
 			time.Sleep(time.Millisecond * 5)
-			sess.Close()
+			sess.close()
 			<-loopDone
 		})
 		t.Run("when handler returns response but send failed", func(t *testing.T) {
@@ -117,7 +113,7 @@ func TestRouter_routeLoop(t *testing.T) {
 			var id = 1
 
 			rt.register(id, func(ctx *Context) (*message.Entry, error) {
-				defer ctx.Session().Close()
+				defer ctx.Session().close()
 				return &message.Entry{}, nil
 			})
 
