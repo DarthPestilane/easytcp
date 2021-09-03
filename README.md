@@ -271,7 +271,9 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 }
 ```
 
-And see the custom packer [here](./examples/fixture/packer.go).
+And see more custom packers:
+- [custom_packet](./examples/tcp/custom_packet/common/packer.go)
+- [proto_packet](./examples/tcp/proto_packet/common/packer.go)
 
 ### Codec
 
