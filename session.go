@@ -92,7 +92,7 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 		}
 
 		select {
-		case reqQueue <- &Context{session: s, reqMsg: entry}:
+		case reqQueue <- &Context{session: s, reqMsgEntry: entry}:
 		case <-s.closed:
 			Log.Tracef("session readInbound exit because session is closed")
 			return

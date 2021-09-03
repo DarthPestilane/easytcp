@@ -10,7 +10,7 @@ import (
 )
 
 func newContext(sess *Session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqMsg: msg}
+	return &Context{session: sess, reqMsgEntry: msg}
 }
 
 func TestContext_Deadline(t *testing.T) {

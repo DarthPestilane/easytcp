@@ -80,7 +80,7 @@ func (r *Router) consumeRequest() {
 				continue
 			default:
 			}
-			if reqCtx.reqMsg == nil {
+			if reqCtx.reqMsgEntry == nil {
 				continue
 			}
 
@@ -103,12 +103,12 @@ func (r *Router) consumeRequest() {
 
 func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
 	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(ctx.reqMsg.ID); has {
+	if v, has := r.handlerMapper.Load(ctx.reqMsgEntry.ID); has {
 		handler = v.(HandlerFunc)
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(ctx.reqMsg.ID); has {
+	if v, has := r.middlewaresMapper.Load(ctx.reqMsgEntry.ID); has {
 		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
 	}
 

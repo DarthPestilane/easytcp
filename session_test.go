@@ -123,7 +123,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		ctx := <-queue
 		time.Sleep(time.Millisecond * 5)
 		sess.close() // close session once we fetched a req from channel
-		assert.Equal(t, msg, ctx.reqMsg)
+		assert.Equal(t, msg, ctx.reqMsgEntry)
 		<-readDone
 	})
 }

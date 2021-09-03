@@ -81,7 +81,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 
 		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsg: entry}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -101,7 +101,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 
 		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsg: entry}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -122,7 +122,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 
 		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsg: entry}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -215,7 +215,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsg: entry})
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Nil(t, err)
 		assert.Nil(t, resp)
 	})
@@ -230,7 +230,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   id,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsg: entry})
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Nil(t, err)
 		assert.Nil(t, resp)
 	})
@@ -245,7 +245,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   id,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsg: entry})
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 	})
