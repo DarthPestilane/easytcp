@@ -139,8 +139,8 @@ func TestServer_handleConn(t *testing.T) {
 		SocketSendDelay:       true,
 		Codec:                 codec,
 		Packer:                packer,
-		ReadBufferSize:        -1,
-		WriteBufferSize:       -1,
+		ReqQueueSize:          -1,
+		RespQueueSize:         -1,
 	})
 
 	// hooks

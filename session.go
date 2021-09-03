@@ -20,9 +20,9 @@ type Session struct {
 
 // SessionOption is the extra options for Session.
 type SessionOption struct {
-	Packer          Packer
-	Codec           Codec
-	WriteBufferSize int
+	Packer        Packer
+	Codec         Codec
+	respQueueSize int
 }
 
 // newSession creates a new Session.
@@ -35,7 +35,7 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		respQueue: make(chan *message.Entry, opt.WriteBufferSize),
+		respQueue: make(chan *message.Entry, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
 	}
@@ -71,6 +71,9 @@ func (s *Session) close() {
 	close(s.closed)
 }
 
+// readInbound reads message packet from connection in a loop.
+// And send unpacked message to reqQueue, which will be consumed in router.
+// The loop breaks if errors occurred or the session is closed.
 func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 	for {
 		if timeout > 0 {
@@ -101,27 +104,26 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
-// The loop will break if errors occurred, or the session is closed.
-// After loop ended, this session will be closed.
+// The loop breaks if errors occurred, or the session is closed.
 func (s *Session) writeOutbound(writeTimeout time.Duration) {
 FOR:
 	for {
 		select {
 		case <-s.closed:
-			Log.Tracef("session write loop exit because session is closed")
+			Log.Tracef("session writeOutbound exit because session is closed")
 			return
 		case respMsg, ok := <-s.respQueue:
 			if !ok {
-				Log.Tracef("session write loop exit because session is closed")
+				Log.Tracef("session writeOutbound exit because session is closed")
 				return
 			}
 			// pack message
-			ackMsg, err := s.packer.Pack(respMsg)
+			outboundMsg, err := s.packer.Pack(respMsg)
 			if err != nil {
-				Log.Errorf("session pack response message err: %s", err)
+				Log.Errorf("session pack outbound message err: %s", err)
 				continue
 			}
-			if ackMsg == nil {
+			if outboundMsg == nil {
 				continue
 			}
 			if writeTimeout > 0 {
@@ -130,12 +132,12 @@ FOR:
 					break FOR
 				}
 			}
-			if _, err := s.conn.Write(ackMsg); err != nil {
+			if _, err := s.conn.Write(outboundMsg); err != nil {
 				Log.Errorf("session conn write err: %s", err)
 				break FOR
 			}
 		}
 	}
 	s.close()
-	Log.Tracef("session write loop exit because of error")
+	Log.Tracef("session writeOutbound exit because of error")
 }

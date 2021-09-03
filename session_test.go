@@ -165,15 +165,14 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
-		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 1024})
-		sess.respQueue <- &message.Entry{}
+		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 10})
 		doneLoop := make(chan struct{})
+		sess.close()
 		go func() {
 			sess.writeOutbound(0) // should stop looping and return
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.close()
 		<-doneLoop
 	})
 	t.Run("when respQueue is closed", func(t *testing.T) {
@@ -183,7 +182,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
-		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 1024})
+		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 1024})
 		sess.respQueue <- &message.Entry{}
 		doneLoop := make(chan struct{})
 		go func() {
@@ -223,7 +222,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer := mock.NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
 
-		sess := newSession(nil, &SessionOption{Packer: packer, WriteBufferSize: 100})
+		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 100})
 		sess.respQueue <- entry // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
@@ -303,7 +302,9 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- entry }()
+		go func() {
+			_ = sess.SendResp(entry)
+		}()
 		done := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0)

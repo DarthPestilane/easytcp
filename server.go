@@ -27,15 +27,13 @@ type Server struct {
 	socketReadBufferSize  int
 	socketWriteBufferSize int
 	socketSendDelay       bool
-
-	writeBufferSize int
-	readBufferSize  int
-	readTimeout     time.Duration
-	writeTimeout    time.Duration
-	printRoutes     bool
-	router          *Router
-	accepting       chan struct{}
-	stopped         chan struct{}
+	readTimeout           time.Duration
+	writeTimeout          time.Duration
+	respQueueSize         int
+	router                *Router
+	printRoutes           bool
+	accepting             chan struct{}
+	stopped               chan struct{}
 }
 
 // ServerOption is the option for Server.
@@ -46,43 +44,41 @@ type ServerOption struct {
 	ReadTimeout           time.Duration // sets the timeout for connection read.
 	WriteTimeout          time.Duration // sets the timeout for connection write.
 	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
-	Codec                 Codec         // encodes and decodes the message data, can be nil
-	WriteBufferSize       int           // sets the writing channel buffer size, 1024 will be used if < 0.
-	ReadBufferSize        int           // sets the reading channel buffer size, 1024 will be used if < 0.
-	RouterQueueSize       int           // sets the reading channel buffer size of router, 1024 will be used if < 0.
+	Codec                 Codec         // encodes and decodes the message data, can be nil.
+	RespQueueSize         int           // sets the response channel size of session, 1024 will be used if < 0.
+	ReqQueueSize          int           // sets the request channel size of router, 1024 will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 }
 
-// NewServer creates a Server pointer according to opt.
+// NewServer creates a Server according to opt.
 func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
 		opt.Packer = NewDefaultPacker()
 	}
-	if opt.WriteBufferSize < 0 {
-		opt.WriteBufferSize = 1024
+	if opt.RespQueueSize < 0 {
+		opt.RespQueueSize = 1024
 	}
-	if opt.ReadBufferSize < 0 {
-		opt.ReadBufferSize = 1024
+	if opt.ReqQueueSize < 0 {
+		opt.ReqQueueSize = 1024
 	}
 	return &Server{
 		socketReadBufferSize:  opt.SocketReadBufferSize,
 		socketWriteBufferSize: opt.SocketWriteBufferSize,
 		socketSendDelay:       opt.SocketSendDelay,
-		writeBufferSize:       opt.WriteBufferSize,
-		readBufferSize:        opt.ReadBufferSize,
+		respQueueSize:         opt.RespQueueSize,
 		readTimeout:           opt.ReadTimeout,
 		writeTimeout:          opt.WriteTimeout,
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
-		router:                newRouter(opt.RouterQueueSize),
+		router:                newRouter(opt.ReqQueueSize),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 	}
 }
 
-// Serve starts to listen TCP and keep accepting TCP connection in a loop.
-// Accepting loop will break when error occurred, and the error will be returned.
+// Serve starts to listen TCP and keeps accepting TCP connection in a loop.
+// The loop breaks when error occurred, and the error will be returned.
 func (s *Server) Serve(addr string) error {
 	address, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
@@ -140,23 +136,26 @@ func (s *Server) acceptLoop() error {
 	}
 }
 
-// handleConn creates a new session according to conn,
+// handleConn creates a new session with conn,
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
 func (s *Server) handleConn(conn net.Conn) {
 	sess := newSession(conn, &SessionOption{
-		Packer:          s.Packer,
-		Codec:           s.Codec,
-		WriteBufferSize: s.writeBufferSize,
+		Packer:        s.Packer,
+		Codec:         s.Codec,
+		respQueueSize: s.respQueueSize,
 	})
 	Sessions().Add(sess)
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	go sess.readInbound(s.router.reqCtxQueue, s.readTimeout) // start reading messages from connection.
-	go sess.writeOutbound(s.writeTimeout)                    // start writing messages to connection.
-	<-sess.closed                                            // wait for session finished.
-	Sessions().Remove(sess.ID())                             // session has been closed, remove it.
+
+	go sess.readInbound(s.router.reqCtxQueue, s.readTimeout) // start reading message packet from connection.
+	go sess.writeOutbound(s.writeTimeout)                    // start writing message packet to connection.
+
+	<-sess.closed                // wait for session finished.
+	Sessions().Remove(sess.ID()) // session has been closed, remove it.
+
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
 	}
@@ -165,7 +164,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	}
 }
 
-// Stop stops server by closing all the TCP sessions and the listener.
+// Stop stops server by closing all the TCP sessions, listener and the router.
 func (s *Server) Stop() error {
 	closedNum := 0
 	Sessions().Range(func(id string, sess *Session) (next bool) {
