@@ -13,8 +13,7 @@ type Session struct {
 	id        string              // session's ID. it's a UUID
 	conn      net.Conn            // tcp connection
 	closed    chan struct{}       // to close()
-	reqQueue  chan *message.Entry // request queue channel, pushed in readLoop() and popped in router.Router
-	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeLoop()
+	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeOutbound()
 	packer    Packer              // to pack and unpack message
 	codec     Codec               // encode/decode message data
 }
@@ -23,7 +22,6 @@ type Session struct {
 type SessionOption struct {
 	Packer          Packer
 	Codec           Codec
-	ReadBufferSize  int
 	WriteBufferSize int
 }
 
@@ -37,7 +35,6 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		reqQueue:  make(chan *message.Entry, opt.ReadBufferSize),
 		respQueue: make(chan *message.Entry, opt.WriteBufferSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
@@ -51,17 +48,21 @@ func (s *Session) ID() string {
 
 // SendResp pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *Session) SendResp(respMsg *message.Entry) error {
-	defer func() { _ = recover() }()
+func (s *Session) SendResp(respMsg *message.Entry) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("sessions is closed")
+		}
+	}()
 
 	select {
 	case s.respQueue <- respMsg:
 	case <-s.closed:
 		close(s.respQueue)
-		return fmt.Errorf("sessions is closed")
+		err = fmt.Errorf("sessions is closed")
 	}
 
-	return nil
+	return
 }
 
 // close closes the session.
@@ -88,57 +89,21 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 		}
 
 		select {
+		case reqQueue <- &Context{session: s, reqMsg: entry}:
 		case <-s.closed:
 			Log.Tracef("session readInbound exit because session is closed")
 			return
-		case reqQueue <- &Context{session: s, reqMsg: entry}:
 		}
 	}
 	Log.Tracef("session readInbound exit because of error")
 	s.close()
 }
 
-// readLoop reads TCP connection, unpacks packet payload
-// to a MessageEntry, and push to reqQueue channel.
-// The above operations are in a loop.
-// Parameter readTimeout specified the connection reading timeout.
-// The loop will break if any error occurred, or the session is closed.
-// After loop ended, this session will be closed.
-func (s *Session) readLoop(readTimeout time.Duration) {
-	for {
-		if readTimeout > 0 {
-			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-				Log.Errorf("session set read deadline err: %s", err)
-				break
-			}
-		}
-		entry, err := s.packer.Unpack(s.conn)
-		if err != nil {
-			Log.Errorf("session unpack incoming message err: %s", err)
-			break
-		}
-		if entry == nil {
-			continue
-		}
-
-		select {
-		case <-s.closed:
-			close(s.reqQueue) // close reqQueue only once and only in here.
-
-			Log.Tracef("session read loop exit because session is closed")
-			return
-		case s.reqQueue <- entry:
-		}
-	}
-	Log.Tracef("session read loop exit because of error")
-	s.close()
-}
-
-// writeLoop fetches message from respQueue channel and writes to TCP connection in a loop.
+// writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop will break if errors occurred, or the session is closed.
 // After loop ended, this session will be closed.
-func (s *Session) writeLoop(writeTimeout time.Duration) {
+func (s *Session) writeOutbound(writeTimeout time.Duration) {
 FOR:
 	for {
 		select {

@@ -147,16 +147,14 @@ func (s *Server) handleConn(conn net.Conn) {
 	sess := newSession(conn, &SessionOption{
 		Packer:          s.Packer,
 		Codec:           s.Codec,
-		ReadBufferSize:  s.readBufferSize,
 		WriteBufferSize: s.writeBufferSize,
 	})
 	Sessions().Add(sess)
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
-	// go s.router.routeLoop(sess)       // start routing messages to handlers for this session.
 	go sess.readInbound(s.router.reqCtxQueue, s.readTimeout) // start reading messages from connection.
-	go sess.writeLoop(s.writeTimeout)                        // start writing messages to connection.
+	go sess.writeOutbound(s.writeTimeout)                    // start writing messages to connection.
 	<-sess.closed                                            // wait for session finished.
 	Sessions().Remove(sess.ID())                             // session has been closed, remove it.
 	if s.OnSessionClose != nil {

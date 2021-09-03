@@ -65,22 +65,23 @@ func (r *Router) stop() {
 }
 
 func (r *Router) consumeRequest() {
+	defer Log.Tracef("router stopped")
 	for {
 		select {
 		case <-r.stopped:
 			close(r.reqCtxQueue)
-
-			Log.Tracef("router stopped")
 			return
 		case reqCtx, ok := <-r.reqCtxQueue:
 			if !ok {
-				Log.Tracef("router stopped")
 				return
 			}
 			select {
 			case <-reqCtx.session.closed:
 				continue
 			default:
+			}
+			if reqCtx.reqMsg == nil {
+				continue
 			}
 
 			go func() {
@@ -116,72 +117,6 @@ func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
 
 	// and call the handlers stack
 	return wrapped(ctx)
-}
-
-// routeLoop reads message from session.Session s in a loop way,
-// and routes the message to corresponding handler and middlewares if message is not nil.
-// routeLoop will break if session.Session s is closed.
-func (r *Router) routeLoop(s *Session) {
-	for {
-		select {
-		case <-s.closed:
-			Log.Tracef("router loop exit because session is closed")
-			return
-		case req, ok := <-s.reqQueue:
-			if !ok {
-				Log.Tracef("router loop exit because session is closed")
-				return
-			}
-			if req == nil {
-				continue
-			}
-			go func() {
-				resp, err := r.handleReq(s, req)
-				if err != nil {
-					Log.Errorf("router handle request err: %s", err)
-					return
-				}
-				if resp == nil {
-					return
-				}
-				if err := s.SendResp(resp); err != nil {
-					Log.Errorf("router send resp err: %s", err)
-				}
-			}()
-		}
-	}
-}
-
-// handleReq routes the packet.Message reqMsg to corresponding handler and middlewares,
-// and call the handler functions, and send response to session.Session s if response is not nil.
-// Returns error when calling handler functions or sending response failed.
-func (r *Router) handleReq(s *Session, reqMsg *message.Entry) (*message.Entry, error) {
-	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(reqMsg.ID); has {
-		handler = v.(HandlerFunc)
-	}
-
-	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(reqMsg.ID); has {
-		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
-	}
-
-	// create context
-	ctx := &Context{session: s, reqMsg: reqMsg}
-
-	// create the handlers stack
-	wrapped := r.wrapHandlers(handler, mws)
-
-	// call the handlers stack now
-	return wrapped(ctx)
-	// resp, err := wrapped(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("handler err: %s", err)
-	// }
-	// if resp == nil {
-	// 	return nil
-	// }
-	// return s.SendResp(resp)
 }
 
 // wrapHandlers wraps handler and middlewares into a right order call stack.
