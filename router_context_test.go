@@ -34,8 +34,7 @@ func TestContext_Err(t *testing.T) {
 func TestContext_Value(t *testing.T) {
 	c := newContext(nil, nil)
 	assert.Nil(t, c.Value("not found"))
-
-	c.storage.Store("found", true)
+	c.Set("found", true)
 	assert.True(t, c.Value("found").(bool))
 
 	assert.Nil(t, c.Value(123))
@@ -47,7 +46,7 @@ func TestContext_Get(t *testing.T) {
 	assert.False(t, ok)
 	assert.Nil(t, v)
 
-	c.storage.Store("found", true)
+	c.Set("found", true)
 	v, ok = c.Get("found")
 	assert.True(t, ok)
 	assert.True(t, v.(bool))
@@ -57,7 +56,7 @@ func TestContext_MustGet(t *testing.T) {
 	c := newContext(nil, nil)
 	assert.Panics(t, func() { c.MustGet("not found") })
 
-	c.storage.Store("found", true)
+	c.Set("found", true)
 	v := c.MustGet("found")
 	assert.True(t, v.(bool))
 }
@@ -65,7 +64,7 @@ func TestContext_MustGet(t *testing.T) {
 func TestContext_Set(t *testing.T) {
 	c := newContext(nil, nil)
 	c.Set("found", true)
-	v, ok := c.storage.Load("found")
+	v, ok := c.storage["found"]
 	assert.True(t, ok)
 	assert.True(t, v.(bool))
 }
