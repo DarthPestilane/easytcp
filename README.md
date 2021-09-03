@@ -238,32 +238,21 @@ func (p *CustomPacker) bytesOrder() binary.ByteOrder {
 }
 
 func (p *CustomPacker) Pack(entry *message.Entry) ([]byte, error) {
-    size := len(entry.Data) // without id
-    buff := bytes.NewBuffer(make([]byte, 0, size+2+2))
-    if err := binary.Write(buff, p.bytesOrder(), uint16(size)); err != nil {
-        return nil, fmt.Errorf("write size err: %s", err)
-    }
-    if err := binary.Write(buff, p.bytesOrder(), entry.ID.(uint16)); err != nil {
-        return nil, fmt.Errorf("write id err: %s", err)
-    }
-    if err := binary.Write(buff, p.bytesOrder(), entry.Data); err != nil {
-        return nil, fmt.Errorf("write data err: %s", err)
-    }
-    return buff.Bytes(), nil
+    size := len(entry.Data) // only the size of data.
+    buffer := make([]byte, 2+2+size)
+    p.bytesOrder().PutUint16(buffer[:2], uint16(size))
+    p.bytesOrder().PutUint16(buffer[2:4], entry.ID.(uint16))
+    copy(buffer[4:], entry.Data)
+    return buffer, nil
 }
 
 func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
-    sizeBuff := make([]byte, 2)
-    if _, err := io.ReadFull(reader, sizeBuff); err != nil {
-        return nil, fmt.Errorf("read size err: %s", err)
+    headerBuffer := make([]byte, 2+2)
+    if _, err := io.ReadFull(reader, headerBuffer); err != nil {
+        return nil, fmt.Errorf("read size and id err: %s", err)
     }
-    size := p.bytesOrder().Uint16(sizeBuff)
-
-    idBuff := make([]byte, 2)
-    if _, err := io.ReadFull(reader, idBuff); err != nil {
-        return nil, fmt.Errorf("read id err: %s", err)
-    }
-    id := p.bytesOrder().Uint16(idBuff)
+    size := p.bytesOrder().Uint16(headerBuffer[:2])
+    id := p.bytesOrder().Uint16(headerBuffer[2:])
 
     data := make([]byte, size)
     if _, err := io.ReadFull(reader, data); err != nil {
@@ -273,7 +262,7 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
     entry := &message.Entry{
         // since entry.ID is type of uint16, we need to use uint16 as well when adding routes.
         // eg: server.AddRoute(uint16(123), ...)
-        ID: id,
+        ID:   id,
         Data: data,
     }
     entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
