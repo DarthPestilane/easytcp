@@ -135,9 +135,9 @@ func TestRouter_register(t *testing.T) {
 	var id = 1
 
 	rt.register(id, nil)
-	_, ok := rt.handlerMapper.Load(id)
+	_, ok := rt.handlerMapper[id]
 	assert.False(t, ok)
-	_, ok = rt.middlewaresMapper.Load(id)
+	_, ok = rt.middlewaresMapper[id]
 	assert.False(t, ok)
 
 	h := nilHandler
@@ -152,14 +152,12 @@ func TestRouter_register(t *testing.T) {
 		}
 	}
 	rt.register(id, h, m1, nil, m2)
-	v, ok := rt.handlerMapper.Load(id)
+	v, ok := rt.handlerMapper[id]
 	assert.True(t, ok)
 	expect := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	actual := runtime.FuncForPC(reflect.ValueOf(v).Pointer()).Name()
 	assert.Equal(t, expect, actual)
-	v, ok = rt.middlewaresMapper.Load(id)
-	assert.True(t, ok)
-	mhs, ok := v.([]MiddlewareFunc)
+	mhs, ok := rt.middlewaresMapper[id]
 	assert.True(t, ok)
 	expects := []MiddlewareFunc{m1, m2}
 	for i, mh := range mhs {

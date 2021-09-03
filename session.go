@@ -5,6 +5,7 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Session struct {
 	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeOutbound()
 	packer    Packer              // to pack and unpack message
 	codec     Codec               // encode/decode message data
+	ctxPool   sync.Pool
 }
 
 // SessionOption is the extra options for Session.
@@ -38,6 +40,7 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 		respQueue: make(chan *message.Entry, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
+		ctxPool:   sync.Pool{New: func() interface{} { return new(Context) }},
 	}
 }
 
@@ -91,8 +94,12 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 			continue
 		}
 
+		ctx := s.ctxPool.Get().(*Context)
+		ctx.session = s
+		ctx.reqMsgEntry = entry
+		ctx.storage = nil // reset storage
 		select {
-		case reqQueue <- &Context{session: s, reqMsgEntry: entry}:
+		case reqQueue <- ctx:
 		case <-s.closed:
 			Log.Tracef("session %s readInbound exit because session is closed", s.id)
 			return

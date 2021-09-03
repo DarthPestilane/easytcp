@@ -153,9 +153,7 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 	})
 	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		req := make(map[string]string)
-		if err := ctx.Bind(&req); err != nil {
-			panic(err)
-		}
+		ctx.MustBind(&req)
 		return ctx.Response(2, map[string]string{"data": "pong"})
 	})
 	go s.Serve(":0") // nolint
@@ -183,9 +181,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 	})
 	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		var req pb.Sample
-		if err := ctx.Bind(&req); err != nil {
-			panic(err)
-		}
+		ctx.MustBind(&req)
 		return ctx.Response(2, &pb.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
 	go s.Serve(":0") // nolint
@@ -214,9 +210,7 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 	})
 	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
 		var req msgpack.Sample
-		if err := ctx.Bind(&req); err != nil {
-			panic(err)
-		}
+		ctx.MustBind(&req)
 		return ctx.Response(2, &msgpack.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
 	go s.Serve(":0") // nolint
