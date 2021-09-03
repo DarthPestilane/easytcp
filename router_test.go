@@ -10,132 +10,122 @@ import (
 	"time"
 )
 
-func newRouter() *Router {
-	return &Router{}
-}
+func TestRouter_consumeRequest(t *testing.T) {
+	t.Run("when router is closed", func(t *testing.T) {
+		rt := newRouter(100)
 
-func TestRouter_routeLoop(t *testing.T) {
-	t.Run("when session is closed", func(t *testing.T) {
-		rt := newRouter()
-
-		sess := newSession(nil, &SessionOption{})
-		sess.Close()
-		rt.routeLoop(sess)
-	})
-	t.Run("when reqQueue is closed", func(t *testing.T) {
-		rt := newRouter()
-
-		sess := newSession(nil, &SessionOption{})
-		close(sess.reqQueue)
-		rt.routeLoop(sess)
-	})
-	t.Run("when received a nil request", func(t *testing.T) {
-		rt := newRouter()
-
-		reqCh := make(chan *message.Entry)
+		done := make(chan struct{})
 		go func() {
-			reqCh <- nil
-			close(reqCh)
+			rt.consumeRequest()
+			close(done)
 		}()
-		sess := newSession(nil, &SessionOption{})
-		go func() {
-			sess.reqQueue <- nil
-			sess.Close()
-		}()
-		rt.routeLoop(sess) // should not call to handler
+		time.Sleep(time.Millisecond * 5)
+		go rt.stop()
+		<-done
+		_, ok := <-rt.reqCtxQueue
+		assert.False(t, ok)
 	})
-	t.Run("when received a non-nil request", func(t *testing.T) {
-		t.Run("when handler returns error", func(t *testing.T) {
-			rt := newRouter()
+	t.Run("when router reqCtxQueue is closed", func(t *testing.T) {
+		rt := newRouter(100)
 
-			rt.register(1, func(ctx *Context) (*message.Entry, error) {
-				assert.EqualValues(t, ctx.Message().ID, 1)
-				assert.EqualValues(t, len(ctx.Message().Data), 4)
-				assert.Equal(t, ctx.Message().Data, []byte("test"))
-				return nil, fmt.Errorf("some err")
-			})
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		close(rt.reqCtxQueue)
+		<-done
+	})
+	t.Run("when ctx session is closed", func(t *testing.T) {
+		rt := newRouter(100)
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		sess := newSession(nil, &SessionOption{})
+		sess.close()
+		rt.reqCtxQueue <- &Context{session: sess}
+		time.Sleep(time.Millisecond * 5)
+		rt.stop()
+		<-done
+	})
+	t.Run("when ctx message entry is nil", func(t *testing.T) {
+		rt := newRouter(100)
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
+		sess := newSession(nil, &SessionOption{})
+		rt.reqCtxQueue <- &Context{session: sess}
+		time.Sleep(time.Millisecond * 5)
+		rt.stop()
+		<-done
+	})
+	t.Run("when handler returns error", func(t *testing.T) {
+		rt := newRouter(100)
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
 
-			entry := &message.Entry{
-				ID:   1,
-				Data: []byte("test"),
-			}
-			sess := newSession(nil, &SessionOption{})
-			go func() {
-				sess.reqQueue <- entry
-				sess.Close()
-			}()
-			rt.routeLoop(sess) // should receive entry only once
+		rt.register(1, func(ctx *Context) (*message.Entry, error) {
+			return nil, fmt.Errorf("some err")
 		})
-		t.Run("when handler returns nil", func(t *testing.T) {
-			rt := newRouter()
 
-			rt.register(1, nilHandler)
+		sess := newSession(nil, &SessionOption{})
+		entry := &message.Entry{ID: 1, Data: []byte("test")}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
+		time.Sleep(time.Millisecond * 5)
+		rt.stop()
+		<-done
+	})
+	t.Run("when handler returns nil response", func(t *testing.T) {
+		rt := newRouter(100)
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
 
-			entry := &message.Entry{
-				ID:   1,
-				Data: []byte("test"),
-			}
-			sess := newSession(nil, &SessionOption{})
-			go func() {
-				sess.reqQueue <- entry
-				sess.Close()
-			}()
-			loopDone := make(chan struct{})
-			go func() {
-				rt.routeLoop(sess) // should receive entry only once
-				close(loopDone)
-			}()
-			<-loopDone
+		rt.register(1, func(ctx *Context) (*message.Entry, error) {
+			return nil, nil
 		})
-		t.Run("when handler returns response and send success", func(t *testing.T) {
-			rt := newRouter()
-			var id = 1
 
-			rt.register(id, func(ctx *Context) (*message.Entry, error) {
-				return &message.Entry{}, nil
-			})
+		sess := newSession(nil, &SessionOption{})
+		entry := &message.Entry{ID: 1, Data: []byte("test")}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
+		time.Sleep(time.Millisecond * 5)
+		rt.stop()
+		<-done
+	})
+	t.Run("when send response failed", func(t *testing.T) {
+		rt := newRouter(100)
+		done := make(chan struct{})
+		go func() {
+			rt.consumeRequest()
+			close(done)
+		}()
+		time.Sleep(time.Millisecond * 5)
 
-			sess := newSession(nil, &SessionOption{})
-			go func() { <-sess.respQueue }()
-
-			entry := &message.Entry{
-				ID:   id,
-				Data: []byte("test"),
-			}
-			loopDone := make(chan struct{})
-			go func() { sess.reqQueue <- entry }()
-			go func() {
-				rt.routeLoop(sess)
-				close(loopDone)
-			}()
-			time.Sleep(time.Millisecond * 5)
-			sess.Close()
-			<-loopDone
+		rt.register(1, func(ctx *Context) (*message.Entry, error) {
+			defer ctx.session.close()
+			return &message.Entry{}, nil
 		})
-		t.Run("when handler returns response but send failed", func(t *testing.T) {
-			rt := newRouter()
-			var id = 1
 
-			rt.register(id, func(ctx *Context) (*message.Entry, error) {
-				defer ctx.Session().Close()
-				return &message.Entry{}, nil
-			})
-
-			sess := newSession(nil, &SessionOption{})
-			go func() { <-sess.respQueue }()
-
-			entry := &message.Entry{
-				ID:   id,
-				Data: []byte("test"),
-			}
-			loopDone := make(chan struct{})
-			go func() { sess.reqQueue <- entry }()
-			go func() {
-				rt.routeLoop(sess)
-				close(loopDone)
-			}()
-			<-loopDone
-		})
+		sess := newSession(nil, &SessionOption{})
+		entry := &message.Entry{ID: 1, Data: []byte("test")}
+		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
+		time.Sleep(time.Millisecond * 5)
+		rt.stop()
+		<-done
 	})
 }
 
@@ -221,12 +211,11 @@ func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
 		rt := newRouter()
 
-		msg := &message.Entry{
+		entry := &message.Entry{
 			ID:   1,
 			Data: []byte("test"),
 		}
-		sess := newSession(nil, &SessionOption{})
-		resp, err := rt.handleReq(sess, msg)
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Nil(t, err)
 		assert.Nil(t, resp)
 	})
@@ -237,12 +226,11 @@ func TestRouter_handleReq(t *testing.T) {
 			return func(ctx *Context) (*message.Entry, error) { return next(ctx) }
 		})
 
-		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleReq(sess, entry)
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Nil(t, err)
 		assert.Nil(t, resp)
 	})
@@ -253,55 +241,14 @@ func TestRouter_handleReq(t *testing.T) {
 			return nil, fmt.Errorf("some err")
 		})
 
-		sess := newSession(nil, &SessionOption{})
-		msg := &message.Entry{
+		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
 		}
-
-		resp, err := rt.handleReq(sess, msg)
+		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 	})
-	// t.Run("when handler returns a non-nil response", func(t *testing.T) {
-	// t.Run("when session send resp failed", func(t *testing.T) {
-	// 	var id = 1
-	// 	rt := newRouter()
-	//
-	// 	// register route
-	// 	rt.register(id, func(ctx *Context) (*message.Entry, error) {
-	// 		return &message.Entry{}, nil
-	// 	})
-	//
-	// 	sess := newSession(nil, &SessionOption{})
-	// 	sess.Close()
-	//
-	// 	entry := &message.Entry{
-	// 		ID:   id,
-	// 		Data: []byte("test"),
-	// 	}
-	// 	resp, err := rt.handleReq(sess, entry)
-	// 	assert.Error(t, err)
-	// })
-	// t.Run("when session send resp without error", func(t *testing.T) {
-	// 	rt := newRouter()
-	// 	var id = 1
-	//
-	// 	rt.register(id, func(ctx *Context) (*message.Entry, error) {
-	// 		return &message.Entry{}, nil
-	// 	})
-	//
-	// 	sess := newSession(nil, &SessionOption{})
-	// 	go func() { <-sess.respQueue }()
-	//
-	// 	entry := &message.Entry{
-	// 		ID:   id,
-	// 		Data: []byte("test"),
-	// 	}
-	// 	err := rt.handleReq(sess, entry)
-	// 	assert.NoError(t, err)
-	// })
-	// })
 }
 
 func TestRouter_wrapHandlers(t *testing.T) {

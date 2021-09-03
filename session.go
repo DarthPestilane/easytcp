@@ -5,7 +5,6 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -13,20 +12,17 @@ import (
 type Session struct {
 	id        string              // session's ID. it's a UUID
 	conn      net.Conn            // tcp connection
-	closeOnce sync.Once           // to make sure we can only close each session one time
 	closed    chan struct{}       // to close()
-	reqQueue  chan *message.Entry // request queue channel, pushed in readLoop() and popped in router.Router
-	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeLoop()
+	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeOutbound()
 	packer    Packer              // to pack and unpack message
 	codec     Codec               // encode/decode message data
 }
 
 // SessionOption is the extra options for Session.
 type SessionOption struct {
-	Packer          Packer
-	Codec           Codec
-	ReadBufferSize  int
-	WriteBufferSize int
+	Packer        Packer
+	Codec         Codec
+	respQueueSize int
 }
 
 // newSession creates a new Session.
@@ -39,8 +35,7 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 		id:        id,
 		conn:      conn,
 		closed:    make(chan struct{}),
-		reqQueue:  make(chan *message.Entry, opt.ReadBufferSize),
-		respQueue: make(chan *message.Entry, opt.WriteBufferSize),
+		respQueue: make(chan *message.Entry, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
 	}
@@ -53,39 +48,43 @@ func (s *Session) ID() string {
 
 // SendResp pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *Session) SendResp(respMsg *message.Entry) error {
+func (s *Session) SendResp(respMsg *message.Entry) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("sessions is closed")
+		}
+	}()
+
 	select {
+	case s.respQueue <- respMsg:
 	case <-s.closed:
-		return fmt.Errorf("sessions is closed")
-	default:
+		close(s.respQueue)
+		err = fmt.Errorf("sessions is closed")
 	}
 
-	s.respQueue <- respMsg
-	return nil
+	return
 }
 
-// Close closes the session by closing all the channels.
-func (s *Session) Close() {
-	s.closeOnce.Do(func() { close(s.closed) })
+// close closes the session.
+func (s *Session) close() {
+	defer func() { _ = recover() }()
+	close(s.closed)
 }
 
-// readLoop reads TCP connection, unpacks packet payload
-// to a MessageEntry, and push to reqQueue channel.
-// The above operations are in a loop.
-// Parameter readTimeout specified the connection reading timeout.
-// The loop will break if any error occurred, or the session is closed.
-// After loop ended, this session will be closed.
-func (s *Session) readLoop(readTimeout time.Duration) {
+// readInbound reads message packet from connection in a loop.
+// And send unpacked message to reqQueue, which will be consumed in router.
+// The loop breaks if errors occurred or the session is closed.
+func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 	for {
-		if readTimeout > 0 {
-			if err := s.conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-				Log.Errorf("session set read deadline err: %s", err)
+		if timeout > 0 {
+			if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+				Log.Errorf("session %s set read deadline err: %s", s.id, err)
 				break
 			}
 		}
 		entry, err := s.packer.Unpack(s.conn)
 		if err != nil {
-			Log.Errorf("session unpack incoming message err: %s", err)
+			Log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
 			break
 		}
 		if entry == nil {
@@ -93,56 +92,52 @@ func (s *Session) readLoop(readTimeout time.Duration) {
 		}
 
 		select {
+		case reqQueue <- &Context{session: s, reqMsgEntry: entry}:
 		case <-s.closed:
-			close(s.reqQueue) // close reqQueue only once and only in here.
-
-			Log.Tracef("session read loop exit because session is closed")
+			Log.Tracef("session %s readInbound exit because session is closed", s.id)
 			return
-		case s.reqQueue <- entry:
 		}
 	}
-	Log.Tracef("session read loop exit because of error")
-	s.Close()
+	Log.Tracef("session %s readInbound exit because of error", s.id)
+	s.close()
 }
 
-// writeLoop fetches message from respQueue channel and writes to TCP connection in a loop.
+// writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
-// The loop will break if errors occurred, or the session is closed.
-// After loop ended, this session will be closed.
-func (s *Session) writeLoop(writeTimeout time.Duration) {
+// The loop breaks if errors occurred, or the session is closed.
+func (s *Session) writeOutbound(writeTimeout time.Duration) {
 FOR:
 	for {
 		select {
 		case <-s.closed:
-			Log.Tracef("session write loop exit because session is closed")
-			close(s.respQueue) // close respQueue only once and only in here
+			Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 			return
 		case respMsg, ok := <-s.respQueue:
 			if !ok {
-				Log.Tracef("session write loop exit because session is closed")
+				Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 				return
 			}
 			// pack message
-			ackMsg, err := s.packer.Pack(respMsg)
+			outboundMsg, err := s.packer.Pack(respMsg)
 			if err != nil {
-				Log.Errorf("session pack response message err: %s", err)
+				Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 				continue
 			}
-			if ackMsg == nil {
+			if outboundMsg == nil {
 				continue
 			}
 			if writeTimeout > 0 {
 				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-					Log.Errorf("session set write deadline err: %s", err)
+					Log.Errorf("session %s set write deadline err: %s", s.id, err)
 					break FOR
 				}
 			}
-			if _, err := s.conn.Write(ackMsg); err != nil {
-				Log.Errorf("session conn write err: %s", err)
+			if _, err := s.conn.Write(outboundMsg); err != nil {
+				Log.Errorf("session %s conn write err: %s", s.id, err)
 				break FOR
 			}
 		}
 	}
-	s.Close()
-	Log.Tracef("session write loop exit because of error")
+	s.close()
+	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }

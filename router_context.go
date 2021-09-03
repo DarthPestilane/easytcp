@@ -11,9 +11,9 @@ import (
 // It allows us to pass variables between handler and middlewares.
 // Context implements the context.Context interface.
 type Context struct {
-	storage sync.Map
-	session *Session
-	reqMsg  *message.Entry
+	storage     sync.Map
+	session     *Session
+	reqMsgEntry *message.Entry
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -61,7 +61,7 @@ func (c *Context) Set(key string, value interface{}) {
 
 // Message returns the request message entry.
 func (c *Context) Message() *message.Entry {
-	return c.reqMsg
+	return c.reqMsgEntry
 }
 
 // Bind binds the request message's raw data to v.
@@ -70,7 +70,7 @@ func (c *Context) Bind(v interface{}) error {
 	if codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(c.reqMsg.Data, v)
+	return codec.Decode(c.reqMsgEntry.Data, v)
 }
 
 // MustBind binds the request message's raw data to v.
