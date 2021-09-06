@@ -11,10 +11,11 @@ import (
 // It allows us to pass variables between handler and middlewares.
 // Context implements the context.Context interface.
 type Context struct {
-	mu          sync.RWMutex
-	storage     map[string]interface{}
-	session     *Session
-	reqMsgEntry *message.Entry
+	mu        sync.RWMutex
+	storage   map[string]interface{}
+	session   *Session
+	reqEntry  *message.Entry
+	respEntry *message.Entry
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -70,7 +71,7 @@ func (c *Context) Set(key string, value interface{}) {
 
 // Message returns the request message entry.
 func (c *Context) Message() *message.Entry {
-	return c.reqMsgEntry
+	return c.reqEntry
 }
 
 // Bind binds the request message's raw data to v.
@@ -79,7 +80,7 @@ func (c *Context) Bind(v interface{}) error {
 	if codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(c.reqMsgEntry.Data, v)
+	return codec.Decode(c.reqEntry.Data, v)
 }
 
 // MustBind binds the request message's raw data to v.
@@ -113,7 +114,7 @@ func (c *Context) Session() *Session {
 }
 
 // Response creates a response message.
-func (c *Context) Response(id, data interface{}) (*message.Entry, error) {
+func (c *Context) Response(id, data interface{}) error {
 	var dataRaw []byte
 	if codec := c.session.codec; codec == nil {
 		switch v := data.(type) {
@@ -128,36 +129,45 @@ func (c *Context) Response(id, data interface{}) (*message.Entry, error) {
 		case fmt.Stringer:
 			dataRaw = []byte(v.String())
 		default:
-			return nil, fmt.Errorf("data should be []byte, string or Stringer")
+			return fmt.Errorf("data should be []byte, string or Stringer")
 		}
 	} else {
 		var err error
 		dataRaw, err = codec.Encode(data)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	respMsg := &message.Entry{
+	c.respEntry = &message.Entry{
 		ID:   id,
 		Data: dataRaw,
 	}
-	return respMsg, nil
+	return nil
 }
 
 // SendTo sends response message to the specified session.
 func (c *Context) SendTo(sess *Session, id, data interface{}) error {
-	entry, err := c.Response(id, data)
-	if err != nil {
+	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return sess.SendResp(entry)
+	return sess.SendResp(c)
 }
 
 // Send sends response message to current session.
 func (c *Context) Send(id, data interface{}) error {
-	entry, err := c.Response(id, data)
-	if err != nil {
+	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return c.session.SendResp(entry)
+	return c.session.SendResp(c)
+}
+
+func (c *Context) GetResponse() *message.Entry {
+	return c.respEntry
+}
+
+func (c *Context) reset(sess *Session, reqEntry *message.Entry) {
+	c.session = sess
+	c.reqEntry = reqEntry
+	c.respEntry = nil
+	c.storage = nil
 }

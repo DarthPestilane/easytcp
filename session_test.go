@@ -123,7 +123,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		ctx := <-queue
 		time.Sleep(time.Millisecond * 5)
 		sess.close() // close session once we fetched a req from channel
-		assert.Equal(t, msg, ctx.reqMsgEntry)
+		assert.Equal(t, msg, ctx.reqEntry)
 		<-readDone
 	})
 }
@@ -136,7 +136,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 		}
 		sess := newSession(nil, &SessionOption{})
 		sess.close() // close session
-		assert.Error(t, sess.SendResp(entry))
+		assert.Error(t, sess.SendResp(&Context{respEntry: entry}))
 	})
 	t.Run("when session respQueue is closed", func(t *testing.T) {
 		sess := newSession(nil, &SessionOption{})
@@ -150,9 +150,9 @@ func TestTCPSession_SendResp(t *testing.T) {
 		}
 
 		sess := newSession(nil, &SessionOption{})
-		sess.respQueue = make(chan *message.Entry) // no buffer
+		sess.respQueue = make(chan *Context) // no buffer
 		go func() { <-sess.respQueue }()
-		assert.NoError(t, sess.SendResp(entry))
+		assert.NoError(t, sess.SendResp(&Context{respEntry: entry}))
 		sess.close()
 	})
 }
@@ -183,7 +183,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 1024})
-		sess.respQueue <- &message.Entry{}
+		sess.respQueue <- &Context{respEntry: &message.Entry{}}
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0) // should stop looping and return
@@ -205,7 +205,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := newSession(nil, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- entry }()
+		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		time.Sleep(time.Microsecond * 15)
 		go sess.writeOutbound(0)
 		time.Sleep(time.Millisecond * 15)
@@ -223,7 +223,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
 
 		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 100})
-		sess.respQueue <- entry // push to queue
+		sess.respQueue <- &Context{respEntry: entry} // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0)
@@ -246,7 +246,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
 		sess := newSession(p1, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- entry }()
+		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		go sess.writeOutbound(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -264,7 +264,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, _ := net.Pipe()
 		sess := newSession(p1, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- entry }()
+		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		go sess.writeOutbound(time.Millisecond * 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -284,7 +284,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- entry }()
+		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		sess.writeOutbound(0) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -303,7 +303,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &SessionOption{Packer: packer})
 		go func() {
-			_ = sess.SendResp(entry)
+			_ = sess.SendResp(&Context{respEntry: entry})
 		}()
 		done := make(chan struct{})
 		go func() {

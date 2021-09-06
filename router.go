@@ -2,7 +2,6 @@ package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"reflect"
@@ -17,7 +16,7 @@ func newRouter(queueSize ...int) *Router {
 		}
 	}
 	return &Router{
-		reqCtxQueue:       make(chan *Context, size),
+		reqQueue:          make(chan *Context, size),
 		stopped:           make(chan struct{}),
 		handlerMapper:     make(map[interface{}]HandlerFunc),
 		middlewaresMapper: make(map[interface{}][]MiddlewareFunc),
@@ -40,25 +39,25 @@ type Router struct {
 	globalMiddlewares []MiddlewareFunc
 
 	notFoundHandler HandlerFunc
-	reqCtxQueue     chan *Context
+	reqQueue        chan *Context
 	stopped         chan struct{}
 }
 
 // HandlerFunc is the function type for handlers.
-type HandlerFunc func(ctx *Context) (*message.Entry, error)
+type HandlerFunc func(ctx *Context) error
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
 //
 // 	var md MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-// 		return func(ctx *Context) (message.Entry, error) {
+// 		return func(ctx *Context) error {
 // 			return next(ctx)
 // 		}
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
-	return nil, nil
+var nilHandler HandlerFunc = func(ctx *Context) error {
+	return nil
 }
 
 // stop stops the router.
@@ -66,40 +65,30 @@ func (r *Router) stop() {
 	close(r.stopped)
 }
 
-// consumeRequest fetches context from reqCtxQueue, and handle it.
+// consumeRequest fetches context from reqQueue, and handle it.
 func (r *Router) consumeRequest() {
 	defer Log.Tracef("router stopped")
 	for {
 		select {
 		case <-r.stopped:
-			close(r.reqCtxQueue)
+			close(r.reqQueue)
 			return
-		case reqCtx, ok := <-r.reqCtxQueue:
+		case ctx, ok := <-r.reqQueue:
 			if !ok {
 				return
 			}
 			select {
-			case <-reqCtx.session.closed:
-				reqCtx.session.ctxPool.Put(reqCtx)
+			case <-ctx.session.closed:
 				continue
 			default:
 			}
-			if reqCtx.reqMsgEntry == nil {
-				reqCtx.session.ctxPool.Put(reqCtx)
-				continue
-			}
 
 			go func() {
-				defer reqCtx.session.ctxPool.Put(reqCtx)
-				respEntry, err := r.handleRequest(reqCtx)
-				if err != nil {
+				if err := r.handleRequest(ctx); err != nil {
 					Log.Errorf("router handle request err: %s", err)
 					return
 				}
-				if respEntry == nil {
-					return
-				}
-				if err := reqCtx.session.SendResp(respEntry); err != nil {
+				if err := ctx.session.SendResp(ctx); err != nil {
 					Log.Errorf("router send resp err: %s", err)
 				}
 			}()
@@ -109,14 +98,17 @@ func (r *Router) consumeRequest() {
 
 // handleRequest walks ctx through middlewares and handler,
 // and returns response message entry.
-func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
+func (r *Router) handleRequest(ctx *Context) error {
+	if ctx.reqEntry == nil {
+		return nil
+	}
 	var handler HandlerFunc
-	if v, has := r.handlerMapper[ctx.reqMsgEntry.ID]; has {
+	if v, has := r.handlerMapper[ctx.reqEntry.ID]; has {
 		handler = v
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper[ctx.reqMsgEntry.ID]; has {
+	if v, has := r.middlewaresMapper[ctx.reqEntry.ID]; has {
 		mws = append(mws, v...) // append to global ones
 	}
 
@@ -132,11 +124,13 @@ func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
 // 	var wrapped HandlerFunc = m1(m2(m3(handle)))
 func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wrapped HandlerFunc) {
 	if handler == nil {
-		handler = r.notFoundHandler
+		if r.notFoundHandler != nil {
+			handler = r.notFoundHandler
+		} else {
+			handler = nilHandler
+		}
 	}
-	if handler == nil {
-		handler = nilHandler
-	}
+
 	wrapped = handler
 	for i := len(middles) - 1; i >= 0; i-- {
 		m := middles[i]

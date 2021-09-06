@@ -5,7 +5,6 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/simple/common"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -44,7 +43,7 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
-	s.AddRoute(common.MsgIdPingReq, func(c *easytcp.Context) (*message.Entry, error) {
+	s.AddRoute(common.MsgIdPingReq, func(c *easytcp.Context) error {
 		return c.Response(common.MsgIdPingAck, "pong, pong, pong")
 	})
 
@@ -64,9 +63,10 @@ func main() {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(c *easytcp.Context) (resp *message.Entry, err error) {
+	return func(c *easytcp.Context) (err error) {
 		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", c.Message().ID, len(c.Message().Data), c.Message().Data)
 		defer func() {
+			resp := c.GetResponse()
 			if err != nil || resp == nil {
 				return
 			}

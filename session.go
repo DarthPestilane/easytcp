@@ -2,7 +2,6 @@ package easytcp
 
 import (
 	"fmt"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
 	"sync"
@@ -11,13 +10,13 @@ import (
 
 // Session represents a TCP session.
 type Session struct {
-	id        string              // session's ID. it's a UUID
-	conn      net.Conn            // tcp connection
-	closed    chan struct{}       // to close()
-	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeOutbound()
-	packer    Packer              // to pack and unpack message
-	codec     Codec               // encode/decode message data
-	ctxPool   sync.Pool           // router context pool
+	id        string        // session's ID. it's a UUID
+	conn      net.Conn      // tcp connection
+	closed    chan struct{} // to close()
+	respQueue chan *Context // response queue channel, pushed in SendResp() and popped in writeOutbound()
+	packer    Packer        // to pack and unpack message
+	codec     Codec         // encode/decode message data
+	ctxPool   sync.Pool     // router context pool
 }
 
 // SessionOption is the extra options for Session.
@@ -36,7 +35,7 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 		id:        uuid.NewString(),
 		conn:      conn,
 		closed:    make(chan struct{}),
-		respQueue: make(chan *message.Entry, opt.respQueueSize),
+		respQueue: make(chan *Context, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
 		ctxPool:   sync.Pool{New: func() interface{} { return new(Context) }},
@@ -50,7 +49,7 @@ func (s *Session) ID() string {
 
 // SendResp pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *Session) SendResp(respMsg *message.Entry) (err error) {
+func (s *Session) SendResp(ctx *Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("sessions is closed")
@@ -58,7 +57,7 @@ func (s *Session) SendResp(respMsg *message.Entry) (err error) {
 	}()
 
 	select {
-	case s.respQueue <- respMsg:
+	case s.respQueue <- ctx:
 	case <-s.closed:
 		close(s.respQueue)
 		err = fmt.Errorf("sessions is closed")
@@ -84,19 +83,18 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 				break
 			}
 		}
-		entry, err := s.packer.Unpack(s.conn)
+		reqEntry, err := s.packer.Unpack(s.conn)
 		if err != nil {
 			Log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
 			break
 		}
-		if entry == nil {
+		if reqEntry == nil {
 			continue
 		}
 
 		ctx := s.ctxPool.Get().(*Context)
-		ctx.session = s
-		ctx.reqMsgEntry = entry
-		ctx.storage = nil // reset storage
+		ctx.reset(s, reqEntry)
+
 		select {
 		case reqQueue <- ctx:
 		case <-s.closed:
@@ -118,13 +116,19 @@ FOR:
 		case <-s.closed:
 			Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 			return
-		case respMsg, ok := <-s.respQueue:
+		case ctx, ok := <-s.respQueue:
 			if !ok {
 				Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
 				return
 			}
+
+			s.ctxPool.Put(ctx)
+
+			if ctx.respEntry == nil {
+				continue
+			}
 			// pack message
-			outboundMsg, err := s.packer.Pack(respMsg)
+			outboundMsg, err := s.packer.Pack(ctx.respEntry)
 			if err != nil {
 				Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 				continue
