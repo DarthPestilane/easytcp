@@ -61,10 +61,12 @@ var nilHandler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
 	return nil, nil
 }
 
+// stop stops the router.
 func (r *Router) stop() {
 	close(r.stopped)
 }
 
+// consumeRequest fetches context from reqCtxQueue, and handle it.
 func (r *Router) consumeRequest() {
 	defer Log.Tracef("router stopped")
 	for {
@@ -105,6 +107,8 @@ func (r *Router) consumeRequest() {
 	}
 }
 
+// handleRequest walks ctx through middlewares and handler,
+// and returns response message entry.
 func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
 	var handler HandlerFunc
 	if v, has := r.handlerMapper[ctx.reqMsgEntry.ID]; has {
