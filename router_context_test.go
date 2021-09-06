@@ -265,3 +265,31 @@ func TestContext_MustDecodeTo_when_decode_fail(t *testing.T) {
 		ctx.MustDecodeTo([]byte(`{"data":"test"}`), &dst)
 	})
 }
+
+func TestContext_SendTo(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	sess2 := newSession(nil, &SessionOption{})
+	go func() { <-sess2.respQueue }()
+	assert.NoError(t, ctx.SendTo(sess2, 1, []byte("test")))
+}
+
+func TestContext_SendTo_when_error(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	sess2 := newSession(nil, &SessionOption{})
+	assert.Error(t, ctx.SendTo(sess2, 1, 1234))
+}
+
+func TestContext_Send(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	go func() { <-sess.respQueue }()
+	assert.NoError(t, ctx.Send(1, []byte("test")))
+}
+
+func TestContext_Send_when_error(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	assert.Error(t, ctx.Send(1, 1234))
+}

@@ -143,3 +143,21 @@ func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, er
 	}
 	return respMsg, nil
 }
+
+// SendTo sends response message to the specified session.
+func (c *Context) SendTo(sess *Session, id, data interface{}) error {
+	entry, err := c.Response(id, data)
+	if err != nil {
+		return err
+	}
+	return sess.SendResp(entry)
+}
+
+// Send sends response message to current session.
+func (c *Context) Send(id, data interface{}) error {
+	entry, err := c.Response(id, data)
+	if err != nil {
+		return err
+	}
+	return c.session.SendResp(entry)
+}

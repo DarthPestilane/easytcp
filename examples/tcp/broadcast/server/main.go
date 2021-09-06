@@ -34,12 +34,8 @@ func main() {
 			if ctx.Session().ID() == id {
 				return true // next iteration
 			}
-			msg, err := ctx.Response(common.MsgIdBroadCastAck, fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID()))
-			if err != nil {
-				log.Errorf("create response err: %s", err)
-				return true
-			}
-			if err := sess.SendResp(msg); err != nil {
+			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
+			if err := ctx.SendTo(sess, common.MsgIdBroadCastAck, respData); err != nil {
 				log.Errorf("broadcast err: %s", err)
 			}
 			return true
