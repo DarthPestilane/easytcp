@@ -56,3 +56,7 @@ ifeq (${os}, $(filter ${os}, Windows Windows_NT)) # If on windows, there might b
 else
 	go generate
 endif
+
+.PHONY: clean
+clean:
+	go clean -r -x -cache -i
