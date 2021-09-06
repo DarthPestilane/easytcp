@@ -33,12 +33,7 @@ $ ./start
 
 `EasyTCP` helps you build a TCP server easily and fast.
 
-This package, so far, has been tested with
-
-- go1.14.x
-- go1.15.x
-- go1.16.x
-- go1.17.x
+This package, so far, has been tested with go1.14 ~ go1.17
 
 on the latest Linux, Macos and Windows.
 
@@ -346,3 +341,7 @@ Use issues for everything
   - Reporting issues
   - Suggesting new features or enhancements
   - Improve/fix documentation
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/DarthPestilane/easytcp.svg)](https://starchart.cc/DarthPestilane/easytcp)
