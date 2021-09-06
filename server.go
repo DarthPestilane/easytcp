@@ -101,6 +101,13 @@ func (s *Server) Serve(addr string) error {
 func (s *Server) acceptLoop() error {
 	close(s.accepting)
 	for {
+		select {
+		case <-s.stopped:
+			Log.Tracef("server accept loop stopped")
+			return ErrServerStopped
+		default:
+		}
+
 		conn, err := s.Listener.Accept()
 		if err != nil {
 			select {
@@ -166,6 +173,9 @@ func (s *Server) handleConn(conn net.Conn) {
 
 // Stop stops server by closing all the TCP sessions, listener and the router.
 func (s *Server) Stop() error {
+	close(s.stopped)
+
+	// close all sessions
 	closedNum := 0
 	Sessions().Range(func(id string, sess *Session) (next bool) {
 		sess.close()
@@ -173,8 +183,8 @@ func (s *Server) Stop() error {
 		return true
 	})
 	Log.Tracef("%d session(s) closed", closedNum)
+
 	s.router.stop()
-	close(s.stopped)
 	return s.Listener.Close()
 }
 

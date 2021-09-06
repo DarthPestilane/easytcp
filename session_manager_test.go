@@ -20,29 +20,29 @@ func TestSessions(t *testing.T) {
 	assert.Equal(t, manager, Sessions())
 }
 
-func TestManager_Add(t *testing.T) {
+func TestManager_AddGetAndRemove(t *testing.T) {
 	mg := &SessionManager{}
+
+	// should not add nil
 	assert.NotPanics(t, func() { mg.Add(nil) })
 
-	sess := newSession(nil, &SessionOption{})
-
-	mg.Add(sess)
-
-	v, ok := mg.Sessions.Load(sess.ID())
-	assert.True(t, ok)
-	assert.Equal(t, v, sess)
-}
-
-func TestManager_Get(t *testing.T) {
-	mg := &SessionManager{}
 	assert.Nil(t, mg.Get("not found"))
 
-	sess := newSession(nil, &SessionOption{})
-
-	mg.Sessions.Store(sess.ID(), sess)
-	s := mg.Get(sess.ID())
-	assert.NotNil(t, s)
-	assert.Equal(t, s, sess)
+	wg := sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sess := newSession(nil, &SessionOption{})
+			mg.Add(sess)
+			s := mg.Get(sess.id)
+			assert.NotNil(t, s)
+			assert.Equal(t, s, sess)
+			mg.Remove(sess.id)
+			assert.Nil(t, mg.Get(sess.id))
+		}()
+	}
+	wg.Wait()
 }
 
 func TestManager_Range(t *testing.T) {
@@ -55,25 +55,30 @@ func TestManager_Range(t *testing.T) {
 	assert.Zero(t, count)
 
 	sess := newSession(nil, &SessionOption{})
-
+	sess2 := newSession(nil, &SessionOption{})
 	mg.Add(sess)
-	count = 0
-	mg.Range(func(id string, s *Session) (next bool) {
-		assert.Equal(t, sess.ID(), id)
-		assert.Equal(t, s, sess)
-		count++
-		return true
-	})
-	assert.Equal(t, count, 1)
-}
+	mg.Add(sess2)
 
-func TestManager_Remove(t *testing.T) {
-	mg := &SessionManager{}
-	assert.NotPanics(t, func() {
-		mg.Remove("not found")
-	})
-	mg.Sessions.Store("test", "test")
-	mg.Remove("test")
-	_, found := mg.Sessions.Load("test")
-	assert.False(t, found)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		count := 0
+		mg.Range(func(id string, s *Session) (next bool) {
+			count++
+			return false
+		})
+		assert.Equal(t, count, 1)
+	}()
+
+	go func() {
+		defer wg.Done()
+		count := 0
+		mg.Range(func(id string, s *Session) (next bool) {
+			count++
+			return true
+		})
+		assert.Equal(t, count, 2)
+	}()
+	wg.Wait()
 }

@@ -11,9 +11,8 @@ var (
 
 // SessionManager manages all the sessions in application runtime.
 type SessionManager struct {
-	// Sessions keeps all sessions.
-	// Key is session's ID, value is *Session
-	Sessions sync.Map
+	mu       sync.RWMutex
+	sessions map[string]*Session
 }
 
 // Sessions returns a SessionManager pointer in a singleton way.
@@ -30,29 +29,39 @@ func (m *SessionManager) Add(s *Session) {
 	if s == nil {
 		return
 	}
-	m.Sessions.Store(s.ID(), s)
+	m.mu.Lock()
+	if m.sessions == nil {
+		m.sessions = make(map[string]*Session)
+	}
+	m.sessions[s.id] = s
+	m.mu.Unlock()
 }
 
 // Remove removes a session from Sessions.
 // Parameter id should be the session's id.
 func (m *SessionManager) Remove(id string) {
-	m.Sessions.Delete(id)
+	m.mu.Lock()
+	delete(m.sessions, id)
+	m.mu.Unlock()
 }
 
 // Get returns a Session when found by the id,
 // returns nil otherwise.
 func (m *SessionManager) Get(id string) *Session {
-	sess, ok := m.Sessions.Load(id)
-	if !ok {
-		return nil
-	}
-	return sess.(*Session)
+	m.mu.RLock()
+	sess := m.sessions[id]
+	m.mu.RUnlock()
+	return sess
 }
 
 // Range calls fn sequentially for each id and sess present in the Sessions.
 // If fn returns false, range stops the iteration.
 func (m *SessionManager) Range(fn func(id string, sess *Session) (next bool)) {
-	m.Sessions.Range(func(key, value interface{}) bool {
-		return fn(key.(string), value.(*Session))
-	})
+	m.mu.RLock()
+	for id, sess := range m.sessions {
+		if !fn(id, sess) {
+			break
+		}
+	}
+	m.mu.RUnlock()
 }

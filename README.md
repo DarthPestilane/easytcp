@@ -118,7 +118,6 @@ in [examples/tcp](./examples/tcp).
 | OneRouteProtobufCodec-8 | 250000 | 6687 ns/op | 384 B/op  | 8 allocs/op  |                               |
 | OneRouteMsgpackCodec-8  | 250000 | 8215 ns/op | 607 B/op  | 11 allocs/op |                               |
 
-
 ## Architecture
 
 ```
