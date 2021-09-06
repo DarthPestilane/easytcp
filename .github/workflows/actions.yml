@@ -26,6 +26,9 @@ jobs:
           skip-pkg-cache: true
           skip-build-cache: true
 
+      - name: Refresh GoReport
+        run: curl -XPOST --data 'repo=github.com/darthPestilane/easytcp' 'https://goreportcard.com/checks'
+
   test:
     env:
       CGO_ENABLED: 0
