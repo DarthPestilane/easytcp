@@ -21,7 +21,7 @@ func init() {
 
 func main() {
 	s := easytcp.NewServer(&easytcp.ServerOption{
-		Packer: &easytcp.DefaultPacker{},
+		Packer: easytcp.NewDefaultPacker(),
 	})
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)

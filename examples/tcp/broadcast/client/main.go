@@ -17,7 +17,7 @@ var packer easytcp.Packer
 func init() {
 	log = logrus.New()
 	log.SetLevel(logrus.DebugLevel)
-	packer = &easytcp.DefaultPacker{}
+	packer = easytcp.NewDefaultPacker()
 }
 
 func main() {
