@@ -112,17 +112,19 @@ in [examples/tcp](./examples/tcp).
 - goos: darwin
 - goarch: amd64
 
-| Benchmark name                    | (1)    | (2)        | (3)       | (4)          | remark                        |
-| --------------------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
-| Benchmark_NoRoute-8               | 250000 | 9445 ns/op | 159 B/op  | 3 allocs/op  |                               |
-| Benchmark_NotFoundHandler-8       | 250000 | 5813 ns/op | 573 B/op  | 6 allocs/op  |                               |
-| Benchmark_OneHandler-8            | 250000 | 5062 ns/op | 302 B/op  | 6 allocs/op  |                               |
-| Benchmark_ManyHandlers-8          | 250000 | 7728 ns/op | 536 B/op  | 11 allocs/op |                               |
-| Benchmark_OneRouteSet-8           | 250000 | 4611 ns/op | 511 B/op  | 11 allocs/op |                               |
-| Benchmark_OneRouteJsonCodec-8     | 250000 | 7673 ns/op | 1412 B/op | 22 allocs/op | build with `encoding/json`    |
-| Benchmark_OneRouteJsonCodec-8     | 250000 | 8370 ns/op | 1406 B/op | 17 allocs/op | build with `json-jsoniter/go` |
-| Benchmark_OneRouteProtobufCodec-8 | 250000 | 7771 ns/op | 407 B/op  | 8 allocs/op  |                               |
-| Benchmark_OneRouteMsgpackCodec-8  | 250000 | 9229 ns/op | 529 B/op  | 10 allocs/op |                               |
+| Benchmark name          | (1)    | (2)        | (3)       | (4)          | remark                        |
+| ----------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
+| NoRoute-8               | 250000 | 8535 ns/op | 95 B/op   | 2 allocs/op  |                               |
+| NotFoundHandler-8       | 250000 | 5545 ns/op | 542 B/op  | 6 allocs/op  |                               |
+| OneHandler-8            | 250000 | 4822 ns/op | 260 B/op  | 5 allocs/op  |                               |
+| ManyHandlers-8          | 250000 | 7512 ns/op | 387 B/op  | 9 allocs/op  |                               |
+| OneRouteCtxGetSet-8     | 250000 | 5328 ns/op | 485 B/op  | 7 allocs/op  |                               |
+| OneRouteMessageGetSet-8 | 250000 | 5124 ns/op | 535 B/op  | 8 allocs/op  |                               |
+| OneRouteJsonCodec-8     | 250000 | 7815 ns/op | 1342 B/op | 21 allocs/op | built with `encoding/json`    |
+| OneRouteJsonCodec-8     | 250000 | 9483 ns/op | 1386 B/op | 17 allocs/op | built with `json-jsoniter/go` |
+| OneRouteProtobufCodec-8 | 250000 | 6687 ns/op | 384 B/op  | 8 allocs/op  |                               |
+| OneRouteMsgpackCodec-8  | 250000 | 8215 ns/op | 607 B/op  | 11 allocs/op |                               |
+
 
 ## Architecture
 
