@@ -32,9 +32,8 @@ type SessionOption struct {
 // opt includes packer, codec, and channel size.
 // Returns a Session pointer.
 func newSession(conn net.Conn, opt *SessionOption) *Session {
-	id := uuid.NewString()
 	return &Session{
-		id:        id,
+		id:        uuid.NewString(),
 		conn:      conn,
 		closed:    make(chan struct{}),
 		respQueue: make(chan *message.Entry, opt.respQueueSize),

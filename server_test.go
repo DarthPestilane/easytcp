@@ -98,6 +98,19 @@ func TestServer_acceptLoop(t *testing.T) {
 		<-server.accepting
 		time.Sleep(time.Millisecond * 20)
 	})
+	t.Run("when server is stopped", func(t *testing.T) {
+		server := NewServer(&ServerOption{
+			SocketReadBufferSize:  1024,
+			SocketWriteBufferSize: 1024,
+		})
+		address, err := net.ResolveTCPAddr("tcp", "localhost:0")
+		assert.NoError(t, err)
+		lis, err := net.ListenTCP("tcp", address)
+		assert.NoError(t, err)
+		server.Listener = lis
+		assert.NoError(t, server.Stop())
+		assert.ErrorIs(t, server.acceptLoop(), ErrServerStopped)
+	})
 }
 
 func TestServer_Stop(t *testing.T) {
