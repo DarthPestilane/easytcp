@@ -16,7 +16,7 @@ func main() {
 		panic(err)
 	}
 	log := logrus.New()
-	packer := &easytcp.DefaultPacker{}
+	packer := easytcp.NewDefaultPacker()
 	go func() {
 		// write loop
 		for {
