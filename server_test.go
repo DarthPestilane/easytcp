@@ -25,9 +25,7 @@ func TestNewServer(t *testing.T) {
 func TestServer_Serve(t *testing.T) {
 	server := NewServer(&ServerOption{})
 	go func() {
-		err := server.Serve("localhost:0")
-		assert.Error(t, err)
-		assert.Equal(t, err, ErrServerStopped)
+		assert.ErrorIs(t, server.Serve("localhost:0"), ErrServerStopped)
 	}()
 	<-server.accepting
 	err := server.Stop()
@@ -55,6 +53,9 @@ func TestServer_acceptLoop(t *testing.T) {
 		// client
 		cli, err := net.Dial("tcp", lis.Addr().String())
 		assert.NoError(t, err)
+
+		time.Sleep(time.Millisecond * 5)
+
 		assert.NoError(t, cli.Close())
 		assert.NoError(t, server.Stop())
 	})
@@ -67,12 +68,7 @@ func TestServer_acceptLoop(t *testing.T) {
 		listen := mock.NewMockListener(ctrl)
 		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
 		server.Listener = listen
-		done := make(chan struct{})
-		go func() {
-			assert.Error(t, server.acceptLoop())
-			close(done)
-		}()
-		<-done
+		assert.Error(t, server.acceptLoop())
 	})
 	t.Run("when accept returns a temporary error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -91,12 +87,7 @@ func TestServer_acceptLoop(t *testing.T) {
 		listen := mock.NewMockListener(ctrl)
 		listen.EXPECT().Accept().MinTimes(1).Return(nil, tempErr)
 		server.Listener = listen
-		go func() {
-			assert.Error(t, server.acceptLoop())
-		}()
-		time.Sleep(time.Millisecond * 5)
-		<-server.accepting
-		time.Sleep(time.Millisecond * 20)
+		assert.Error(t, server.acceptLoop())
 	})
 	t.Run("when server is stopped", func(t *testing.T) {
 		server := NewServer(&ServerOption{
@@ -127,7 +118,7 @@ func TestServer_Stop(t *testing.T) {
 	cli, err := net.Dial("tcp", server.Listener.Addr().String())
 	assert.NoError(t, err)
 
-	<-time.After(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 5)
 
 	assert.NoError(t, server.Stop()) // stop server first
 	assert.NoError(t, cli.Close())
