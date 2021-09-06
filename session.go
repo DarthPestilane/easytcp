@@ -17,7 +17,7 @@ type Session struct {
 	respQueue chan *message.Entry // response queue channel, pushed in SendResp() and popped in writeOutbound()
 	packer    Packer              // to pack and unpack message
 	codec     Codec               // encode/decode message data
-	ctxPool   sync.Pool
+	ctxPool   sync.Pool           // router context pool
 }
 
 // SessionOption is the extra options for Session.

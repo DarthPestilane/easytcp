@@ -113,7 +113,7 @@ func (c *Context) Session() *Session {
 }
 
 // Response creates a response message.
-func (c *Context) Response(id interface{}, data interface{}) (*message.Entry, error) {
+func (c *Context) Response(id, data interface{}) (*message.Entry, error) {
 	var dataRaw []byte
 	if codec := c.session.codec; codec == nil {
 		switch v := data.(type) {
