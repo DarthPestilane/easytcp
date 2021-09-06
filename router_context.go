@@ -11,7 +11,8 @@ import (
 // It allows us to pass variables between handler and middlewares.
 // Context implements the context.Context interface.
 type Context struct {
-	storage     sync.Map
+	mu          sync.RWMutex
+	storage     map[string]interface{}
 	session     *Session
 	reqMsgEntry *message.Entry
 }
@@ -41,8 +42,11 @@ func (c *Context) Value(key interface{}) interface{} {
 }
 
 // Get returns the value from c.storage by key.
-func (c *Context) Get(key string) (interface{}, bool) {
-	return c.storage.Load(key)
+func (c *Context) Get(key string) (value interface{}, exists bool) {
+	c.mu.RLock()
+	value, exists = c.storage[key]
+	c.mu.RUnlock()
+	return
 }
 
 // MustGet returns the value from c.storage by key.
@@ -56,7 +60,12 @@ func (c *Context) MustGet(key string) interface{} {
 
 // Set sets the value in c.storage.
 func (c *Context) Set(key string, value interface{}) {
-	c.storage.Store(key, value)
+	c.mu.Lock()
+	if c.storage == nil {
+		c.storage = make(map[string]interface{})
+	}
+	c.storage[key] = value
+	c.mu.Unlock()
 }
 
 // Message returns the request message entry.

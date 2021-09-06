@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"runtime"
-	"sync"
 )
 
 func newRouter(queueSize ...int) *Router {
@@ -18,8 +17,10 @@ func newRouter(queueSize ...int) *Router {
 		}
 	}
 	return &Router{
-		reqCtxQueue: make(chan *Context, size),
-		stopped:     make(chan struct{}),
+		reqCtxQueue:       make(chan *Context, size),
+		stopped:           make(chan struct{}),
+		handlerMapper:     make(map[interface{}]HandlerFunc),
+		middlewaresMapper: make(map[interface{}][]MiddlewareFunc),
 	}
 }
 
@@ -28,11 +29,11 @@ func newRouter(queueSize ...int) *Router {
 type Router struct {
 	// handlerMapper maps message's ID to handler.
 	// Handler will be called around middlewares.
-	handlerMapper sync.Map
+	handlerMapper map[interface{}]HandlerFunc
 
 	// middlewaresMapper maps message's ID to a list of middlewares.
 	// These middlewares will be called before the handler in handlerMapper.
-	middlewaresMapper sync.Map
+	middlewaresMapper map[interface{}][]MiddlewareFunc
 
 	// globalMiddlewares is a list of MiddlewareFunc.
 	// globalMiddlewares will be called before the ones in middlewaresMapper.
@@ -77,14 +78,17 @@ func (r *Router) consumeRequest() {
 			}
 			select {
 			case <-reqCtx.session.closed:
+				reqCtx.session.ctxPool.Put(reqCtx)
 				continue
 			default:
 			}
 			if reqCtx.reqMsgEntry == nil {
+				reqCtx.session.ctxPool.Put(reqCtx)
 				continue
 			}
 
 			go func() {
+				defer reqCtx.session.ctxPool.Put(reqCtx)
 				respEntry, err := r.handleRequest(reqCtx)
 				if err != nil {
 					Log.Errorf("router handle request err: %s", err)
@@ -103,13 +107,13 @@ func (r *Router) consumeRequest() {
 
 func (r *Router) handleRequest(ctx *Context) (*message.Entry, error) {
 	var handler HandlerFunc
-	if v, has := r.handlerMapper.Load(ctx.reqMsgEntry.ID); has {
-		handler = v.(HandlerFunc)
+	if v, has := r.handlerMapper[ctx.reqMsgEntry.ID]; has {
+		handler = v
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper.Load(ctx.reqMsgEntry.ID); has {
-		mws = append(mws, v.([]MiddlewareFunc)...) // append to global ones
+	if v, has := r.middlewaresMapper[ctx.reqMsgEntry.ID]; has {
+		mws = append(mws, v...) // append to global ones
 	}
 
 	// create the handlers stack
@@ -140,7 +144,7 @@ func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wr
 // register stores handler and middlewares for id.
 func (r *Router) register(id interface{}, h HandlerFunc, m ...MiddlewareFunc) {
 	if h != nil {
-		r.handlerMapper.Store(id, h)
+		r.handlerMapper[id] = h
 	}
 	ms := make([]MiddlewareFunc, 0, len(m))
 	for _, mm := range m {
@@ -149,7 +153,7 @@ func (r *Router) register(id interface{}, h HandlerFunc, m ...MiddlewareFunc) {
 		}
 	}
 	if len(ms) != 0 {
-		r.middlewaresMapper.Store(id, ms)
+		r.middlewaresMapper[id] = ms
 	}
 }
 
@@ -168,12 +172,10 @@ func (r *Router) printHandlers(addr string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Message ID", "Route Handler"})
 	table.SetAutoFormatHeaders(false)
-	r.handlerMapper.Range(func(key, value interface{}) bool {
-		id := key
-		handlerName := runtime.FuncForPC(reflect.ValueOf(value.(HandlerFunc)).Pointer()).Name()
+	for id, h := range r.handlerMapper {
+		handlerName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 		table.Append([]string{fmt.Sprintf("%v", id), handlerName})
-		return true
-	})
+	}
 	table.Render()
 	fmt.Printf("[EASYTCP] Serving at: %s\n\n", addr)
 }
