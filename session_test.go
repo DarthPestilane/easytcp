@@ -176,6 +176,16 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		<-doneLoop
 	})
 	t.Run("when respQueue is closed", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{})
+		close(sess.respQueue)
+		doneLoop := make(chan struct{})
+		go func() {
+			sess.writeOutbound(0) // should stop looping and return
+			close(doneLoop)
+		}()
+		<-doneLoop
+	})
+	t.Run("when response entry is nil", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -183,7 +193,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 1024})
-		sess.respQueue <- &Context{respEntry: &message.Entry{}}
+		sess.respQueue <- &Context{respEntry: nil}
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0) // should stop looping and return
