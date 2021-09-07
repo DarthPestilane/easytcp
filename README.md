@@ -1,9 +1,29 @@
 # EasyTCP
 
+<p>
+    <a href="https://github.com/avelino/awesome-go#networking">
+        <img src="https://img.shields.io/badge/-awesome-lightgrey?style=flat-square&logo=awesomelists&logoColor=black&labelColor=CCA6C4&color=494368" alt="Awesome List">
+    </a>
+    <a href="https://github.com/DarthPestilane/easytcp/actions">
+        <img src="https://img.shields.io/github/workflow/status/DarthPestilane/easytcp/actions/master?style=flat-square" alt="GitHub Workflow Status">
+    </a>
+    <a href="https://codecov.io/gh/DarthPestilane/easytcp">
+        <img src="https://img.shields.io/codecov/c/github/DarthPestilane/easytcp/master?token=002KJ5IV4Z&style=flat-square" alt="Codecov">
+    </a>
+    <a href="https://goreportcard.com/report/github.com/DarthPestilane/easytcp">
+        <img src="https://goreportcard.com/badge/github.com/DarthPestilane/easytcp?style=flat-square" alt="Go Report Card">
+    </a>
+    <a href="https://github.com/DarthPestilane/easytcp/releases">
+        <img src="https://img.shields.io/github/v/release/DarthPestilane/easytcp?style=flat-square&include_prereleases" alt="GitHub Release">
+    </a>
+</p>
+
+<!--
 [![Run Actions](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml/badge.svg?branch=master&event=push)](https://github.com/DarthPestilane/easytcp/actions/workflows/actions.yml)
 [![Go Report](https://goreportcard.com/badge/github.com/darthPestilane/easytcp)](https://goreportcard.com/report/github.com/darthPestilane/easytcp)
 [![codecov](https://codecov.io/gh/DarthPestilane/easytcp/branch/master/graph/badge.svg?token=002KJ5IV4Z)](https://codecov.io/gh/DarthPestilane/easytcp)
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go#networking)
+-->
 
 ```
 $ ./start
