@@ -1,4 +1,4 @@
-name: Run Actions
+name: actions
 
 on: [ push, pull_request ]
 
