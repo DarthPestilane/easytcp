@@ -10,7 +10,7 @@ import (
 )
 
 func newContext(sess *Session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqMsgEntry: msg}
+	return &Context{session: sess, reqEntry: msg}
 }
 
 func TestContext_Deadline(t *testing.T) {
@@ -147,41 +147,41 @@ func TestContext_Response(t *testing.T) {
 			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, entry)
-			respMsg, err := c.Response(1, []string{"invalid", "data"})
+			err := c.Response(1, []string{"invalid", "data"})
 			assert.Error(t, err)
-			assert.Nil(t, respMsg)
+			assert.Nil(t, c.respEntry)
 		})
 		t.Run("when response data is a string", func(t *testing.T) {
 			entry := &message.Entry{}
 			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, entry)
-			respMsg, err := c.Response(1, "data")
+			err := c.Response(1, "data")
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.Data, []byte("data"))
-			assert.EqualValues(t, respMsg.ID, 1)
+			assert.Equal(t, c.respEntry.Data, []byte("data"))
+			assert.EqualValues(t, c.respEntry.ID, 1)
 
 			data := "ptr"
-			respMsg, err = c.Response(1, &data)
+			err = c.Response(1, &data)
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.Data, []byte("ptr"))
-			assert.EqualValues(t, respMsg.ID, 1)
+			assert.Equal(t, c.respEntry.Data, []byte("ptr"))
+			assert.EqualValues(t, c.respEntry.ID, 1)
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
 			entry := &message.Entry{}
 			sess := newSession(nil, &SessionOption{})
 
 			c := newContext(sess, entry)
-			respMsg, err := c.Response(1, []byte("data"))
+			err := c.Response(1, []byte("data"))
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.Data, []byte("data"))
-			assert.EqualValues(t, respMsg.ID, 1)
+			assert.Equal(t, c.respEntry.Data, []byte("data"))
+			assert.EqualValues(t, c.respEntry.ID, 1)
 
 			data := []byte("data")
-			respMsg, err = c.Response(1, &data)
+			err = c.Response(1, &data)
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.Data, []byte("data"))
-			assert.EqualValues(t, respMsg.ID, 1)
+			assert.Equal(t, c.respEntry.Data, []byte("data"))
+			assert.EqualValues(t, c.respEntry.ID, 1)
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
 			entry := &message.Entry{}
@@ -189,10 +189,10 @@ func TestContext_Response(t *testing.T) {
 
 			data := &DataStringer{}
 			c := newContext(sess, entry)
-			respMsg, err := c.Response(1, data)
+			err := c.Response(1, data)
 			assert.NoError(t, err)
-			assert.Equal(t, respMsg.Data, []byte(data.String()))
-			assert.EqualValues(t, respMsg.ID, 1)
+			assert.Equal(t, c.respEntry.Data, []byte(data.String()))
+			assert.EqualValues(t, c.respEntry.ID, 1)
 		})
 	})
 	t.Run("when encode failed", func(t *testing.T) {
@@ -205,9 +205,9 @@ func TestContext_Response(t *testing.T) {
 		sess := newSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, entry)
-		respMsg, err := c.Response(1, "test")
+		err := c.Response(1, "test")
 		assert.Error(t, err)
-		assert.Nil(t, respMsg)
+		assert.Nil(t, c.respEntry)
 	})
 	t.Run("when succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -221,9 +221,9 @@ func TestContext_Response(t *testing.T) {
 		sess := newSession(nil, &SessionOption{Codec: codec})
 
 		c := newContext(sess, entry)
-		respMsg, err := c.Response(1, "test")
+		err := c.Response(1, "test")
 		assert.NoError(t, err)
-		assert.Equal(t, respMsg, entry)
+		assert.Equal(t, c.respEntry, entry)
 	})
 }
 
@@ -264,4 +264,67 @@ func TestContext_MustDecodeTo_when_decode_fail(t *testing.T) {
 	assert.Panics(t, func() {
 		ctx.MustDecodeTo([]byte(`{"data":"test"}`), &dst)
 	})
+}
+
+func TestContext_SendTo(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	sess2 := newSession(nil, &SessionOption{})
+	go func() { <-sess2.respQueue }()
+	assert.NoError(t, ctx.SendTo(sess2, 1, []byte("test")))
+}
+
+func TestContext_SendTo_when_error(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	sess2 := newSession(nil, &SessionOption{})
+	assert.Error(t, ctx.SendTo(sess2, 1, 1234))
+}
+
+func TestContext_Send(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	go func() { <-sess.respQueue }()
+	assert.NoError(t, ctx.Send(1, []byte("test")))
+}
+
+func TestContext_Send_when_error(t *testing.T) {
+	sess := newSession(nil, &SessionOption{})
+	ctx := newContext(sess, nil)
+	assert.Error(t, ctx.Send(1, 1234))
+}
+
+func TestContext_SetResponse(t *testing.T) {
+	ctx := newContext(nil, nil)
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.SetResponse(entry.ID, entry.Data)
+	assert.Equal(t, ctx.respEntry, entry)
+}
+
+func TestContext_GetResponse(t *testing.T) {
+	ctx := newContext(nil, nil)
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.SetResponse(entry.ID, entry.Data)
+	respEntry := ctx.GetResponse()
+	assert.Equal(t, respEntry, entry)
+}
+
+func TestContext_reset(t *testing.T) {
+	ctx := newContext(nil, nil)
+	sess := newSession(nil, &SessionOption{})
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.reset(sess, entry)
+	assert.Equal(t, ctx.session, sess)
+	assert.Equal(t, ctx.reqEntry, entry)
+	assert.Nil(t, ctx.storage)
+	assert.Nil(t, ctx.respEntry)
 }

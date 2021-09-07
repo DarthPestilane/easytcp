@@ -157,8 +157,8 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionCreate(sess)
 	}
 
-	go sess.readInbound(s.router.reqCtxQueue, s.readTimeout) // start reading message packet from connection.
-	go sess.writeOutbound(s.writeTimeout)                    // start writing message packet to connection.
+	go sess.readInbound(s.router.reqQueue, s.readTimeout) // start reading message packet from connection.
+	go sess.writeOutbound(s.writeTimeout)                 // start writing message packet to connection.
 
 	<-sess.closed                // wait for session finished.
 	Sessions().Remove(sess.ID()) // session has been closed, remove it.

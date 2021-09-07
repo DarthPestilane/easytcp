@@ -66,7 +66,7 @@ func main() {
     // Register a route with message's ID.
     // The `DefaultPacker` treats id as uint32,
     // so when we add routes or return response, we should use uint32 or *uint32.
-    s.AddRoute(1001, func(c *easytcp.Context) (*message.Entry, error) {
+    s.AddRoute(1001, func(c *easytcp.Context) error {
         fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
         return c.Response(1002, []byte("copy that"))
     })
@@ -174,7 +174,7 @@ request flow:
 #### Register a route
 
 ```go
-s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
+s.AddRoute(reqID, func(c *easytcp.Context) error {
     // handle the request via ctx
     fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
 
@@ -197,11 +197,11 @@ s.AddRoute(reqID, handler, middleware1, middleware2)
 
 // a middleware looks like:
 var exampleMiddleware easytcp.MiddlewareFunc = func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-    return func(c *easytcp.Context) (*message.Entry, error) {
+    return func(c *easytcp.Context) error {
         // do things before...
-        resp, err := next(c)
+        err := next(c)
         // do things after...
-        return resp, err
+        return err
     }
 }
 ```
@@ -284,11 +284,12 @@ s := easytcp.NewServer(&easytcp.ServerOption{
 Since we set the codec, we may want to decode the request data in route handler.
 
 ```go
-s.AddRoute(reqID, func(c *easytcp.Context) (*message.Entry, error) {
+s.AddRoute(reqID, func(c *easytcp.Context) error {
     var reqData map[string]interface{}
     if err := c.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
         // handle error...
     }
+    // or c.MustBind(&reqData)
     fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", c.Message().ID, len(c.Message().Data), reqData)
     respData := map[string]string{"key": "value"}
     return c.Response(respID, respData)

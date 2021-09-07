@@ -6,6 +6,7 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"net"
 	"testing"
+	"time"
 )
 
 // go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem -benchtime=250000x
@@ -28,6 +29,7 @@ func Benchmark_NoRoute(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	time.Sleep(time.Millisecond * 5)
 	// defer client.Close() // nolint
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -40,7 +42,7 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	s.NotFoundHandler(func(ctx *Context) (*message.Entry, error) {
+	s.NotFoundHandler(func(ctx *Context) error {
 		return ctx.Response(0, []byte("not found"))
 	})
 	go s.Serve(":0") // nolint
@@ -65,7 +67,7 @@ func Benchmark_OneHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		return ctx.Response(2, []byte("pong"))
 	})
 	go s.Serve(":0") // nolint
@@ -92,12 +94,12 @@ func Benchmark_ManyHandlers(b *testing.B) {
 	})
 
 	var m MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
 
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		return ctx.Response(2, []byte("pong"))
 	}, m, m)
 
@@ -123,7 +125,7 @@ func Benchmark_OneRouteCtxGetSet(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		ctx.Set("key", "value")
 		v := ctx.MustGet("key").(string)
 		return ctx.Response(2, []byte(v))
@@ -150,7 +152,7 @@ func Benchmark_OneRouteMessageGetSet(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		ctx.Message().Set("key", []byte("val"))
 		v := ctx.Message().MustGet("key").([]byte)
 		return ctx.Response(2, v)
@@ -178,7 +180,7 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 		Codec:            &JsonCodec{},
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		req := make(map[string]string)
 		ctx.MustBind(&req)
 		return ctx.Response(2, map[string]string{"data": "pong"})
@@ -206,7 +208,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 		Codec:            &ProtobufCodec{},
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		var req pb.Sample
 		ctx.MustBind(&req)
 		return ctx.Response(2, &pb.Sample{Foo: "test-resp", Bar: req.Bar + 1})
@@ -235,7 +237,7 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 		Codec:            &MsgpackCodec{},
 		DoNotPrintRoutes: true,
 	})
-	s.AddRoute(1, func(ctx *Context) (*message.Entry, error) {
+	s.AddRoute(1, func(ctx *Context) error {
 		var req msgpack.Sample
 		ctx.MustBind(&req)
 		return ctx.Response(2, &msgpack.Sample{Foo: "test-resp", Bar: req.Bar + 1})

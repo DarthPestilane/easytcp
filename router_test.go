@@ -22,10 +22,10 @@ func TestRouter_consumeRequest(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 		go rt.stop()
 		<-done
-		_, ok := <-rt.reqCtxQueue
+		_, ok := <-rt.reqQueue
 		assert.False(t, ok)
 	})
-	t.Run("when router reqCtxQueue is closed", func(t *testing.T) {
+	t.Run("when router reqQueue is closed", func(t *testing.T) {
 		rt := newRouter(100)
 
 		done := make(chan struct{})
@@ -34,7 +34,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 			close(done)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		close(rt.reqCtxQueue)
+		close(rt.reqQueue)
 		<-done
 	})
 	t.Run("when ctx session is closed", func(t *testing.T) {
@@ -47,21 +47,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 		sess := newSession(nil, &SessionOption{})
 		sess.close()
-		rt.reqCtxQueue <- &Context{session: sess}
-		time.Sleep(time.Millisecond * 5)
-		rt.stop()
-		<-done
-	})
-	t.Run("when ctx message entry is nil", func(t *testing.T) {
-		rt := newRouter(100)
-		done := make(chan struct{})
-		go func() {
-			rt.consumeRequest()
-			close(done)
-		}()
-		time.Sleep(time.Millisecond * 5)
-		sess := newSession(nil, &SessionOption{})
-		rt.reqCtxQueue <- &Context{session: sess}
+		rt.reqQueue <- &Context{session: sess}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -75,33 +61,13 @@ func TestRouter_consumeRequest(t *testing.T) {
 		}()
 		time.Sleep(time.Millisecond * 5)
 
-		rt.register(1, func(ctx *Context) (*message.Entry, error) {
-			return nil, fmt.Errorf("some err")
+		rt.register(1, func(ctx *Context) error {
+			return fmt.Errorf("some err")
 		})
 
 		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
-		time.Sleep(time.Millisecond * 5)
-		rt.stop()
-		<-done
-	})
-	t.Run("when handler returns nil response", func(t *testing.T) {
-		rt := newRouter(100)
-		done := make(chan struct{})
-		go func() {
-			rt.consumeRequest()
-			close(done)
-		}()
-		time.Sleep(time.Millisecond * 5)
-
-		rt.register(1, func(ctx *Context) (*message.Entry, error) {
-			return nil, nil
-		})
-
-		sess := newSession(nil, &SessionOption{})
-		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
+		rt.reqQueue <- &Context{session: sess, reqEntry: entry}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -115,14 +81,15 @@ func TestRouter_consumeRequest(t *testing.T) {
 		}()
 		time.Sleep(time.Millisecond * 5)
 
-		rt.register(1, func(ctx *Context) (*message.Entry, error) {
+		rt.register(1, func(ctx *Context) error {
 			defer ctx.session.close()
-			return &message.Entry{}, nil
+			ctx.respEntry = &message.Entry{}
+			return nil
 		})
 
 		sess := newSession(nil, &SessionOption{})
 		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqCtxQueue <- &Context{session: sess, reqMsgEntry: entry}
+		rt.reqQueue <- &Context{session: sess, reqEntry: entry}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
 		<-done
@@ -142,12 +109,12 @@ func TestRouter_register(t *testing.T) {
 
 	h := nilHandler
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
@@ -177,17 +144,17 @@ func TestRouter_registerMiddleware(t *testing.T) {
 	assert.Len(t, rt.globalMiddlewares, 0)
 
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
 	m3 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) (*message.Entry, error) {
+		return func(ctx *Context) error {
 			return next(ctx)
 		}
 	}
@@ -206,6 +173,11 @@ func TestRouter_registerMiddleware(t *testing.T) {
 }
 
 func TestRouter_handleReq(t *testing.T) {
+	t.Run("when request entry is nil", func(t *testing.T) {
+		rt := newRouter()
+		ctx := &Context{}
+		assert.NoError(t, rt.handleRequest(ctx))
+	})
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
 		rt := newRouter()
 
@@ -213,39 +185,42 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
+		ctx := &Context{reqEntry: entry}
+		err := rt.handleRequest(ctx)
 		assert.Nil(t, err)
-		assert.Nil(t, resp)
+		assert.Nil(t, ctx.respEntry)
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
 		rt := newRouter()
 		var id = 1
 		rt.register(id, nilHandler, func(next HandlerFunc) HandlerFunc {
-			return func(ctx *Context) (*message.Entry, error) { return next(ctx) }
+			return func(ctx *Context) error { return next(ctx) }
 		})
 
 		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
+		ctx := &Context{reqEntry: entry}
+		err := rt.handleRequest(ctx)
 		assert.Nil(t, err)
-		assert.Nil(t, resp)
+		assert.Nil(t, ctx.respEntry)
 	})
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := newRouter()
 		var id = 1
-		rt.register(id, func(ctx *Context) (*message.Entry, error) {
-			return nil, fmt.Errorf("some err")
+		rt.register(id, func(ctx *Context) error {
+			return fmt.Errorf("some err")
 		})
 
 		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
 		}
-		resp, err := rt.handleRequest(&Context{reqMsgEntry: entry})
+		ctx := &Context{reqEntry: entry}
+		err := rt.handleRequest(ctx)
 		assert.Error(t, err)
-		assert.Nil(t, resp)
+		assert.Nil(t, ctx.respEntry)
 	})
 }
 
@@ -253,49 +228,51 @@ func TestRouter_wrapHandlers(t *testing.T) {
 	rt := newRouter()
 	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
 		wrap := rt.wrapHandlers(nil, nil)
-		resp, err := wrap(nil)
+		ctx := &Context{}
+		err := wrap(ctx)
 		assert.NoError(t, err)
-		assert.Nil(t, resp)
+		assert.Nil(t, ctx.respEntry)
 	})
 	t.Run("it should invoke handlers in the right order", func(t *testing.T) {
 		result := make([]string, 0)
 
 		middles := []MiddlewareFunc{
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*message.Entry, error) {
+				return func(ctx *Context) error {
 					result = append(result, "m1-before")
 					return next(ctx)
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*message.Entry, error) {
+				return func(ctx *Context) error {
 					result = append(result, "m2-before")
-					resp, err := next(ctx)
+					err := next(ctx)
 					result = append(result, "m2-after")
-					return resp, err
+					return err
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) (*message.Entry, error) {
-					resp, err := next(ctx)
+				return func(ctx *Context) error {
+					err := next(ctx)
 					result = append(result, "m3-after")
-					return resp, err
+					return err
 				}
 			},
 		}
-		var handler HandlerFunc = func(ctx *Context) (*message.Entry, error) {
+		var handler HandlerFunc = func(ctx *Context) error {
 			result = append(result, "done")
-			msg := &message.Entry{
+			ctx.respEntry = &message.Entry{
 				ID:   2,
 				Data: []byte("done"),
 			}
-			return msg, nil
+			return nil
 		}
 
 		wrap := rt.wrapHandlers(handler, middles)
-		resp, err := wrap(nil)
+		ctx := &Context{}
+		err := wrap(ctx)
 		assert.NoError(t, err)
-		assert.EqualValues(t, resp.Data, "done")
+		assert.EqualValues(t, ctx.respEntry.Data, "done")
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }
@@ -318,8 +295,8 @@ func TestRouter_printHandlers(t *testing.T) {
 func TestRouter_setNotFoundHandler(t *testing.T) {
 	rt := newRouter()
 	assert.Nil(t, rt.notFoundHandler)
-	rt.setNotFoundHandler(func(ctx *Context) (*message.Entry, error) {
-		return nil, nil
+	rt.setNotFoundHandler(func(ctx *Context) error {
+		return nil
 	})
 	assert.NotNil(t, rt.notFoundHandler)
 }
