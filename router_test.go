@@ -52,20 +52,6 @@ func TestRouter_consumeRequest(t *testing.T) {
 		rt.stop()
 		<-done
 	})
-	t.Run("when ctx message entry is nil", func(t *testing.T) {
-		rt := newRouter(100)
-		done := make(chan struct{})
-		go func() {
-			rt.consumeRequest()
-			close(done)
-		}()
-		time.Sleep(time.Millisecond * 5)
-		sess := newSession(nil, &SessionOption{})
-		rt.reqQueue <- &Context{session: sess}
-		time.Sleep(time.Millisecond * 5)
-		rt.stop()
-		<-done
-	})
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := newRouter(100)
 		done := make(chan struct{})
@@ -77,26 +63,6 @@ func TestRouter_consumeRequest(t *testing.T) {
 
 		rt.register(1, func(ctx *Context) error {
 			return fmt.Errorf("some err")
-		})
-
-		sess := newSession(nil, &SessionOption{})
-		entry := &message.Entry{ID: 1, Data: []byte("test")}
-		rt.reqQueue <- &Context{session: sess, reqEntry: entry}
-		time.Sleep(time.Millisecond * 5)
-		rt.stop()
-		<-done
-	})
-	t.Run("when handler returns nil response", func(t *testing.T) {
-		rt := newRouter(100)
-		done := make(chan struct{})
-		go func() {
-			rt.consumeRequest()
-			close(done)
-		}()
-		time.Sleep(time.Millisecond * 5)
-
-		rt.register(1, func(ctx *Context) error {
-			return nil
 		})
 
 		sess := newSession(nil, &SessionOption{})
@@ -207,6 +173,11 @@ func TestRouter_registerMiddleware(t *testing.T) {
 }
 
 func TestRouter_handleReq(t *testing.T) {
+	t.Run("when request entry is nil", func(t *testing.T) {
+		rt := newRouter()
+		ctx := &Context{}
+		assert.NoError(t, rt.handleRequest(ctx))
+	})
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
 		rt := newRouter()
 

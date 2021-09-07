@@ -49,7 +49,7 @@ type HandlerFunc func(ctx *Context) error
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
 //
-// 	var md MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
+// 	var mf MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
 // 		return func(ctx *Context) error {
 // 			return next(ctx)
 // 		}
