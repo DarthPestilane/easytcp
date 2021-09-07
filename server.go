@@ -50,6 +50,9 @@ type ServerOption struct {
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 }
 
+// ErrServerStopped is returned when server stopped.
+var ErrServerStopped = fmt.Errorf("server stopped")
+
 // NewServer creates a Server according to opt.
 func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
