@@ -113,7 +113,20 @@ func (c *Context) Session() *Session {
 	return c.session
 }
 
-// Response creates a response message.
+// SetResponse sets response entry with id and data.
+func (c *Context) SetResponse(id interface{}, data []byte) {
+	c.respEntry = &message.Entry{
+		ID:   id,
+		Data: data,
+	}
+}
+
+// GetResponse returns response entry of context.
+func (c *Context) GetResponse() *message.Entry {
+	return c.respEntry
+}
+
+// Response creates and sets the response message to the context.
 func (c *Context) Response(id, data interface{}) error {
 	var dataRaw []byte
 	if codec := c.session.codec; codec == nil {
@@ -138,10 +151,7 @@ func (c *Context) Response(id, data interface{}) error {
 			return err
 		}
 	}
-	c.respEntry = &message.Entry{
-		ID:   id,
-		Data: dataRaw,
-	}
+	c.SetResponse(id, dataRaw)
 	return nil
 }
 
@@ -159,10 +169,6 @@ func (c *Context) Send(id, data interface{}) error {
 		return err
 	}
 	return c.session.SendResp(c)
-}
-
-func (c *Context) GetResponse() *message.Entry {
-	return c.respEntry
 }
 
 func (c *Context) reset(sess *Session, reqEntry *message.Entry) {

@@ -293,3 +293,38 @@ func TestContext_Send_when_error(t *testing.T) {
 	ctx := newContext(sess, nil)
 	assert.Error(t, ctx.Send(1, 1234))
 }
+
+func TestContext_SetResponse(t *testing.T) {
+	ctx := newContext(nil, nil)
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.SetResponse(entry.ID, entry.Data)
+	assert.Equal(t, ctx.respEntry, entry)
+}
+
+func TestContext_GetResponse(t *testing.T) {
+	ctx := newContext(nil, nil)
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.SetResponse(entry.ID, entry.Data)
+	respEntry := ctx.GetResponse()
+	assert.Equal(t, respEntry, entry)
+}
+
+func TestContext_reset(t *testing.T) {
+	ctx := newContext(nil, nil)
+	sess := newSession(nil, &SessionOption{})
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	ctx.reset(sess, entry)
+	assert.Equal(t, ctx.session, sess)
+	assert.Equal(t, ctx.reqEntry, entry)
+	assert.Nil(t, ctx.storage)
+	assert.Nil(t, ctx.respEntry)
+}
