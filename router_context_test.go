@@ -69,6 +69,15 @@ func TestContext_Set(t *testing.T) {
 	assert.True(t, v.(bool))
 }
 
+func TestContext_Remove(t *testing.T) {
+	c := newContext(nil, nil)
+	c.Set("found", true)
+	c.Remove("found")
+	v, ok := c.Get("found")
+	assert.False(t, ok)
+	assert.Nil(t, v)
+}
+
 func TestContext_Bind(t *testing.T) {
 	t.Run("when session has codec", func(t *testing.T) {
 		entry := &message.Entry{

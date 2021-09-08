@@ -39,3 +39,10 @@ func (e *Entry) MustGet(key string) interface{} {
 	}
 	panic(fmt.Errorf("key `%s` does not exist", key))
 }
+
+// Remove deletes the key from storage.
+func (e *Entry) Remove(key string) {
+	e.mu.Lock()
+	delete(e.storage, key)
+	e.mu.Unlock()
+}

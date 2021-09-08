@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestEntry_GetSet(t *testing.T) {
+func TestEntry_GetSetAndRemove(t *testing.T) {
 	entry := &Entry{}
 	entry.Set("key", "test")
 
@@ -14,6 +14,11 @@ func TestEntry_GetSet(t *testing.T) {
 	assert.Equal(t, v, "test")
 
 	v, ok = entry.Get("not-found")
+	assert.False(t, ok)
+	assert.Nil(t, v)
+
+	entry.Remove("key")
+	v, ok = entry.Get("key")
 	assert.False(t, ok)
 	assert.Nil(t, v)
 }

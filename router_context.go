@@ -108,6 +108,13 @@ func (c *Context) MustDecodeTo(data []byte, v interface{}) {
 	}
 }
 
+// Remove deletes the key from storage.
+func (c *Context) Remove(key string) {
+	c.mu.Lock()
+	delete(c.storage, key)
+	c.mu.Unlock()
+}
+
 // Session returns current session.
 func (c *Context) Session() *Session {
 	return c.session
