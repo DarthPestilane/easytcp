@@ -326,3 +326,27 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		<-done
 	})
 }
+
+func TestSession_sendReq(t *testing.T) {
+	t.Run("when session is closed", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{})
+		sess.close()
+		ctx := &Context{}
+		queue := make(chan *Context)
+		assert.False(t, sess.sendReq(ctx, queue))
+	})
+	t.Run("when reqQueue channel is closed", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{})
+		ctx := &Context{}
+		queue := make(chan *Context)
+		close(queue)
+		assert.False(t, sess.sendReq(ctx, queue))
+	})
+	t.Run("when ok", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{})
+		ctx := &Context{}
+		queue := make(chan *Context, 10)
+		assert.True(t, sess.sendReq(ctx, queue))
+		sess.close()
+	})
+}
