@@ -67,7 +67,7 @@ func (r *Router) stop() {
 
 // consumeRequest fetches context from reqQueue, and handle it.
 func (r *Router) consumeRequest() {
-	defer Log.Tracef("router stopped")
+	defer func() { Log.Tracef("router stopped") }()
 	for {
 		select {
 		case <-r.stopped:

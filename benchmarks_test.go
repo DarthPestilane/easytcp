@@ -6,7 +6,6 @@ import (
 	"github.com/DarthPestilane/easytcp/message"
 	"net"
 	"testing"
-	"time"
 )
 
 // go test -bench="^BenchmarkTCPServer_\w+$" -run=none -benchmem -benchtime=250000x
@@ -21,6 +20,7 @@ func Benchmark_NoRoute(b *testing.B) {
 		DoNotPrintRoutes: true,
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -29,8 +29,8 @@ func Benchmark_NoRoute(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	time.Sleep(time.Millisecond * 5)
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
+
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
@@ -46,6 +46,7 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 		return ctx.Response(0, []byte("not found"))
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -54,7 +55,7 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -71,6 +72,7 @@ func Benchmark_OneHandler(b *testing.B) {
 		return ctx.Response(2, []byte("pong"))
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -79,7 +81,7 @@ func Benchmark_OneHandler(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -104,6 +106,7 @@ func Benchmark_ManyHandlers(b *testing.B) {
 	}, m, m)
 
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -112,7 +115,7 @@ func Benchmark_ManyHandlers(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -131,6 +134,7 @@ func Benchmark_OneRouteCtxGetSet(b *testing.B) {
 		return ctx.Response(2, []byte(v))
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -139,7 +143,7 @@ func Benchmark_OneRouteCtxGetSet(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -158,6 +162,7 @@ func Benchmark_OneRouteMessageGetSet(b *testing.B) {
 		return ctx.Response(2, v)
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -166,7 +171,7 @@ func Benchmark_OneRouteMessageGetSet(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
 	beforeBench(b)
@@ -186,6 +191,7 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 		return ctx.Response(2, map[string]string{"data": "pong"})
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -194,7 +200,7 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte(`{"data": "ping"}`)})
 	beforeBench(b)
@@ -214,6 +220,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 		return ctx.Response(2, &pb.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -222,7 +229,7 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	data, _ := s.Codec.Encode(&pb.Sample{Foo: "test", Bar: 1})
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: data})
@@ -243,6 +250,7 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 		return ctx.Response(2, &msgpack.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
 	go s.Serve(":0") // nolint
+	defer s.Stop()   // nolint
 
 	<-s.accepting
 
@@ -251,7 +259,7 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	// defer client.Close() // nolint
+	defer client.Close() // nolint
 
 	data, _ := s.Codec.Encode(&msgpack.Sample{Foo: "test", Bar: 1})
 	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: data})

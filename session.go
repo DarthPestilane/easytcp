@@ -95,15 +95,29 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 		ctx := s.ctxPool.Get().(*Context)
 		ctx.reset(s, reqEntry)
 
-		select {
-		case reqQueue <- ctx:
-		case <-s.closed:
+		if !s.sendReq(ctx, reqQueue) {
 			Log.Tracef("session %s readInbound exit because session is closed", s.id)
 			return
 		}
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
 	s.close()
+}
+
+func (s *Session) sendReq(ctx *Context, reqQueue chan<- *Context) (ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			ok = false
+		}
+	}()
+	select {
+	case reqQueue <- ctx:
+		ok = true
+	case <-s.closed:
+		Log.Tracef("session %s readInbound exit because session is closed", s.id)
+		ok = false
+	}
+	return
 }
 
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
@@ -122,13 +136,7 @@ FOR:
 				return
 			}
 
-			s.ctxPool.Put(ctx)
-
-			if ctx.respEntry == nil {
-				continue
-			}
-			// pack message
-			outboundMsg, err := s.packer.Pack(ctx.respEntry)
+			outboundMsg, err := s.pack(ctx)
 			if err != nil {
 				Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 				continue
@@ -136,6 +144,7 @@ FOR:
 			if outboundMsg == nil {
 				continue
 			}
+
 			if writeTimeout > 0 {
 				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 					Log.Errorf("session %s set write deadline err: %s", s.id, err)
@@ -150,4 +159,12 @@ FOR:
 	}
 	s.close()
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
+}
+
+func (s *Session) pack(ctx *Context) ([]byte, error) {
+	defer s.ctxPool.Put(ctx)
+	if ctx.respEntry == nil {
+		return nil, nil
+	}
+	return s.packer.Pack(ctx.respEntry)
 }
