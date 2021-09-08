@@ -24,12 +24,16 @@ func TestNewServer(t *testing.T) {
 
 func TestServer_Serve(t *testing.T) {
 	server := NewServer(&ServerOption{})
+	done := make(chan struct{})
 	go func() {
 		assert.ErrorIs(t, server.Serve("localhost:0"), ErrServerStopped)
+		close(done)
 	}()
 	<-server.accepting
+	time.Sleep(time.Millisecond * 5)
 	err := server.Stop()
 	assert.NoError(t, err)
+	<-done
 }
 
 func TestServer_acceptLoop(t *testing.T) {
