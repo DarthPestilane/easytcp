@@ -13,13 +13,19 @@ import (
 
 func TestNewServer(t *testing.T) {
 	s := NewServer(&ServerOption{
-		ReadTimeout:  0,
-		WriteTimeout: 0,
-		Codec:        &JsonCodec{},
+		ReadTimeout:   0,
+		WriteTimeout:  0,
+		Codec:         &JsonCodec{},
+		ReqQueueSize:  -1,
+		RespQueueSize: -1,
 	})
 	assert.NotNil(t, s.accepting)
 	assert.IsType(t, s.Packer, NewDefaultPacker())
 	assert.Equal(t, s.Codec, &JsonCodec{})
+	assert.Equal(t, s.respQueueSize, DefaultRespQueueSize)
+	assert.Equal(t, cap(s.router.reqQueue), DefaultReqQueueSize)
+	assert.NotNil(t, s.accepting)
+	assert.NotNil(t, s.stopped)
 }
 
 func TestServer_Serve(t *testing.T) {

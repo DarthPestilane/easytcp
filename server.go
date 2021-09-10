@@ -45,24 +45,29 @@ type ServerOption struct {
 	WriteTimeout          time.Duration // sets the timeout for connection write.
 	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil.
-	RespQueueSize         int           // sets the response channel size of session, 1024 will be used if < 0.
-	ReqQueueSize          int           // sets the request channel size of router, 1024 will be used if < 0.
+	ReqQueueSize          int           // sets the request channel size of router, DefaultReqQueueSize will be used if < 0.
+	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 }
 
 // ErrServerStopped is returned when server stopped.
 var ErrServerStopped = fmt.Errorf("server stopped")
 
+const (
+	DefaultReqQueueSize  = 1024
+	DefaultRespQueueSize = 1024
+)
+
 // NewServer creates a Server according to opt.
 func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
 		opt.Packer = NewDefaultPacker()
 	}
-	if opt.RespQueueSize < 0 {
-		opt.RespQueueSize = 1024
-	}
 	if opt.ReqQueueSize < 0 {
-		opt.ReqQueueSize = 1024
+		opt.ReqQueueSize = DefaultRespQueueSize
+	}
+	if opt.RespQueueSize < 0 {
+		opt.RespQueueSize = DefaultReqQueueSize
 	}
 	return &Server{
 		socketReadBufferSize:  opt.SocketReadBufferSize,
