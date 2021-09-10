@@ -3,6 +3,7 @@ name: actions
 on:
   push:
     branchs:
+     - 'master'
     tags:
   pull_request:
 
