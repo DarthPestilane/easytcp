@@ -19,8 +19,8 @@ func Benchmark_NoRoute(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -45,8 +45,8 @@ func Benchmark_NotFoundHandler(b *testing.B) {
 	s.NotFoundHandler(func(ctx *Context) error {
 		return ctx.Response(0, []byte("not found"))
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -71,8 +71,8 @@ func Benchmark_OneHandler(b *testing.B) {
 	s.AddRoute(1, func(ctx *Context) error {
 		return ctx.Response(2, []byte("pong"))
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -105,8 +105,8 @@ func Benchmark_ManyHandlers(b *testing.B) {
 		return ctx.Response(2, []byte("pong"))
 	}, m, m)
 
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -133,8 +133,8 @@ func Benchmark_OneRouteCtxGetSet(b *testing.B) {
 		v := ctx.MustGet("key").(string)
 		return ctx.Response(2, []byte(v))
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -161,8 +161,8 @@ func Benchmark_OneRouteMessageGetSet(b *testing.B) {
 		v := ctx.Message().MustGet("key").([]byte)
 		return ctx.Response(2, v)
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -190,8 +190,8 @@ func Benchmark_OneRouteJsonCodec(b *testing.B) {
 		ctx.MustBind(&req)
 		return ctx.Response(2, map[string]string{"data": "pong"})
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -219,8 +219,8 @@ func Benchmark_OneRouteProtobufCodec(b *testing.B) {
 		ctx.MustBind(&req)
 		return ctx.Response(2, &pb.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
@@ -249,8 +249,8 @@ func Benchmark_OneRouteMsgpackCodec(b *testing.B) {
 		ctx.MustBind(&req)
 		return ctx.Response(2, &msgpack.Sample{Foo: "test-resp", Bar: req.Bar + 1})
 	})
-	go s.Serve(":0") // nolint
-	defer s.Stop()   // nolint
+	go s.Serve("127.0.0.1:0") // nolint
+	defer s.Stop()            // nolint
 
 	<-s.accepting
 
