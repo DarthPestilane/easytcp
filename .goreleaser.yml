@@ -5,3 +5,6 @@ builds:
 
 release:
   draft: true
+
+changelog:
+  sort: asc
