@@ -65,6 +65,8 @@ jobs:
   release:
     needs: test
     runs-on: ubuntu-latest
+    environment:
+      name: tag
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -72,8 +74,6 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         if: success() && startsWith(github.ref, 'refs/tags/')
-        environment:
-          name: tag
         with:
           version: latest
           args: release --rm-dist --skip-announce --timeout=2m
