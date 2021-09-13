@@ -29,9 +29,8 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          key: lint-cache
+          restore-keys: lint-cache-restore
 
       - name: Build
         run: make build-all
@@ -71,9 +70,8 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ matrix.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.os }}-go-${{ matrix.go-version }}-
+          key: test-cache-${{ matrix.os }}-${{ matrix.go-version }}
+          restore-keys: test-cache-${{ matrix.os }}-${{ matrix.go-version }}-restore
 
       - name: Cache Macos
         uses: actions/cache@v2
@@ -82,9 +80,8 @@ jobs:
           path: |
             ~/Library/Caches/go-build
             ~/go/pkg/mod
-          key: ${{ matrix.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.os }}-go-${{ matrix.go-version }}-
+          key: test-cache-${{ matrix.os }}-${{ matrix.go-version }}
+          restore-keys: test-cache-${{ matrix.os }}-${{ matrix.go-version }}-restore
 
       - name: Cache Windows
         uses: actions/cache@v2
@@ -93,9 +90,8 @@ jobs:
           path: |
             %LocalAppData%\go-build
             ~/go/pkg/mod
-          key: ${{ matrix.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.os }}-go-${{ matrix.go-version }}-
+          key: test-cache-${{ matrix.os }}-${{ matrix.go-version }}
+          restore-keys: test-cache-${{ matrix.os }}-${{ matrix.go-version }}-restore
 
       - name: Test
         run: make test-v
