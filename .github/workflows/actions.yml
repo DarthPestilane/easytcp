@@ -2,9 +2,10 @@ name: actions
 
 on:
   push:
-    branchs:
-     - 'master'
+    branches:
+      - 'master'
     tags:
+      - '*'
   pull_request:
 
 jobs:
@@ -71,6 +72,8 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         if: success() && startsWith(github.ref, 'refs/tags/')
+        environment:
+          name: tag
         with:
           version: latest
           args: release --rm-dist --skip-announce --timeout=2m
