@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 vender/
+dist/
 
 *.exe
 *.exe~

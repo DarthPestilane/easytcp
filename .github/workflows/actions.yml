@@ -1,6 +1,11 @@
 name: actions
 
-on: [ push, pull_request ]
+on:
+  push:
+    branchs:
+     - 'master'
+    tags:
+  pull_request:
 
 jobs:
   lint:
@@ -30,6 +35,7 @@ jobs:
         run: curl -XPOST --data 'repo=github.com/darthPestilane/easytcp' 'https://goreportcard.com/checks'
 
   test:
+    needs: lint
     env:
       CGO_ENABLED: 0
     strategy:
@@ -46,9 +52,6 @@ jobs:
         with:
           go-version: ${{ matrix.go-version}}
 
-      - name: Build
-        run: make build-all
-
       - name: Test
         run: make test-v
 
@@ -57,3 +60,19 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: .testCoverage.txt
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          version: latest
+          args: release --rm-dist --skip-announce --timeout=2m
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}

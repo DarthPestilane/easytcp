@@ -57,6 +57,10 @@ else
 	go generate
 endif
 
+.PHONY: release-local
+release-local:
+	goreleaser release --rm-dist --skip-announce --skip-publish --snapshot
+
 .PHONY: clean
 clean:
 	go clean -r -x -cache -i
