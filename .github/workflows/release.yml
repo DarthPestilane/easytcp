@@ -1,0 +1,25 @@
+name: actions
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment:
+      # release manually
+      name: release
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          version: latest
+          args: release --rm-dist --skip-announce --timeout=2m
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
