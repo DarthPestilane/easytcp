@@ -280,7 +280,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		assert.False(t, ok)
 		_ = p1.Close()
 	})
-	t.Run("when conn write failed", func(t *testing.T) {
+	t.Run("when conn write returns fatal error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -294,6 +294,38 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &SessionOption{Packer: packer})
+		go func() { sess.respQueue <- &Context{respEntry: entry} }()
+		sess.writeOutbound(0) // should stop looping and return
+		_, ok := <-sess.closed
+		assert.False(t, ok)
+	})
+	t.Run("when conn write returns temporary error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		entry := &message.Entry{
+			ID:   1,
+			Data: []byte("test"),
+		}
+		packer := mock.NewMockPacker(ctrl)
+		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
+
+		tmpErr := mock.NewMockError(ctrl)
+		tmpErr.EXPECT().Timeout().Return(false)
+		tmpErr.EXPECT().Temporary().Return(true)
+		tmpErr.EXPECT().Error().AnyTimes().Return("some error")
+
+		conn := mock.NewMockConn(ctrl)
+		connWriteCount := 0
+		conn.EXPECT().Write(gomock.Any()).Times(2).DoAndReturn(func(_ []byte) (int, error) {
+			if connWriteCount == 0 {
+				connWriteCount++
+				return 0, tmpErr
+			}
+			return 0, fmt.Errorf("some fatal error")
+		})
+
+		sess := newSession(conn, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		sess.writeOutbound(0) // should stop looping and return
 		_, ok := <-sess.closed

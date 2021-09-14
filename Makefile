@@ -54,7 +54,7 @@ ifeq (${os}, $(filter ${os}, Windows Windows_NT)) # If on windows, there might b
 	go generate 2>/dev/null
 	rm -rf ./**/gomock_reflect_*
 else
-	go generate
+	go generate -v
 endif
 
 .PHONY: release-local
