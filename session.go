@@ -124,7 +124,7 @@ func (s *Session) sendReq(ctx *Context, reqQueue chan<- *Context) (ok bool) {
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop breaks if errors occurred, or the session is closed.
 func (s *Session) writeOutbound(writeTimeout time.Duration) {
-FOR:
+LOOP:
 	for {
 		select {
 		case <-s.closed:
@@ -148,33 +148,41 @@ FOR:
 			if writeTimeout > 0 {
 				if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 					Log.Errorf("session %s set write deadline err: %s", s.id, err)
-					break FOR
+					break LOOP
 				}
 			}
-			for {
-				_, err := s.conn.Write(outboundMsg)
-				if err == nil {
-					break
-				}
 
-				if ne, ok := err.(net.Error); ok {
-					if ne.Timeout() {
-						Log.Errorf("session %s conn write err: %s", s.id, err)
-						break FOR
-					}
-					if ne.Temporary() {
-						Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay)
-						time.Sleep(tempErrDelay)
-						continue
-					}
-				}
+			if err := s.tryConnWrite(outboundMsg); err != nil {
 				Log.Errorf("session %s conn write err: %s", s.id, err)
-				break FOR
+				break LOOP
 			}
 		}
 	}
 	s.close()
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
+}
+
+func (s *Session) tryConnWrite(outboundMsg []byte) error {
+	for i := 1; i <= 10; i++ {
+		_, err := s.conn.Write(outboundMsg)
+		if err == nil {
+			break
+		}
+
+		if ne, ok := err.(net.Error); ok {
+			if ne.Timeout() {
+				return err
+			}
+			if ne.Temporary() {
+				delay := tempErrDelay * time.Duration(i)
+				Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, delay)
+				time.Sleep(delay)
+				continue
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Session) pack(ctx *Context) ([]byte, error) {
