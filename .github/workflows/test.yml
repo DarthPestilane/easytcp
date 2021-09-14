@@ -32,8 +32,6 @@ jobs:
           key: cache-go-${{ runner.os }}-1.15.x-${{ github.run_number }}
           restore-keys: |
             cache-go-${{ runner.os}}-1.15.x-
-            cache-go-${{ runner.os}}-
-            cache-go-
 
       - name: Build
         run: make build-all
@@ -77,11 +75,6 @@ jobs:
           key: cache-go-${{ runner.os }}-${{ matrix.go-version }}-${{ github.run_number }}
           restore-keys: |
             cache-go-${{ runner.os }}-${{ matrix.go-version }}-
-            cache-go-${{ runner.os }}-
-            cache-go-
-
-      - name: Build
-        run: make build-all
 
       - name: Test
         run: make test-v
