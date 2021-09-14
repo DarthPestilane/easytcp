@@ -151,7 +151,23 @@ FOR:
 					break FOR
 				}
 			}
-			if _, err := s.conn.Write(outboundMsg); err != nil {
+			for {
+				_, err := s.conn.Write(outboundMsg)
+				if err == nil {
+					break
+				}
+
+				if ne, ok := err.(net.Error); ok {
+					if ne.Timeout() {
+						Log.Errorf("session %s conn write err: %s", s.id, err)
+						break FOR
+					}
+					if ne.Temporary() {
+						Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay)
+						time.Sleep(tempErrDelay)
+						continue
+					}
+				}
 				Log.Errorf("session %s conn write err: %s", s.id, err)
 				break FOR
 			}

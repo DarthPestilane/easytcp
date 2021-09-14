@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination internal/mock/net_mock.go -package mock net Listener,Error
+//go:generate mockgen -destination internal/mock/server_mock.go -package mock net Listener,Error,Conn
 
 // Server is a server for TCP connections.
 type Server struct {
@@ -56,6 +56,7 @@ var ErrServerStopped = fmt.Errorf("server stopped")
 const (
 	DefaultReqQueueSize  = 1024
 	DefaultRespQueueSize = 1024
+	tempErrDelay         = time.Millisecond * 5
 )
 
 // NewServer creates a Server according to opt.
@@ -125,9 +126,8 @@ func (s *Server) acceptLoop() error {
 			default:
 			}
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				tempDelay := time.Millisecond * 5
-				Log.Errorf("accept err: %s; retrying in %v", err, tempDelay)
-				time.Sleep(tempDelay)
+				Log.Errorf("accept err: %s; retrying in %s", err, tempErrDelay)
+				time.Sleep(tempErrDelay)
 				continue
 			}
 			return fmt.Errorf("accept err: %s", err)
