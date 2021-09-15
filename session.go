@@ -123,7 +123,7 @@ func (s *Session) sendReq(ctx *Context, reqQueue chan<- *Context) (ok bool) {
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop breaks if errors occurred, or the session is closed.
-func (s *Session) writeOutbound(writeTimeout time.Duration) {
+func (s *Session) writeOutbound(writeTimeout time.Duration, retryTimes int) {
 LOOP:
 	for {
 		select {
@@ -152,7 +152,7 @@ LOOP:
 				}
 			}
 
-			if err := s.tryConnWrite(outboundMsg, 10); err != nil {
+			if err := s.attemptConnWrite(outboundMsg, retryTimes); err != nil {
 				Log.Errorf("session %s conn write err: %s", s.id, err)
 				break LOOP
 			}
@@ -162,22 +162,22 @@ LOOP:
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
 
-func (s *Session) tryConnWrite(outboundMsg []byte, maxTries int) (err error) {
-	if maxTries <= 0 {
-		maxTries = 1
+func (s *Session) attemptConnWrite(outboundMsg []byte, retryTimes int) error {
+	attemptTimes := 1
+	if retryTimes > 0 {
+		attemptTimes += retryTimes
 	}
-	for i := 0; i < maxTries; i++ {
+	var err error
+	for i := 0; i < attemptTimes; i++ {
 		time.Sleep(tempErrDelay * time.Duration(i))
 		_, err = s.conn.Write(outboundMsg)
 
-		if err == nil {
-			break
-		}
-		if i == maxTries-1 { // if it's the last loop
+		// breaks if err is not nil or it's the last attempt.
+		if err == nil || i == attemptTimes-1 {
 			break
 		}
 
-		// check net.Error
+		// check if err is `net.Error`
 		ne, ok := err.(net.Error)
 		if !ok {
 			break
@@ -191,7 +191,7 @@ func (s *Session) tryConnWrite(outboundMsg []byte, maxTries int) (err error) {
 		}
 		break
 	}
-	return
+	return err
 }
 
 func (s *Session) pack(ctx *Context) ([]byte, error) {

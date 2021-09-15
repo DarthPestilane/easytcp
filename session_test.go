@@ -169,7 +169,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		doneLoop := make(chan struct{})
 		sess.close()
 		go func() {
-			sess.writeOutbound(0) // should stop looping and return
+			sess.writeOutbound(0, 10) // should stop looping and return
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
@@ -180,7 +180,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		close(sess.respQueue)
 		doneLoop := make(chan struct{})
 		go func() {
-			sess.writeOutbound(0) // should stop looping and return
+			sess.writeOutbound(0, 10) // should stop looping and return
 			close(doneLoop)
 		}()
 		<-doneLoop
@@ -196,7 +196,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		sess.respQueue <- &Context{respEntry: nil}
 		doneLoop := make(chan struct{})
 		go func() {
-			sess.writeOutbound(0) // should stop looping and return
+			sess.writeOutbound(0, 10) // should stop looping and return
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
@@ -217,7 +217,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		sess := newSession(nil, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
 		time.Sleep(time.Microsecond * 15)
-		go sess.writeOutbound(0)
+		go sess.writeOutbound(0, 10)
 		time.Sleep(time.Millisecond * 15)
 		sess.close() // should break the write loop
 	})
@@ -236,7 +236,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		sess.respQueue <- &Context{respEntry: entry} // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
-			sess.writeOutbound(0)
+			sess.writeOutbound(0, 10)
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
@@ -257,7 +257,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		_ = p1.Close()
 		sess := newSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
-		go sess.writeOutbound(time.Millisecond * 10)
+		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -275,7 +275,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		sess := newSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
-		go sess.writeOutbound(time.Millisecond * 10)
+		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 		_ = p1.Close()
@@ -295,7 +295,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
-		sess.writeOutbound(0) // should stop looping and return
+		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -327,7 +327,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		sess := newSession(conn, &SessionOption{Packer: packer})
 		go func() { sess.respQueue <- &Context{respEntry: entry} }()
-		sess.writeOutbound(0) // should stop looping and return
+		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
@@ -349,7 +349,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		}()
 		done := make(chan struct{})
 		go func() {
-			sess.writeOutbound(0)
+			sess.writeOutbound(0, 10)
 			close(done)
 		}()
 		time.Sleep(time.Millisecond * 5)
@@ -383,17 +383,17 @@ func TestSession_sendReq(t *testing.T) {
 	})
 }
 
-func TestSession_tryConnWrite_when_reach_last_try(t *testing.T) {
+func TestSession_attemptConnWrite_when_reach_last_try(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	conn := mock.NewMockConn(ctrl)
 	conn.EXPECT().Write(gomock.Any()).Return(0, fmt.Errorf("some err"))
 
 	s := newSession(conn, &SessionOption{})
-	assert.Error(t, s.tryConnWrite([]byte("whatever"), 0))
+	assert.Error(t, s.attemptConnWrite([]byte("whatever"), 0))
 }
 
-func TestSession_tryConnWrite_when_err_is_not_temp(t *testing.T) {
+func TestSession_attemptConnWrite_when_err_is_not_temp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -405,5 +405,5 @@ func TestSession_tryConnWrite_when_err_is_not_temp(t *testing.T) {
 	conn.EXPECT().Write(gomock.Any()).Return(0, netErr)
 
 	s := newSession(conn, &SessionOption{})
-	assert.ErrorIs(t, s.tryConnWrite([]byte("whatever"), 10), netErr)
+	assert.ErrorIs(t, s.attemptConnWrite([]byte("whatever"), 10), netErr)
 }
