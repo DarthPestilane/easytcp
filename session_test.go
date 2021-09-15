@@ -382,3 +382,28 @@ func TestSession_sendReq(t *testing.T) {
 		sess.close()
 	})
 }
+
+func TestSession_tryConnWrite_when_reach_last_try(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	conn := mock.NewMockConn(ctrl)
+	conn.EXPECT().Write(gomock.Any()).Return(0, fmt.Errorf("some err"))
+
+	s := newSession(conn, &SessionOption{})
+	assert.Error(t, s.tryConnWrite([]byte("whatever"), 0))
+}
+
+func TestSession_tryConnWrite_when_err_is_not_temp(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	netErr := mock.NewMockError(ctrl)
+	netErr.EXPECT().Timeout().Return(false)
+	netErr.EXPECT().Temporary().Return(false)
+
+	conn := mock.NewMockConn(ctrl)
+	conn.EXPECT().Write(gomock.Any()).Return(0, netErr)
+
+	s := newSession(conn, &SessionOption{})
+	assert.ErrorIs(t, s.tryConnWrite([]byte("whatever"), 10), netErr)
+}
