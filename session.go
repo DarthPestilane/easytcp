@@ -162,31 +162,36 @@ LOOP:
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
 
-func (s *Session) tryConnWrite(outboundMsg []byte, maxTries int) error {
+func (s *Session) tryConnWrite(outboundMsg []byte, maxTries int) (err error) {
 	if maxTries <= 0 {
 		maxTries = 1
 	}
 	for i := 0; i < maxTries; i++ {
 		time.Sleep(tempErrDelay * time.Duration(i))
-		_, err := s.conn.Write(outboundMsg)
+		_, err = s.conn.Write(outboundMsg)
+
 		if err == nil {
 			break
 		}
-		if i == maxTries-1 { // if it's the last loop, stop retrying.
-			return err
+		if i == maxTries-1 { // if it's the last loop
+			break
 		}
-		if ne, ok := err.(net.Error); ok {
-			if ne.Timeout() {
-				return err
-			}
-			if ne.Temporary() {
-				Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
-				continue
-			}
+
+		// check net.Error
+		ne, ok := err.(net.Error)
+		if !ok {
+			break
 		}
-		return err
+		if ne.Timeout() {
+			break
+		}
+		if ne.Temporary() {
+			Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
+			continue
+		}
+		break
 	}
-	return nil
+	return
 }
 
 func (s *Session) pack(ctx *Context) ([]byte, error) {
