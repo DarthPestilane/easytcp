@@ -34,6 +34,7 @@ type Server struct {
 	printRoutes           bool
 	accepting             chan struct{}
 	stopped               chan struct{}
+	writeRetryTimes       int
 }
 
 // ServerOption is the option for Server.
@@ -48,6 +49,7 @@ type ServerOption struct {
 	ReqQueueSize          int           // sets the request channel size of router, DefaultReqQueueSize will be used if < 0.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
+	WriteRetryTimes       int           // sets the max retry times for packet writing in each session, should >= 0.
 }
 
 // ErrServerStopped is returned when server stopped.
@@ -83,6 +85,7 @@ func NewServer(opt *ServerOption) *Server {
 		router:                newRouter(opt.ReqQueueSize),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
+		writeRetryTimes:       opt.WriteRetryTimes,
 	}
 }
 
@@ -165,8 +168,8 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionCreate(sess)
 	}
 
-	go sess.readInbound(s.router.reqQueue, s.readTimeout) // start reading message packet from connection.
-	go sess.writeOutbound(s.writeTimeout)                 // start writing message packet to connection.
+	go sess.readInbound(s.router.reqQueue, s.readTimeout)    // start reading message packet from connection.
+	go sess.writeOutbound(s.writeTimeout, s.writeRetryTimes) // start writing message packet to connection.
 
 	<-sess.closed                // wait for session finished.
 	Sessions().Remove(sess.ID()) // session has been closed, remove it.
