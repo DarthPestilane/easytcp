@@ -49,7 +49,7 @@ type ServerOption struct {
 	ReqQueueSize          int           // sets the request channel size of router, DefaultReqQueueSize will be used if < 0.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
-	WriteRetryTimes       int           // sets the max retry times for connection write in each session, should >= 0.
+	WriteRetryTimes       int           // sets the max retry times for packet writing in each session, should >= 0.
 }
 
 // ErrServerStopped is returned when server stopped.
