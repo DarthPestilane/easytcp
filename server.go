@@ -34,7 +34,7 @@ type Server struct {
 	printRoutes           bool
 	accepting             chan struct{}
 	stopped               chan struct{}
-	writeRetryTimes       int
+	writeAttemptTimes     int
 }
 
 // ServerOption is the option for Server.
@@ -49,16 +49,20 @@ type ServerOption struct {
 	ReqQueueSize          int           // sets the request channel size of router, DefaultReqQueueSize will be used if < 0.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
-	WriteRetryTimes       int           // sets the max retry times for packet writing in each session, should >= 0.
+
+	// WriteAttemptTimes sets the max attempt times for packet writing in each session.
+	// The DefaultWriteAttemptTimes will be used if <= 0.
+	WriteAttemptTimes int
 }
 
 // ErrServerStopped is returned when server stopped.
 var ErrServerStopped = fmt.Errorf("server stopped")
 
 const (
-	DefaultReqQueueSize  = 1024
-	DefaultRespQueueSize = 1024
-	tempErrDelay         = time.Millisecond * 5
+	DefaultReqQueueSize      = 1024
+	DefaultRespQueueSize     = 1024
+	DefaultWriteAttemptTimes = 1
+	tempErrDelay             = time.Millisecond * 5
 )
 
 // NewServer creates a Server according to opt.
@@ -71,6 +75,9 @@ func NewServer(opt *ServerOption) *Server {
 	}
 	if opt.RespQueueSize < 0 {
 		opt.RespQueueSize = DefaultReqQueueSize
+	}
+	if opt.WriteAttemptTimes <= 0 {
+		opt.WriteAttemptTimes = DefaultWriteAttemptTimes
 	}
 	return &Server{
 		socketReadBufferSize:  opt.SocketReadBufferSize,
@@ -85,7 +92,7 @@ func NewServer(opt *ServerOption) *Server {
 		router:                newRouter(opt.ReqQueueSize),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
-		writeRetryTimes:       opt.WriteRetryTimes,
+		writeAttemptTimes:     opt.WriteAttemptTimes,
 	}
 }
 
@@ -168,8 +175,8 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionCreate(sess)
 	}
 
-	go sess.readInbound(s.router.reqQueue, s.readTimeout)    // start reading message packet from connection.
-	go sess.writeOutbound(s.writeTimeout, s.writeRetryTimes) // start writing message packet to connection.
+	go sess.readInbound(s.router.reqQueue, s.readTimeout)      // start reading message packet from connection.
+	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
 
 	<-sess.closed                // wait for session finished.
 	Sessions().Remove(sess.ID()) // session has been closed, remove it.
