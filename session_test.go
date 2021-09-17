@@ -390,7 +390,7 @@ func TestSession_attemptConnWrite_when_reach_last_try(t *testing.T) {
 	conn.EXPECT().Write(gomock.Any()).Return(0, fmt.Errorf("some err"))
 
 	s := newSession(conn, &SessionOption{})
-	assert.Error(t, s.attemptConnWrite([]byte("whatever"), 0))
+	assert.Error(t, s.attemptConnWrite([]byte("whatever"), 1))
 }
 
 func TestSession_attemptConnWrite_when_err_is_not_temp(t *testing.T) {
