@@ -29,7 +29,7 @@ func TestTCPSession_close(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			sess.close() // goroutine safe
+			sess.Close() // goroutine safe
 		}()
 	}
 	wg.Wait()
@@ -81,7 +81,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
 		go sess.readInbound(make(chan *Context), 0)
 		time.Sleep(time.Millisecond * 5)
-		sess.close()
+		sess.Close()
 		<-sess.closed
 	})
 	t.Run("when session is closed", func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 			close(loopDone)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.close()
+		sess.Close()
 		<-loopDone
 	})
 	t.Run("when unpack message works fine", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		}()
 		ctx := <-queue
 		time.Sleep(time.Millisecond * 5)
-		sess.close() // close session once we fetched a req from channel
+		sess.Close() // close session once we fetched a req from channel
 		assert.Equal(t, msg, ctx.reqEntry)
 		<-readDone
 	})
@@ -135,7 +135,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 			Data: []byte("test"),
 		}
 		sess := newSession(nil, &SessionOption{})
-		sess.close() // close session
+		sess.Close() // close session
 		assert.Error(t, sess.SendResp(&Context{respEntry: entry}))
 	})
 	t.Run("when session respQueue is closed", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 		sess.respQueue = make(chan *Context) // no buffer
 		go func() { <-sess.respQueue }()
 		assert.NoError(t, sess.SendResp(&Context{respEntry: entry}))
-		sess.close()
+		sess.Close()
 	})
 }
 
@@ -167,7 +167,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 10})
 		doneLoop := make(chan struct{})
-		sess.close()
+		sess.Close()
 		go func() {
 			sess.writeOutbound(0, 10) // should stop looping and return
 			close(doneLoop)
@@ -219,7 +219,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		time.Sleep(time.Microsecond * 15)
 		go sess.writeOutbound(0, 10)
 		time.Sleep(time.Millisecond * 15)
-		sess.close() // should break the write loop
+		sess.Close() // should break the write loop
 	})
 	t.Run("when pack returns nil data", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -240,7 +240,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		sess.close() // should break the write loop
+		sess.Close() // should break the write loop
 	})
 	t.Run("when set write deadline failed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -354,7 +354,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		}()
 		time.Sleep(time.Millisecond * 5)
 		_, _ = p2.Read(make([]byte, 100))
-		sess.close()
+		sess.Close()
 		<-done
 	})
 }
@@ -362,7 +362,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 func TestSession_sendReq(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
 		sess := newSession(nil, &SessionOption{})
-		sess.close()
+		sess.Close()
 		ctx := &Context{}
 		queue := make(chan *Context)
 		assert.False(t, sess.sendReq(ctx, queue))
@@ -379,7 +379,7 @@ func TestSession_sendReq(t *testing.T) {
 		ctx := &Context{}
 		queue := make(chan *Context, 10)
 		assert.True(t, sess.sendReq(ctx, queue))
-		sess.close()
+		sess.Close()
 	})
 }
 

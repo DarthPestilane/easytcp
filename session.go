@@ -66,8 +66,9 @@ func (s *Session) SendResp(ctx *Context) (err error) {
 	return
 }
 
-// close closes the session.
-func (s *Session) close() {
+// Close closes the session, but doesn't close the connection.
+// The connection will be closed in the server once the session's closed.
+func (s *Session) Close() {
 	defer func() { _ = recover() }()
 	close(s.closed)
 }
@@ -101,7 +102,7 @@ func (s *Session) readInbound(reqQueue chan<- *Context, timeout time.Duration) {
 		}
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
-	s.close()
+	s.Close()
 }
 
 func (s *Session) sendReq(ctx *Context, reqQueue chan<- *Context) (ok bool) {
@@ -158,7 +159,7 @@ LOOP:
 			}
 		}
 	}
-	s.close()
+	s.Close()
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
 
