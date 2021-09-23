@@ -196,7 +196,7 @@ func (s *Server) Stop() error {
 	// close all sessions
 	closedNum := 0
 	Sessions().Range(func(id string, sess *Session) (next bool) {
-		sess.close()
+		sess.Close()
 		closedNum++
 		return true
 	})

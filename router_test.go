@@ -46,7 +46,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 		}()
 		time.Sleep(time.Millisecond * 5)
 		sess := newSession(nil, &SessionOption{})
-		sess.close()
+		sess.Close()
 		rt.reqQueue <- &Context{session: sess}
 		time.Sleep(time.Millisecond * 5)
 		rt.stop()
@@ -82,7 +82,7 @@ func TestRouter_consumeRequest(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 
 		rt.register(1, func(ctx *Context) error {
-			defer ctx.session.close()
+			defer ctx.session.Close()
 			ctx.respEntry = &message.Entry{}
 			return nil
 		})
