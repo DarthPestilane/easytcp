@@ -120,20 +120,16 @@ func (s *Server) Serve(addr string) error {
 func (s *Server) acceptLoop() error {
 	close(s.accepting)
 	for {
-		select {
-		case <-s.stopped:
+		if s.isStopped() {
 			Log.Tracef("server accept loop stopped")
 			return ErrServerStopped
-		default:
 		}
 
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			select {
-			case <-s.stopped:
+			if s.isStopped() {
 				Log.Tracef("server accept loop stopped")
 				return ErrServerStopped
-			default:
 			}
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				Log.Errorf("accept err: %s; retrying in %s", err, tempErrDelay)
@@ -219,4 +215,13 @@ func (s *Server) Use(middlewares ...MiddlewareFunc) {
 // NotFoundHandler sets the not-found handler for router.
 func (s *Server) NotFoundHandler(handler HandlerFunc) {
 	s.router.setNotFoundHandler(handler)
+}
+
+func (s *Server) isStopped() bool {
+	select {
+	case <-s.stopped:
+		return true
+	default:
+		return false
+	}
 }
