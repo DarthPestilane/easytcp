@@ -34,7 +34,7 @@ func main() {
 				return true // next iteration
 			}
 			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
-			if err := ctx.SendTo(sess, common.MsgIdBroadCastAck, respData); err != nil {
+			if err := ctx.Copy().SendTo(sess, common.MsgIdBroadCastAck, respData); err != nil {
 				log.Errorf("broadcast err: %s", err)
 			}
 			return true

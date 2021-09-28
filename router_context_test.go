@@ -337,3 +337,12 @@ func TestContext_reset(t *testing.T) {
 	assert.Nil(t, ctx.storage)
 	assert.Nil(t, ctx.respEntry)
 }
+
+func TestContext_Copy(t *testing.T) {
+	ctx := newContext(nil, nil)
+	ctx.respEntry = &message.Entry{ID: 1}
+	ctx2 := ctx.Copy()
+	ctx2.respEntry = &message.Entry{ID: 10}
+
+	assert.NotEqual(t, ctx.respEntry.ID, ctx2.respEntry.ID)
+}

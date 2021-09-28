@@ -178,6 +178,18 @@ func (c *Context) Send(id, data interface{}) error {
 	return c.session.SendResp(c)
 }
 
+// Copy returns a copy of the current context.
+// This should be used when one wants to change the context after pushed to a channel.
+func (c *Context) Copy() *Context {
+	cp := Context{
+		storage:   c.storage,
+		session:   c.session,
+		reqEntry:  c.reqEntry,
+		respEntry: c.respEntry,
+	}
+	return &cp
+}
+
 func (c *Context) reset(sess *Session, reqEntry *message.Entry) {
 	c.session = sess
 	c.reqEntry = reqEntry
