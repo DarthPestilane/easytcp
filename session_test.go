@@ -43,90 +43,90 @@ func TestTCPSession_ID(t *testing.T) {
 	assert.Equal(t, sess.ID(), sess.id)
 }
 
-func TestTCPSession_readInbound(t *testing.T) {
-	t.Run("when connection set read timeout failed", func(t *testing.T) {
-		p1, _ := net.Pipe()
-		_ = p1.Close()
-		sess := newSession(p1, &SessionOption{})
-		go sess.readInbound(make(chan *Context), time.Millisecond)
-		<-sess.closed
-	})
-	t.Run("when connection read timeout", func(t *testing.T) {
-		p1, _ := net.Pipe()
-		packer := &DefaultPacker{}
-		sess := newSession(p1, &SessionOption{Packer: packer})
-		go sess.readInbound(make(chan *Context), time.Millisecond*10) // A timeout error is not fatal, we can keep going.
-		time.Sleep(time.Millisecond * 12)
-		_ = p1.Close()
-		<-sess.closed
-	})
-	t.Run("when unpack message failed with error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some error"))
-
-		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		go sess.readInbound(make(chan *Context), 0)
-		<-sess.closed
-	})
-	t.Run("when unpack message returns nil entry", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(nil, nil)
-
-		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		go sess.readInbound(make(chan *Context), 0)
-		time.Sleep(time.Millisecond * 5)
-		sess.Close()
-		<-sess.closed
-	})
-	t.Run("when session is closed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
-
-		sess := newSession(nil, &SessionOption{Packer: packer})
-		loopDone := make(chan struct{})
-		go func() {
-			sess.readInbound(make(chan *Context, 1024), 0)
-			close(loopDone)
-		}()
-		time.Sleep(time.Millisecond * 5)
-		sess.Close()
-		<-loopDone
-	})
-	t.Run("when unpack message works fine", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		msg := &message.Entry{
-			ID:   1,
-			Data: []byte("unpacked"),
-		}
-
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
-
-		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		readDone := make(chan struct{})
-		queue := make(chan *Context)
-		go func() {
-			sess.readInbound(queue, 0)
-			close(readDone)
-		}()
-		ctx := <-queue
-		time.Sleep(time.Millisecond * 5)
-		sess.Close() // close session once we fetched a req from channel
-		assert.Equal(t, msg, ctx.reqEntry)
-		<-readDone
-	})
-}
+// func TestTCPSession_readInbound(t *testing.T) {
+// 	t.Run("when connection set read timeout failed", func(t *testing.T) {
+// 		p1, _ := net.Pipe()
+// 		_ = p1.Close()
+// 		sess := newSession(p1, &SessionOption{})
+// 		go sess.readInbound(make(chan *Context), time.Millisecond)
+// 		<-sess.closed
+// 	})
+// 	t.Run("when connection read timeout", func(t *testing.T) {
+// 		p1, _ := net.Pipe()
+// 		packer := &DefaultPacker{}
+// 		sess := newSession(p1, &SessionOption{Packer: packer})
+// 		go sess.readInbound(make(chan *Context), time.Millisecond*10) // A timeout error is not fatal, we can keep going.
+// 		time.Sleep(time.Millisecond * 12)
+// 		_ = p1.Close()
+// 		<-sess.closed
+// 	})
+// 	t.Run("when unpack message failed with error", func(t *testing.T) {
+// 		ctrl := gomock.NewController(t)
+// 		defer ctrl.Finish()
+//
+// 		packer := mock.NewMockPacker(ctrl)
+// 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some error"))
+//
+// 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
+// 		go sess.readInbound(make(chan *Context), 0)
+// 		<-sess.closed
+// 	})
+// 	t.Run("when unpack message returns nil entry", func(t *testing.T) {
+// 		ctrl := gomock.NewController(t)
+// 		defer ctrl.Finish()
+//
+// 		packer := mock.NewMockPacker(ctrl)
+// 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(nil, nil)
+//
+// 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
+// 		go sess.readInbound(make(chan *Context), 0)
+// 		time.Sleep(time.Millisecond * 5)
+// 		sess.Close()
+// 		<-sess.closed
+// 	})
+// 	t.Run("when session is closed", func(t *testing.T) {
+// 		ctrl := gomock.NewController(t)
+// 		defer ctrl.Finish()
+//
+// 		packer := mock.NewMockPacker(ctrl)
+// 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
+//
+// 		sess := newSession(nil, &SessionOption{Packer: packer})
+// 		loopDone := make(chan struct{})
+// 		go func() {
+// 			sess.readInbound(make(chan *Context, 1024), 0)
+// 			close(loopDone)
+// 		}()
+// 		time.Sleep(time.Millisecond * 5)
+// 		sess.Close()
+// 		<-loopDone
+// 	})
+// 	t.Run("when unpack message works fine", func(t *testing.T) {
+// 		ctrl := gomock.NewController(t)
+// 		defer ctrl.Finish()
+//
+// 		msg := &message.Entry{
+// 			ID:   1,
+// 			Data: []byte("unpacked"),
+// 		}
+//
+// 		packer := mock.NewMockPacker(ctrl)
+// 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(msg, nil)
+//
+// 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
+// 		readDone := make(chan struct{})
+// 		queue := make(chan *Context)
+// 		go func() {
+// 			sess.readInbound(queue, 0)
+// 			close(readDone)
+// 		}()
+// 		ctx := <-queue
+// 		time.Sleep(time.Millisecond * 5)
+// 		sess.Close() // close session once we fetched a req from channel
+// 		assert.Equal(t, msg, ctx.reqEntry)
+// 		<-readDone
+// 	})
+// }
 
 func TestTCPSession_SendResp(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
@@ -356,30 +356,6 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		_, _ = p2.Read(make([]byte, 100))
 		sess.Close()
 		<-done
-	})
-}
-
-func TestSession_sendReq(t *testing.T) {
-	t.Run("when session is closed", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{})
-		sess.Close()
-		ctx := &Context{}
-		queue := make(chan *Context)
-		assert.False(t, sess.sendReq(ctx, queue))
-	})
-	t.Run("when reqQueue channel is closed", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{})
-		ctx := &Context{}
-		queue := make(chan *Context)
-		close(queue)
-		assert.False(t, sess.sendReq(ctx, queue))
-	})
-	t.Run("when ok", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{})
-		ctx := &Context{}
-		queue := make(chan *Context, 10)
-		assert.True(t, sess.sendReq(ctx, queue))
-		sess.Close()
 	})
 }
 

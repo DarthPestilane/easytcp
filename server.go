@@ -89,7 +89,7 @@ func NewServer(opt *ServerOption) *Server {
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
-		router:                newRouter(opt.ReqQueueSize),
+		router:                newRouter(),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 		writeAttemptTimes:     opt.WriteAttemptTimes,
@@ -111,7 +111,6 @@ func (s *Server) Serve(addr string) error {
 	if s.printRoutes {
 		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
-	go s.router.consumeRequest()
 	return s.acceptLoop()
 }
 
@@ -171,7 +170,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionCreate(sess)
 	}
 
-	go sess.readInbound(s.router.reqQueue, s.readTimeout)      // start reading message packet from connection.
+	go sess.readInbound(s.router, s.readTimeout)               // start reading message packet from connection.
 	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
 
 	<-sess.closed                // wait for session finished.
@@ -198,7 +197,6 @@ func (s *Server) Stop() error {
 	})
 	Log.Tracef("%d session(s) closed", closedNum)
 
-	s.router.stop()
 	return s.Listener.Close()
 }
 

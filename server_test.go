@@ -23,7 +23,6 @@ func TestNewServer(t *testing.T) {
 	assert.IsType(t, s.Packer, NewDefaultPacker())
 	assert.Equal(t, s.Codec, &JsonCodec{})
 	assert.Equal(t, s.respQueueSize, DefaultRespQueueSize)
-	assert.Equal(t, cap(s.router.reqQueue), DefaultReqQueueSize)
 	assert.NotNil(t, s.accepting)
 	assert.NotNil(t, s.stopped)
 }
