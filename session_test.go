@@ -215,10 +215,15 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := newSession(nil, &SessionOption{Packer: packer})
-		go func() { sess.respQueue <- &Context{respEntry: entry} }()
+		done := make(chan struct{})
+		go func() {
+			sess.respQueue <- &Context{respEntry: entry}
+			close(done)
+		}()
 		time.Sleep(time.Microsecond * 15)
 		go sess.writeOutbound(0, 10)
 		time.Sleep(time.Millisecond * 15)
+		<-done
 		sess.Close() // should break the write loop
 	})
 	t.Run("when pack returns nil data", func(t *testing.T) {
