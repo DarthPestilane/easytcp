@@ -25,7 +25,7 @@ var _ Packer = &DefaultPacker{}
 // NewDefaultPacker create a *DefaultPacker with initial field value.
 func NewDefaultPacker() *DefaultPacker {
 	return &DefaultPacker{
-		MaxDataSize: 1024 * 1024,
+		MaxDataSize: 1 << 10 << 10, // 1MB
 	}
 }
 
