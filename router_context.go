@@ -163,6 +163,8 @@ func (c *Context) Response(id, data interface{}) error {
 }
 
 // SendTo sends response message to the specified session.
+// It should be called after Copy:
+//   c.Copy().SendTo(...)
 func (c *Context) SendTo(sess *Session, id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
@@ -171,6 +173,8 @@ func (c *Context) SendTo(sess *Session, id, data interface{}) error {
 }
 
 // Send sends response message to current session.
+// It should be called after Copy:
+//   c.Copy().Send(...)
 func (c *Context) Send(id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
