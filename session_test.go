@@ -56,10 +56,12 @@ func TestTCPSession_readInbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		packer := &DefaultPacker{}
 		sess := newSession(p1, &SessionOption{Packer: packer})
-		go sess.readInbound(nil, time.Millisecond*10) // A timeout error is not fatal, we can keep going.
-		time.Sleep(time.Millisecond * 12)
-		_ = p1.Close()
-		<-sess.closed
+		done := make(chan struct{})
+		go func() {
+			sess.readInbound(nil, time.Millisecond*10)
+			close(done)
+		}()
+		<-done
 	})
 	t.Run("when unpack message failed with error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -69,7 +71,12 @@ func TestTCPSession_readInbound(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some error"))
 
 		sess := newSession(nil, &SessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
-		go sess.readInbound(nil, 0)
+		done := make(chan struct{})
+		go func() {
+			sess.readInbound(nil, 0)
+			close(done)
+		}()
+		<-done
 		<-sess.closed
 	})
 	t.Run("when unpack message returns nil entry", func(t *testing.T) {

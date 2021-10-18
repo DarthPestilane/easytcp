@@ -27,7 +27,6 @@ func main() {
 		SocketWriteBufferSize: 1024 * 1024,
 		ReadTimeout:           time.Second * 3,
 		WriteTimeout:          time.Second * 3,
-		ReqQueueSize:          -1,
 		RespQueueSize:         -1,
 		Packer:                easytcp.NewDefaultPacker(),
 		Codec:                 nil,

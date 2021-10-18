@@ -16,7 +16,6 @@ func TestNewServer(t *testing.T) {
 		ReadTimeout:   0,
 		WriteTimeout:  0,
 		Codec:         &JsonCodec{},
-		ReqQueueSize:  -1,
 		RespQueueSize: -1,
 	})
 	assert.NotNil(t, s.accepting)
@@ -152,7 +151,6 @@ func TestServer_handleConn(t *testing.T) {
 		SocketSendDelay:       true,
 		Codec:                 codec,
 		Packer:                packer,
-		ReqQueueSize:          -1,
 		RespQueueSize:         -1,
 	})
 
