@@ -102,22 +102,20 @@ in [examples/tcp](./examples/tcp).
 
 ## Benchmark
 
-- goversion: 1.15.15
-- goos: darwin
-- goarch: amd64
+```sh
+go test -bench=. -run=none -benchmem -benchtime=250000x
+goos: darwin
+goarch: amd64
+pkg: github.com/DarthPestilane/easytcp
+Benchmark_NoHandler-8                 	  250000	      4479 ns/op	      86 B/op	       2 allocs/op
+Benchmark_OneHandler-8                	  250000	      4377 ns/op	      85 B/op	       2 allocs/op
+Benchmark_OneHandlerCtxGetSet-8       	  250000	      4076 ns/op	     363 B/op	       4 allocs/op
+Benchmark_OneHandlerMessageGetSet-8   	  250000	      4202 ns/op	     396 B/op	       5 allocs/op
+PASS
+ok  	github.com/DarthPestilane/easytcp	4.609s
+```
 
-| Benchmark name          | (1)    | (2)        | (3)       | (4)          | remark                        |
-| ----------------------- | ------ | ---------- | --------- | ------------ | ----------------------------- |
-| NoRoute-8               | 250000 | 4584 ns/op | 79 B/op   | 2 allocs/op  |                               |
-| NotFoundHandler-8       | 250000 | 5471 ns/op | 565 B/op  | 6 allocs/op  |                               |
-| OneHandler-8            | 250000 | 6250 ns/op | 352 B/op  | 7 allocs/op  |                               |
-| ManyHandlers-8          | 250000 | 6405 ns/op | 464 B/op  | 11 allocs/op |                               |
-| OneRouteCtxGetSet-8     | 250000 | 6940 ns/op | 697 B/op  | 11 allocs/op |                               |
-| OneRouteMessageGetSet-8 | 250000 | 5406 ns/op | 623 B/op  | 9 allocs/op  |                               |
-| OneRouteJsonCodec-8     | 250000 | 7582 ns/op | 1383 B/op | 21 allocs/op | built with `encoding/json`    |
-| OneRouteJsonCodec-8     | 250000 | 8430 ns/op | 1410 B/op | 17 allocs/op | built with `json-jsoniter/go` |
-| OneRouteProtobufCodec-8 | 250000 | 6628 ns/op | 444 B/op  | 8 allocs/op  |                               |
-| OneRouteMsgpackCodec-8  | 250000 | 7491 ns/op | 661 B/op  | 11 allocs/op |                               |
+*since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*
 
 ## Architecture
 
