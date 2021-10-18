@@ -8,16 +8,8 @@ import (
 	"runtime"
 )
 
-func newRouter(queueSize ...int) *Router {
-	size := 0
-	if len(queueSize) != 0 {
-		if qs := queueSize[0]; qs > 0 {
-			size = qs
-		}
-	}
+func newRouter() *Router {
 	return &Router{
-		reqQueue:          make(chan *Context, size),
-		stopped:           make(chan struct{}),
 		handlerMapper:     make(map[interface{}]HandlerFunc),
 		middlewaresMapper: make(map[interface{}][]MiddlewareFunc),
 	}
@@ -39,8 +31,6 @@ type Router struct {
 	globalMiddlewares []MiddlewareFunc
 
 	notFoundHandler HandlerFunc
-	reqQueue        chan *Context
-	stopped         chan struct{}
 }
 
 // HandlerFunc is the function type for handlers.
@@ -58,42 +48,6 @@ type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 var nilHandler HandlerFunc = func(ctx *Context) error {
 	return nil
-}
-
-// stop stops the router.
-func (r *Router) stop() {
-	close(r.stopped)
-}
-
-// consumeRequest fetches context from reqQueue, and handle it.
-func (r *Router) consumeRequest() {
-	defer func() { Log.Tracef("router stopped") }()
-	for {
-		select {
-		case <-r.stopped:
-			close(r.reqQueue)
-			return
-		case ctx, ok := <-r.reqQueue:
-			if !ok {
-				return
-			}
-			select {
-			case <-ctx.session.closed:
-				continue
-			default:
-			}
-
-			go func() {
-				if err := r.handleRequest(ctx); err != nil {
-					Log.Errorf("router handle request err: %s", err)
-					return
-				}
-				if err := ctx.session.SendResp(ctx); err != nil {
-					Log.Errorf("router send resp err: %s", err)
-				}
-			}()
-		}
-	}
 }
 
 // handleRequest walks ctx through middlewares and handler,
@@ -124,13 +78,11 @@ func (r *Router) handleRequest(ctx *Context) error {
 // 	var wrapped HandlerFunc = m1(m2(m3(handle)))
 func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wrapped HandlerFunc) {
 	if handler == nil {
-		if r.notFoundHandler != nil {
-			handler = r.notFoundHandler
-		} else {
-			handler = nilHandler
-		}
+		handler = r.notFoundHandler
 	}
-
+	if handler == nil {
+		handler = nilHandler
+	}
 	wrapped = handler
 	for i := len(middles) - 1; i >= 0; i-- {
 		m := middles[i]

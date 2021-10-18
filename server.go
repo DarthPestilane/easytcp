@@ -46,7 +46,6 @@ type ServerOption struct {
 	WriteTimeout          time.Duration // sets the timeout for connection write.
 	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil.
-	ReqQueueSize          int           // sets the request channel size of router, DefaultReqQueueSize will be used if < 0.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 
@@ -59,7 +58,6 @@ type ServerOption struct {
 var ErrServerStopped = fmt.Errorf("server stopped")
 
 const (
-	DefaultReqQueueSize      = 1024
 	DefaultRespQueueSize     = 1024
 	DefaultWriteAttemptTimes = 1
 	tempErrDelay             = time.Millisecond * 5
@@ -70,11 +68,8 @@ func NewServer(opt *ServerOption) *Server {
 	if opt.Packer == nil {
 		opt.Packer = NewDefaultPacker()
 	}
-	if opt.ReqQueueSize < 0 {
-		opt.ReqQueueSize = DefaultRespQueueSize
-	}
 	if opt.RespQueueSize < 0 {
-		opt.RespQueueSize = DefaultReqQueueSize
+		opt.RespQueueSize = DefaultRespQueueSize
 	}
 	if opt.WriteAttemptTimes <= 0 {
 		opt.WriteAttemptTimes = DefaultWriteAttemptTimes
@@ -89,7 +84,7 @@ func NewServer(opt *ServerOption) *Server {
 		Packer:                opt.Packer,
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
-		router:                newRouter(opt.ReqQueueSize),
+		router:                newRouter(),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 		writeAttemptTimes:     opt.WriteAttemptTimes,
@@ -111,7 +106,6 @@ func (s *Server) Serve(addr string) error {
 	if s.printRoutes {
 		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
-	go s.router.consumeRequest()
 	return s.acceptLoop()
 }
 
@@ -171,7 +165,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.OnSessionCreate(sess)
 	}
 
-	go sess.readInbound(s.router.reqQueue, s.readTimeout)      // start reading message packet from connection.
+	go sess.readInbound(s.router, s.readTimeout)               // start reading message packet from connection.
 	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
 
 	<-sess.closed                // wait for session finished.
@@ -198,7 +192,6 @@ func (s *Server) Stop() error {
 	})
 	Log.Tracef("%d session(s) closed", closedNum)
 
-	s.router.stop()
 	return s.Listener.Close()
 }
 
