@@ -340,9 +340,13 @@ func TestContext_reset(t *testing.T) {
 
 func TestContext_Copy(t *testing.T) {
 	ctx := newContext(nil, nil)
-	ctx.respEntry = &message.Entry{ID: 1}
-	ctx2 := ctx.Copy()
-	ctx2.respEntry = &message.Entry{ID: 10}
+	ctx.SetResponse(1, []byte("resp origin"))
 
-	assert.NotEqual(t, ctx.respEntry.ID, ctx2.respEntry.ID)
+	ctx2 := ctx.Copy()
+	ctx2.SetResponse(2, []byte("resp copy"))
+
+	assert.EqualValues(t, ctx.respEntry.ID, 1)
+	assert.Equal(t, ctx.respEntry.Data, []byte("resp origin"))
+	assert.EqualValues(t, ctx2.respEntry.ID, 2)
+	assert.Equal(t, ctx2.respEntry.Data, []byte("resp copy"))
 }
