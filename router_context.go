@@ -108,6 +108,24 @@ func (c *Context) MustDecodeTo(data []byte, v interface{}) {
 	}
 }
 
+// Encode encodes v using session's codec.
+func (c *Context) Encode(v interface{}) ([]byte, error) {
+	if c.session.codec == nil {
+		return nil, fmt.Errorf("codec is not nil")
+	}
+	return c.session.codec.Encode(v)
+}
+
+// MustEncode encodes v using session's codec.
+// Panics if any error occurred.
+func (c *Context) MustEncode(v interface{}) []byte {
+	data, err := c.Encode(v)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 // Remove deletes the key from storage.
 func (c *Context) Remove(key string) {
 	c.mu.Lock()
