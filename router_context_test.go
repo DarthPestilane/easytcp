@@ -350,3 +350,63 @@ func TestContext_Copy(t *testing.T) {
 	assert.EqualValues(t, ctx2.respEntry.ID, 2)
 	assert.Equal(t, ctx2.respEntry.Data, []byte("resp copy"))
 }
+
+func TestContext_Encode(t *testing.T) {
+	t.Run("when codec is nil", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{
+			Codec: nil,
+		})
+		ctx := newContext(sess, nil)
+		data, err := ctx.Encode("test")
+		assert.Error(t, err)
+		assert.Nil(t, data)
+	})
+	t.Run("when codec encode failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
+
+		sess := newSession(nil, &SessionOption{Codec: codec})
+		ctx := newContext(sess, nil)
+		data, err := ctx.Encode("test")
+		assert.Error(t, err)
+		assert.Nil(t, data)
+	})
+	t.Run("when codec encode ok", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return([]byte("ok"), nil)
+
+		sess := newSession(nil, &SessionOption{Codec: codec})
+		ctx := newContext(sess, nil)
+		data, err := ctx.Encode("test")
+		assert.NoError(t, err)
+		assert.Equal(t, data, []byte("ok"))
+	})
+}
+
+func TestContext_MustEncode(t *testing.T) {
+	t.Run("when error happened", func(t *testing.T) {
+		sess := newSession(nil, &SessionOption{
+			Codec: nil,
+		})
+		ctx := newContext(sess, nil)
+		assert.Panics(t, func() { ctx.MustEncode("test") })
+	})
+	t.Run("when success", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return([]byte("ok"), nil)
+
+		sess := newSession(nil, &SessionOption{Codec: codec})
+		ctx := newContext(sess, nil)
+		data := ctx.MustEncode("test")
+		assert.Equal(t, data, []byte("ok"))
+	})
+}
