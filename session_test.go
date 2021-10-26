@@ -107,15 +107,15 @@ func TestTCPSession_readInbound(t *testing.T) {
 		defer ctrl.Finish()
 
 		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
+		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
 
 		r := newRouter()
 		r.register(1, func(ctx *Context) error {
+			ctx.session.Close()
 			return fmt.Errorf("route error")
 		})
 
 		sess := newSession(nil, &SessionOption{Packer: packer, respQueueSize: 10})
-		sess.Close()
 		loopDone := make(chan struct{})
 		go func() {
 			sess.readInbound(r, 0)
@@ -138,15 +138,12 @@ func TestTCPSession_readInbound(t *testing.T) {
 			}
 		})
 
-		codec := mock.NewMockCodec(ctrl)
-		codec.EXPECT().Encode(gomock.Any()).Return([]byte("encode ok"), nil)
-
 		r := newRouter()
 		r.register(1, func(ctx *Context) error {
 			return ctx.Response(2, []byte("ok"))
 		})
 
-		sess := newSession(nil, &SessionOption{Packer: packer, Codec: codec, respQueueSize: 10})
+		sess := newSession(nil, &SessionOption{Packer: packer, Codec: nil, respQueueSize: 10})
 		readDone := make(chan struct{})
 		go func() {
 			sess.readInbound(r, 0)
