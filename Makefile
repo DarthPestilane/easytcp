@@ -24,11 +24,11 @@ lint-fix:
 
 .PHONY: test
 test:
-	CGO_ENABLED=1 go test -race -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m . ./message
+	go test -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m . ./message
 
 .PHONY: test-v
 test-v:
-	CGO_ENABLED=1 go test -race -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m -v . ./message
+	go test -count=1 -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m -v . ./message
 
 .PHONY: cover-view
 cover-view:

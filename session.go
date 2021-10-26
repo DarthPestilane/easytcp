@@ -72,6 +72,11 @@ func (s *Session) Close() {
 // The loop breaks if errors occurred or the session is closed.
 func (s *Session) readInbound(router *Router, timeout time.Duration) {
 	for {
+		select {
+		case <-s.closed:
+			return
+		default:
+		}
 		if timeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 				Log.Errorf("session %s set read deadline err: %s", s.id, err)
@@ -90,14 +95,14 @@ func (s *Session) readInbound(router *Router, timeout time.Duration) {
 		ctx := s.ctxPool.Get().(*Context)
 		ctx.reset(s, reqEntry)
 
-		if err := router.handleRequest(ctx); err != nil {
-			Log.Errorf("handle request err: %s", err)
-		}
-
-		if err := s.SendResp(ctx); err != nil {
-			Log.Errorf("send resp context err: %s", err)
-			break
-		}
+		go func() {
+			if err := router.handleRequest(ctx); err != nil {
+				Log.Errorf("handle request err: %s", err)
+			}
+			if err := s.SendResp(ctx); err != nil {
+				Log.Errorf("send resp context err: %s", err)
+			}
+		}()
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
 	s.Close()
