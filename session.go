@@ -92,10 +92,10 @@ func (s *Session) readInbound(router *Router, timeout time.Duration) {
 			continue
 		}
 
-		ctx := s.ctxPool.Get().(*Context)
-		ctx.reset(s, reqEntry)
-
+		// don't block the loop.
 		go func() {
+			ctx := s.ctxPool.Get().(*Context)
+			ctx.reset(s, reqEntry)
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
 			}
