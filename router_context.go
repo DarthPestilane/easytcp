@@ -13,7 +13,7 @@ import (
 type Context struct {
 	mu        sync.RWMutex
 	storage   map[string]interface{}
-	session   *Session
+	session   *session
 	reqEntry  *message.Entry
 	respEntry *message.Entry
 }
@@ -133,8 +133,8 @@ func (c *Context) Remove(key string) {
 	c.mu.Unlock()
 }
 
-// Session returns current session.
-func (c *Context) Session() *Session {
+// session returns current session.
+func (c *Context) Session() *session {
 	return c.session
 }
 
@@ -212,7 +212,7 @@ func (c *Context) Copy() *Context {
 	return &cp
 }
 
-func (c *Context) reset(sess *Session, reqEntry *message.Entry) {
+func (c *Context) reset(sess *session, reqEntry *message.Entry) {
 	c.session = sess
 	c.reqEntry = reqEntry
 	c.respEntry = nil

@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func newContext(sess *Session, msg *message.Entry) *Context {
+func newContext(sess *session, msg *message.Entry) *Context {
 	return &Context{session: sess, reqEntry: msg}
 }
 

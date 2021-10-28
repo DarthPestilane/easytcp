@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewTCPSession(t *testing.T) {
-	var s *Session
+	var s *session
 	assert.NotPanics(t, func() {
 		s = newSession(nil, &sessionOption{})
 	})

@@ -23,8 +23,8 @@ func Sessions() *SessionManager {
 	return manager
 }
 
-// Add adds a session to Sessions.
-// If the ID of s already existed in Sessions, it replaces the value with the s.
+// Add adds a session to sessions.
+// If the ID of s already existed in sessions, it replaces the value with the s.
 func (m *SessionManager) Add(s ISession) {
 	if s == nil {
 		return
@@ -37,7 +37,7 @@ func (m *SessionManager) Add(s ISession) {
 	m.mu.Unlock()
 }
 
-// Remove removes a session from Sessions.
+// Remove removes a session from sessions.
 // Parameter id should be the session's id.
 func (m *SessionManager) Remove(id string) {
 	m.mu.Lock()
@@ -45,7 +45,7 @@ func (m *SessionManager) Remove(id string) {
 	m.mu.Unlock()
 }
 
-// Get returns a Session when found by the id,
+// Get returns a session when found by the id,
 // returns nil otherwise.
 func (m *SessionManager) Get(id string) ISession {
 	m.mu.RLock()
@@ -54,7 +54,7 @@ func (m *SessionManager) Get(id string) ISession {
 	return sess
 }
 
-// Range calls fn sequentially for each id and sess present in the Sessions.
+// Range calls fn sequentially for each id and sess present in the sessions.
 // If fn returns false, range stops the iteration.
 func (m *SessionManager) Range(fn func(id string, sess ISession) (next bool)) {
 	m.mu.RLock()
