@@ -13,8 +13,8 @@ type Session interface {
 	// ID returns current session's id.
 	ID() string
 
-	// SendResp sends the ctx to the respQueue
-	SendResp(ctx *Context) error
+	// Send sends the ctx to the respQueue
+	Send(ctx *Context) error
 
 	// Close closes session.
 	Close()
@@ -58,9 +58,9 @@ func (s *session) ID() string {
 	return s.id
 }
 
-// SendResp pushes response message entry to respQueue.
+// Send pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *session) SendResp(ctx *Context) (err error) {
+func (s *session) Send(ctx *Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("sessions is closed")
@@ -110,7 +110,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
 			}
-			if err := s.SendResp(ctx); err != nil {
+			if err := s.Send(ctx); err != nil {
 				Log.Errorf("send resp context err: %s", err)
 			}
 		}()

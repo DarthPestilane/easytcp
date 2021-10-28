@@ -187,7 +187,7 @@ func (c *Context) SendTo(sess Session, id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return sess.SendResp(c)
+	return sess.Send(c)
 }
 
 // Send sends response message to current session.
@@ -197,7 +197,7 @@ func (c *Context) Send(id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return c.session.SendResp(c)
+	return c.session.Send(c)
 }
 
 // Copy returns a copy of the current context.

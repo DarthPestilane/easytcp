@@ -161,12 +161,12 @@ func TestTCPSession_SendResp(t *testing.T) {
 		}
 		sess := newSession(nil, &sessionOption{})
 		sess.Close() // close session
-		assert.Error(t, sess.SendResp(&Context{respEntry: entry}))
+		assert.Error(t, sess.Send(&Context{respEntry: entry}))
 	})
 	t.Run("when session respQueue is closed", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
 		close(sess.respQueue)
-		assert.Error(t, sess.SendResp(nil))
+		assert.Error(t, sess.Send(nil))
 	})
 	t.Run("when send succeed", func(t *testing.T) {
 		entry := &message.Entry{
@@ -177,7 +177,7 @@ func TestTCPSession_SendResp(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
 		sess.respQueue = make(chan *Context) // no buffer
 		go func() { <-sess.respQueue }()
-		assert.NoError(t, sess.SendResp(&Context{respEntry: entry}))
+		assert.NoError(t, sess.Send(&Context{respEntry: entry}))
 		sess.Close()
 	})
 }
@@ -375,7 +375,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
 		go func() {
-			_ = sess.SendResp(&Context{respEntry: entry})
+			_ = sess.Send(&Context{respEntry: entry})
 		}()
 		done := make(chan struct{})
 		go func() {
