@@ -2,6 +2,7 @@ package easytcp
 
 import (
 	"github.com/DarthPestilane/easytcp/message"
+	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
 )
@@ -115,6 +116,40 @@ func Benchmark_OneHandlerMessageGetSet(b *testing.B) {
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
+	}
+}
+
+func Benchmark_DefaultPacker_Pack(b *testing.B) {
+	packer := NewDefaultPacker()
+
+	msg := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	beforeBench(b)
+	for i := 0; i < b.N; i++ {
+		_, _ = packer.Pack(msg)
+	}
+}
+
+func Benchmark_DefaultPacker_Unpack(b *testing.B) {
+	packer := NewDefaultPacker()
+	msg := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	bytes, err := packer.Pack(msg)
+	assert.NoError(b, err)
+
+	p1, p2 := net.Pipe()
+	go func() {
+		for {
+			_, _ = p1.Write(bytes)
+		}
+	}()
+	beforeBench(b)
+	for i := 0; i < b.N; i++ {
+		_, _ = packer.Unpack(p2)
 	}
 }
 
