@@ -84,7 +84,7 @@ func TestContext_Bind(t *testing.T) {
 			ID:   1,
 			Data: []byte(`{"data":"test"}`),
 		}
-		sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+		sess := newSession(nil, &sessionOption{Codec: &JsonCodec{}})
 
 		c := newContext(sess, entry)
 		data := make(map[string]string)
@@ -100,7 +100,7 @@ func TestContext_Bind(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		sess := newSession(nil, &SessionOption{})
+		sess := newSession(nil, &sessionOption{})
 
 		c := newContext(sess, entry)
 		var data string
@@ -115,7 +115,7 @@ func TestContext_MustBind(t *testing.T) {
 			ID:   1,
 			Data: []byte(`{"data":"test"}`),
 		}
-		sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+		sess := newSession(nil, &sessionOption{Codec: &JsonCodec{}})
 		c := newContext(sess, entry)
 		data := make(map[string]string)
 		c.MustBind(&data)
@@ -126,7 +126,7 @@ func TestContext_MustBind(t *testing.T) {
 		assert.Panics(t, func() { c.MustBind(&dst) })
 	})
 	t.Run("when codec is nil", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{})
+		sess := newSession(nil, &sessionOption{})
 		c := newContext(sess, &message.Entry{})
 		var dst interface{}
 		assert.Panics(t, func() { c.MustBind(&dst) }) // should panic
@@ -134,7 +134,7 @@ func TestContext_MustBind(t *testing.T) {
 }
 
 func TestContext_Session(t *testing.T) {
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 
 	c := newContext(sess, nil)
 	assert.Equal(t, c.Session(), sess)
@@ -153,7 +153,7 @@ func TestContext_Response(t *testing.T) {
 				ID:   1,
 				Data: []byte("test"),
 			}
-			sess := newSession(nil, &SessionOption{})
+			sess := newSession(nil, &sessionOption{})
 
 			c := newContext(sess, entry)
 			err := c.Response(1, []string{"invalid", "data"})
@@ -162,7 +162,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is a string", func(t *testing.T) {
 			entry := &message.Entry{}
-			sess := newSession(nil, &SessionOption{})
+			sess := newSession(nil, &sessionOption{})
 
 			c := newContext(sess, entry)
 			err := c.Response(1, "data")
@@ -178,7 +178,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is []byte", func(t *testing.T) {
 			entry := &message.Entry{}
-			sess := newSession(nil, &SessionOption{})
+			sess := newSession(nil, &sessionOption{})
 
 			c := newContext(sess, entry)
 			err := c.Response(1, []byte("data"))
@@ -194,7 +194,7 @@ func TestContext_Response(t *testing.T) {
 		})
 		t.Run("when response data is a Stringer", func(t *testing.T) {
 			entry := &message.Entry{}
-			sess := newSession(nil, &SessionOption{})
+			sess := newSession(nil, &sessionOption{})
 
 			data := &DataStringer{}
 			c := newContext(sess, entry)
@@ -211,7 +211,7 @@ func TestContext_Response(t *testing.T) {
 		entry := &message.Entry{}
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
-		sess := newSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &sessionOption{Codec: codec})
 
 		c := newContext(sess, entry)
 		err := c.Response(1, "test")
@@ -227,7 +227,7 @@ func TestContext_Response(t *testing.T) {
 		}
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
-		sess := newSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &sessionOption{Codec: codec})
 
 		c := newContext(sess, entry)
 		err := c.Response(1, "test")
@@ -237,7 +237,7 @@ func TestContext_Response(t *testing.T) {
 }
 
 func TestContext_DecodeTo(t *testing.T) {
-	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	sess := newSession(nil, &sessionOption{Codec: &JsonCodec{}})
 	ctx := newContext(sess, &message.Entry{})
 	var dst struct {
 		Data string `json:"data"`
@@ -247,7 +247,7 @@ func TestContext_DecodeTo(t *testing.T) {
 }
 
 func TestContext_DecodeTo_when_codec_is_nil(t *testing.T) {
-	sess := newSession(nil, &SessionOption{Codec: nil})
+	sess := newSession(nil, &sessionOption{Codec: nil})
 	ctx := newContext(sess, &message.Entry{})
 	var dst struct {
 		Data string `json:"data"`
@@ -257,7 +257,7 @@ func TestContext_DecodeTo_when_codec_is_nil(t *testing.T) {
 }
 
 func TestContext_MustDecodeTo(t *testing.T) {
-	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	sess := newSession(nil, &sessionOption{Codec: &JsonCodec{}})
 	ctx := newContext(sess, &message.Entry{})
 	var dst struct {
 		Data string `json:"data"`
@@ -267,7 +267,7 @@ func TestContext_MustDecodeTo(t *testing.T) {
 }
 
 func TestContext_MustDecodeTo_when_decode_fail(t *testing.T) {
-	sess := newSession(nil, &SessionOption{Codec: &JsonCodec{}})
+	sess := newSession(nil, &sessionOption{Codec: &JsonCodec{}})
 	ctx := newContext(sess, &message.Entry{})
 	var dst string
 	assert.Panics(t, func() {
@@ -276,29 +276,29 @@ func TestContext_MustDecodeTo_when_decode_fail(t *testing.T) {
 }
 
 func TestContext_SendTo(t *testing.T) {
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 	ctx := newContext(sess, nil)
-	sess2 := newSession(nil, &SessionOption{})
+	sess2 := newSession(nil, &sessionOption{})
 	go func() { <-sess2.respQueue }()
 	assert.NoError(t, ctx.SendTo(sess2, 1, []byte("test")))
 }
 
 func TestContext_SendTo_when_error(t *testing.T) {
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 	ctx := newContext(sess, nil)
-	sess2 := newSession(nil, &SessionOption{})
+	sess2 := newSession(nil, &sessionOption{})
 	assert.Error(t, ctx.SendTo(sess2, 1, 1234))
 }
 
 func TestContext_Send(t *testing.T) {
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 	ctx := newContext(sess, nil)
 	go func() { <-sess.respQueue }()
 	assert.NoError(t, ctx.Send(1, []byte("test")))
 }
 
 func TestContext_Send_when_error(t *testing.T) {
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 	ctx := newContext(sess, nil)
 	assert.Error(t, ctx.Send(1, 1234))
 }
@@ -326,7 +326,7 @@ func TestContext_GetResponse(t *testing.T) {
 
 func TestContext_reset(t *testing.T) {
 	ctx := newContext(nil, nil)
-	sess := newSession(nil, &SessionOption{})
+	sess := newSession(nil, &sessionOption{})
 	entry := &message.Entry{
 		ID:   1,
 		Data: []byte("test"),
@@ -353,7 +353,7 @@ func TestContext_Copy(t *testing.T) {
 
 func TestContext_Encode(t *testing.T) {
 	t.Run("when codec is nil", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{
+		sess := newSession(nil, &sessionOption{
 			Codec: nil,
 		})
 		ctx := newContext(sess, nil)
@@ -368,7 +368,7 @@ func TestContext_Encode(t *testing.T) {
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
-		sess := newSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &sessionOption{Codec: codec})
 		ctx := newContext(sess, nil)
 		data, err := ctx.Encode("test")
 		assert.Error(t, err)
@@ -381,7 +381,7 @@ func TestContext_Encode(t *testing.T) {
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("ok"), nil)
 
-		sess := newSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &sessionOption{Codec: codec})
 		ctx := newContext(sess, nil)
 		data, err := ctx.Encode("test")
 		assert.NoError(t, err)
@@ -391,7 +391,7 @@ func TestContext_Encode(t *testing.T) {
 
 func TestContext_MustEncode(t *testing.T) {
 	t.Run("when error happened", func(t *testing.T) {
-		sess := newSession(nil, &SessionOption{
+		sess := newSession(nil, &sessionOption{
 			Codec: nil,
 		})
 		ctx := newContext(sess, nil)
@@ -404,7 +404,7 @@ func TestContext_MustEncode(t *testing.T) {
 		codec := mock.NewMockCodec(ctrl)
 		codec.EXPECT().Encode(gomock.Any()).Return([]byte("ok"), nil)
 
-		sess := newSession(nil, &SessionOption{Codec: codec})
+		sess := newSession(nil, &sessionOption{Codec: codec})
 		ctx := newContext(sess, nil)
 		data := ctx.MustEncode("test")
 		assert.Equal(t, data, []byte("ok"))

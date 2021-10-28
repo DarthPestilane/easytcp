@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+type ISession interface {
+	ID() string
+	SendResp(ctx *Context) error
+	Close()
+}
+
 // Session represents a TCP session.
 type Session struct {
 	id        string        // session's ID. it's a UUID
@@ -19,8 +25,8 @@ type Session struct {
 	ctxPool   sync.Pool     // router context pool
 }
 
-// SessionOption is the extra options for Session.
-type SessionOption struct {
+// sessionOption is the extra options for Session.
+type sessionOption struct {
 	Packer        Packer
 	Codec         Codec
 	respQueueSize int
@@ -30,7 +36,7 @@ type SessionOption struct {
 // Parameter conn is the TCP connection,
 // opt includes packer, codec, and channel size.
 // Returns a Session pointer.
-func newSession(conn net.Conn, opt *SessionOption) *Session {
+func newSession(conn net.Conn, opt *sessionOption) *Session {
 	return &Session{
 		id:        uuid.NewString(),
 		conn:      conn,

@@ -19,10 +19,10 @@ type Server struct {
 	Codec Codec
 
 	// OnSessionCreate is an event hook, will be invoked when session's created.
-	OnSessionCreate func(sess *Session)
+	OnSessionCreate func(sess ISession)
 
 	// OnSessionClose is an event hook, will be invoked when session's closed.
-	OnSessionClose func(sess *Session)
+	OnSessionClose func(sess ISession)
 
 	socketReadBufferSize  int
 	socketWriteBufferSize int
@@ -155,7 +155,7 @@ func (s *Server) acceptLoop() error {
 // handles the message through the session in different goroutines,
 // and waits until the session's closed.
 func (s *Server) handleConn(conn net.Conn) {
-	sess := newSession(conn, &SessionOption{
+	sess := newSession(conn, &sessionOption{
 		Packer:        s.Packer,
 		Codec:         s.Codec,
 		respQueueSize: s.respQueueSize,
@@ -185,7 +185,7 @@ func (s *Server) Stop() error {
 
 	// close all sessions
 	closedNum := 0
-	Sessions().Range(func(id string, sess *Session) (next bool) {
+	Sessions().Range(func(id string, sess ISession) (next bool) {
 		sess.Close()
 		closedNum++
 		return true

@@ -31,10 +31,10 @@ func main() {
 		Packer:                easytcp.NewDefaultPacker(),
 		Codec:                 nil,
 	})
-	s.OnSessionCreate = func(sess *easytcp.Session) {
+	s.OnSessionCreate = func(sess easytcp.ISession) {
 		log.Infof("session created: %s", sess.ID())
 	}
-	s.OnSessionClose = func(sess *easytcp.Session) {
+	s.OnSessionClose = func(sess easytcp.ISession) {
 		log.Warnf("session closed: %s", sess.ID())
 	}
 
