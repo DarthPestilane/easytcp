@@ -12,7 +12,7 @@ var (
 // SessionManager manages all the sessions in application runtime.
 type SessionManager struct {
 	mu       sync.RWMutex
-	sessions map[string]ISession
+	sessions map[string]Session
 }
 
 // Sessions returns a SessionManager pointer in a singleton way.
@@ -25,13 +25,13 @@ func Sessions() *SessionManager {
 
 // Add adds a session to sessions.
 // If the ID of s already existed in sessions, it replaces the value with the s.
-func (m *SessionManager) Add(s ISession) {
+func (m *SessionManager) Add(s Session) {
 	if s == nil {
 		return
 	}
 	m.mu.Lock()
 	if m.sessions == nil {
-		m.sessions = make(map[string]ISession)
+		m.sessions = make(map[string]Session)
 	}
 	m.sessions[s.ID()] = s
 	m.mu.Unlock()
@@ -47,7 +47,7 @@ func (m *SessionManager) Remove(id string) {
 
 // Get returns a session when found by the id,
 // returns nil otherwise.
-func (m *SessionManager) Get(id string) ISession {
+func (m *SessionManager) Get(id string) Session {
 	m.mu.RLock()
 	sess := m.sessions[id]
 	m.mu.RUnlock()
@@ -56,7 +56,7 @@ func (m *SessionManager) Get(id string) ISession {
 
 // Range calls fn sequentially for each id and sess present in the sessions.
 // If fn returns false, range stops the iteration.
-func (m *SessionManager) Range(fn func(id string, sess ISession) (next bool)) {
+func (m *SessionManager) Range(fn func(id string, sess Session) (next bool)) {
 	m.mu.RLock()
 	for id, sess := range m.sessions {
 		if !fn(id, sess) {

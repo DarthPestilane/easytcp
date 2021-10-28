@@ -19,10 +19,10 @@ type Server struct {
 	Codec Codec
 
 	// OnSessionCreate is an event hook, will be invoked when session's created.
-	OnSessionCreate func(sess ISession)
+	OnSessionCreate func(sess Session)
 
 	// OnSessionClose is an event hook, will be invoked when session's closed.
-	OnSessionClose func(sess ISession)
+	OnSessionClose func(sess Session)
 
 	socketReadBufferSize  int
 	socketWriteBufferSize int
@@ -185,7 +185,7 @@ func (s *Server) Stop() error {
 
 	// close all sessions
 	closedNum := 0
-	Sessions().Range(func(id string, sess ISession) (next bool) {
+	Sessions().Range(func(id string, sess Session) (next bool) {
 		sess.Close()
 		closedNum++
 		return true

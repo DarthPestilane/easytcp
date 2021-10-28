@@ -48,7 +48,7 @@ func TestManager_AddGetAndRemove(t *testing.T) {
 func TestManager_Range(t *testing.T) {
 	mg := &SessionManager{}
 	var count int
-	mg.Range(func(id string, sess ISession) (next bool) {
+	mg.Range(func(id string, sess Session) (next bool) {
 		count++
 		return true
 	})
@@ -64,7 +64,7 @@ func TestManager_Range(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		count := 0
-		mg.Range(func(id string, s ISession) (next bool) {
+		mg.Range(func(id string, s Session) (next bool) {
 			count++
 			return false
 		})
@@ -74,7 +74,7 @@ func TestManager_Range(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		count := 0
-		mg.Range(func(id string, s ISession) (next bool) {
+		mg.Range(func(id string, s Session) (next bool) {
 			count++
 			return true
 		})

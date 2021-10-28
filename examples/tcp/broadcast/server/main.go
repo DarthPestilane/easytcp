@@ -29,7 +29,7 @@ func main() {
 		reqData := ctx.Message().Data
 
 		// broadcasting
-		go easytcp.Sessions().Range(func(id string, sess easytcp.ISession) (next bool) {
+		go easytcp.Sessions().Range(func(id string, sess easytcp.Session) (next bool) {
 			if ctx.Session().ID() == id {
 				return true // next iteration
 			}

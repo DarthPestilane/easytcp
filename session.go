@@ -8,13 +8,18 @@ import (
 	"time"
 )
 
-type ISession interface {
+// Session represents a TCP session.
+type Session interface {
+	// ID returns current session's id.
 	ID() string
+
+	// SendResp sends the ctx to the respQueue
 	SendResp(ctx *Context) error
+
+	// Close closes session.
 	Close()
 }
 
-// session represents a TCP session.
 type session struct {
 	id        string        // session's ID. it's a UUID
 	conn      net.Conn      // tcp connection
