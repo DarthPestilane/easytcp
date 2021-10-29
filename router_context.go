@@ -13,7 +13,7 @@ import (
 type Context struct {
 	mu        sync.RWMutex
 	storage   map[string]interface{}
-	session   *Session
+	session   Session
 	reqEntry  *message.Entry
 	respEntry *message.Entry
 }
@@ -76,11 +76,10 @@ func (c *Context) Message() *message.Entry {
 
 // Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
-	codec := c.session.codec
-	if codec == nil {
+	if c.session.Codec() == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(c.reqEntry.Data, v)
+	return c.session.Codec().Decode(c.reqEntry.Data, v)
 }
 
 // MustBind binds the request message's raw data to v.
@@ -93,11 +92,10 @@ func (c *Context) MustBind(v interface{}) {
 
 // DecodeTo decodes data to v via codec.
 func (c *Context) DecodeTo(data []byte, v interface{}) error {
-	codec := c.session.codec
-	if codec == nil {
+	if c.session.Codec() == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(data, v)
+	return c.session.Codec().Decode(data, v)
 }
 
 // MustDecodeTo decodes data to v via codec.
@@ -110,10 +108,10 @@ func (c *Context) MustDecodeTo(data []byte, v interface{}) {
 
 // Encode encodes v using session's codec.
 func (c *Context) Encode(v interface{}) ([]byte, error) {
-	if c.session.codec == nil {
+	if c.session.Codec() == nil {
 		return nil, fmt.Errorf("codec is not nil")
 	}
-	return c.session.codec.Encode(v)
+	return c.session.Codec().Encode(v)
 }
 
 // MustEncode encodes v using session's codec.
@@ -133,8 +131,8 @@ func (c *Context) Remove(key string) {
 	c.mu.Unlock()
 }
 
-// Session returns current session.
-func (c *Context) Session() *Session {
+// session returns current session.
+func (c *Context) Session() Session {
 	return c.session
 }
 
@@ -154,7 +152,7 @@ func (c *Context) GetResponse() *message.Entry {
 // Response creates and sets the response message to the context.
 func (c *Context) Response(id, data interface{}) error {
 	var dataRaw []byte
-	if codec := c.session.codec; codec == nil {
+	if codec := c.session.Codec(); codec == nil {
 		switch v := data.(type) {
 		case []byte:
 			dataRaw = v
@@ -183,11 +181,11 @@ func (c *Context) Response(id, data interface{}) error {
 // SendTo sends response message to the specified session.
 // It should be called after Copy:
 //   c.Copy().SendTo(...)
-func (c *Context) SendTo(sess *Session, id, data interface{}) error {
+func (c *Context) SendTo(sess Session, id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return sess.SendResp(c)
+	return sess.Send(c)
 }
 
 // Send sends response message to current session.
@@ -197,7 +195,7 @@ func (c *Context) Send(id, data interface{}) error {
 	if err := c.Response(id, data); err != nil {
 		return err
 	}
-	return c.session.SendResp(c)
+	return c.session.Send(c)
 }
 
 // Copy returns a copy of the current context.
@@ -212,7 +210,7 @@ func (c *Context) Copy() *Context {
 	return &cp
 }
 
-func (c *Context) reset(sess *Session, reqEntry *message.Entry) {
+func (c *Context) reset(sess *session, reqEntry *message.Entry) {
 	c.session = sess
 	c.reqEntry = reqEntry
 	c.respEntry = nil

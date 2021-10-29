@@ -9,7 +9,21 @@ import (
 )
 
 // Session represents a TCP session.
-type Session struct {
+type Session interface {
+	// ID returns current session's id.
+	ID() string
+
+	// Send sends the ctx to the respQueue.
+	Send(ctx *Context) error
+
+	// Codec returns the codec, can be nil.
+	Codec() Codec
+
+	// Close closes session.
+	Close()
+}
+
+type session struct {
 	id        string        // session's ID. it's a UUID
 	conn      net.Conn      // tcp connection
 	closed    chan struct{} // to close()
@@ -19,19 +33,19 @@ type Session struct {
 	ctxPool   sync.Pool     // router context pool
 }
 
-// SessionOption is the extra options for Session.
-type SessionOption struct {
+// sessionOption is the extra options for session.
+type sessionOption struct {
 	Packer        Packer
 	Codec         Codec
 	respQueueSize int
 }
 
-// newSession creates a new Session.
+// newSession creates a new session.
 // Parameter conn is the TCP connection,
 // opt includes packer, codec, and channel size.
-// Returns a Session pointer.
-func newSession(conn net.Conn, opt *SessionOption) *Session {
-	return &Session{
+// Returns a session pointer.
+func newSession(conn net.Conn, opt *sessionOption) *session {
+	return &session{
 		id:        uuid.NewString(),
 		conn:      conn,
 		closed:    make(chan struct{}),
@@ -43,13 +57,13 @@ func newSession(conn net.Conn, opt *SessionOption) *Session {
 }
 
 // ID returns the session's ID.
-func (s *Session) ID() string {
+func (s *session) ID() string {
 	return s.id
 }
 
-// SendResp pushes response message entry to respQueue.
+// Send pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *Session) SendResp(ctx *Context) (err error) {
+func (s *session) Send(ctx *Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("sessions is closed")
@@ -59,9 +73,14 @@ func (s *Session) SendResp(ctx *Context) (err error) {
 	return
 }
 
+// Codec implements Session Codec.
+func (s *session) Codec() Codec {
+	return s.codec
+}
+
 // Close closes the session, but doesn't close the connection.
 // The connection will be closed in the server once the session's closed.
-func (s *Session) Close() {
+func (s *session) Close() {
 	defer func() { _ = recover() }()
 	close(s.closed)
 	close(s.respQueue)
@@ -70,7 +89,7 @@ func (s *Session) Close() {
 // readInbound reads message packet from connection in a loop.
 // And send unpacked message to reqQueue, which will be consumed in router.
 // The loop breaks if errors occurred or the session is closed.
-func (s *Session) readInbound(router *Router, timeout time.Duration) {
+func (s *session) readInbound(router *Router, timeout time.Duration) {
 	for {
 		select {
 		case <-s.closed:
@@ -99,7 +118,7 @@ func (s *Session) readInbound(router *Router, timeout time.Duration) {
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
 			}
-			if err := s.SendResp(ctx); err != nil {
+			if err := s.Send(ctx); err != nil {
 				Log.Errorf("send resp context err: %s", err)
 			}
 		}()
@@ -111,7 +130,7 @@ func (s *Session) readInbound(router *Router, timeout time.Duration) {
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.g
 // The loop breaks if errors occurred, or the session is closed.
-func (s *Session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
+func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 	for {
 		ctx, ok := <-s.respQueue
 		if !ok {
@@ -144,7 +163,7 @@ func (s *Session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
 
-func (s *Session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err error) {
+func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err error) {
 	for i := 0; i < attemptTimes; i++ {
 		time.Sleep(tempErrDelay * time.Duration(i))
 		_, err = s.conn.Write(outboundMsg)
@@ -171,7 +190,7 @@ func (s *Session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 	return
 }
 
-func (s *Session) pack(ctx *Context) ([]byte, error) {
+func (s *session) pack(ctx *Context) ([]byte, error) {
 	defer s.ctxPool.Put(ctx)
 	if ctx.respEntry == nil {
 		return nil, nil

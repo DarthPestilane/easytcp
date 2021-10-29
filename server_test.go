@@ -155,10 +155,10 @@ func TestServer_handleConn(t *testing.T) {
 	})
 
 	// hooks
-	server.OnSessionCreate = func(sess *Session) {
+	server.OnSessionCreate = func(sess Session) {
 		fmt.Printf("session created | id: %s\n", sess.ID())
 	}
-	server.OnSessionClose = func(sess *Session) {
+	server.OnSessionClose = func(sess Session) {
 		fmt.Printf("session closed | id: %s\n", sess.ID())
 	}
 
