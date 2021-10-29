@@ -5,6 +5,7 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/broadcast/common"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -25,7 +26,7 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) error {
+	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) {
 		reqData := ctx.Request().Data
 
 		// broadcasting
@@ -34,11 +35,17 @@ func main() {
 				return true // next iteration
 			}
 			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
-			ctx.Copy().MustSetResponse(common.MsgIdBroadCastAck, respData).SendTo(sess)
+			ctx.Copy().SetResponseMessage(&message.Entry{
+				ID:   common.MsgIdBroadCastAck,
+				Data: []byte(respData),
+			}).SendTo(sess)
 			return true
 		})
 
-		return ctx.SetResponse(common.MsgIdBroadCastAck, "broadcast done")
+		ctx.SetResponseMessage(&message.Entry{
+			ID:   common.MsgIdBroadCastAck,
+			Data: []byte("broadcast done"),
+		})
 	})
 
 	go func() {
@@ -57,15 +64,12 @@ func main() {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx easytcp.Context) (err error) {
+	return func(ctx easytcp.Context) {
 		log.Infof("recv request | %s", ctx.Request().Data)
 		defer func() {
 			var resp = ctx.Response()
-			if err != nil || resp == nil {
-				return
-			}
 			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
-		return next(ctx)
+		next(ctx)
 	}
 }

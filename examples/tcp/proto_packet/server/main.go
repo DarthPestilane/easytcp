@@ -28,31 +28,32 @@ func main() {
 	}
 }
 
-func handle(c easytcp.Context) error {
+func handle(c easytcp.Context) {
 	var reqData common.FooReq
 	_ = c.Bind(&reqData)
-	return c.SetResponse(common.ID_FooRespID, &common.FooResp{
+	err := c.SetResponse(common.ID_FooRespID, &common.FooResp{
 		Code:    2,
 		Message: "success",
 	})
+	if err != nil {
+		log.Errorf("set response failed: %s", err)
+	}
 }
 
 func logTransmission(req, resp proto.Message) easytcp.MiddlewareFunc {
 	return func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-		return func(c easytcp.Context) (err error) {
+		return func(c easytcp.Context) {
 			if err := c.Bind(req); err == nil {
 				log.Debugf("recv | id: %d; size: %d; data: %s", c.Request().ID, len(c.Request().Data), req)
 			}
-
 			defer func() {
 				respEntry := c.Response()
-
-				if err == nil && respEntry != nil {
+				if respEntry != nil {
 					_ = c.Session().Codec().Decode(respEntry.Data, resp)
 					log.Infof("send | id: %d; size: %d; data: %s", respEntry.ID, len(respEntry.Data), resp)
 				}
 			}()
-			return next(c)
+			next(c)
 		}
 	}
 }

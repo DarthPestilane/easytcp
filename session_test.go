@@ -110,9 +110,8 @@ func TestTCPSession_readInbound(t *testing.T) {
 		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
 
 		r := newRouter()
-		r.register(1, func(ctx Context) error {
+		r.register(1, func(ctx Context) {
 			ctx.Session().Close()
-			return fmt.Errorf("route error")
 		})
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 10})
@@ -139,8 +138,8 @@ func TestTCPSession_readInbound(t *testing.T) {
 		})
 
 		r := newRouter()
-		r.register(1, func(ctx Context) error {
-			return ctx.SetResponse(2, []byte("ok"))
+		r.register(1, func(ctx Context) {
+			ctx.SetResponseMessage(&message.Entry{ID: 2, Data: []byte("ok")})
 		})
 
 		sess := newSession(nil, &sessionOption{Packer: packer, Codec: nil, respQueueSize: 10})

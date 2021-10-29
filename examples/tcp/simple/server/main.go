@@ -5,6 +5,7 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/simple/common"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -42,8 +43,11 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
-	s.AddRoute(common.MsgIdPingReq, func(c easytcp.Context) error {
-		return c.SetResponse(common.MsgIdPingAck, "pong, pong, pong")
+	s.AddRoute(common.MsgIdPingReq, func(c easytcp.Context) {
+		c.SetResponseMessage(&message.Entry{
+			ID:   common.MsgIdPingAck,
+			Data: []byte("pong, pong, pong"),
+		})
 	})
 
 	go func() {
@@ -62,16 +66,13 @@ func main() {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(c easytcp.Context) (err error) {
+	return func(c easytcp.Context) {
 		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", c.Request().ID, len(c.Request().Data), c.Request().Data)
 		defer func() {
 			resp := c.Response()
-			if err != nil || resp == nil {
-				return
-			}
 			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
-		return next(c)
+		next(c)
 	}
 }
 

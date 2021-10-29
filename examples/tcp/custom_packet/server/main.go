@@ -43,25 +43,25 @@ func main() {
 	}
 }
 
-func handler(ctx easytcp.Context) error {
+func handler(ctx easytcp.Context) {
 	var data common.Json01Req
 	_ = ctx.Bind(&data)
 
-	return ctx.SetResponse("json01-resp", &common.Json01Resp{
+	err := ctx.SetResponse("json01-resp", &common.Json01Resp{
 		Success: true,
 		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
 	})
+	if err != nil {
+		log.Errorf("set response failed: %s", err)
+	}
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx easytcp.Context) (err error) {
+	return func(ctx easytcp.Context) {
 		fullSize := ctx.Request().MustGet("fullSize")
 		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Request().ID, len(ctx.Request().Data), ctx.Request().Data)
 
 		defer func() {
-			if err != nil {
-				return
-			}
 			resp := ctx.Response()
 			if resp != nil {
 				log.Infof("send response | dataSize:(%d) id:(%v) data: %s", len(resp.Data), resp.ID, resp.Data)
@@ -69,6 +69,6 @@ func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 				log.Infof("don't send response since nil")
 			}
 		}()
-		return next(ctx)
+		next(ctx)
 	}
 }
