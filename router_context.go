@@ -87,14 +87,17 @@ func (c *routeContext) Value(key interface{}) interface{} {
 	return nil
 }
 
+// Session implements Context.Session method.
 func (c *routeContext) Session() Session {
 	return c.session
 }
 
+// Request implements Context.Request method.
 func (c *routeContext) Request() *message.Entry {
 	return c.reqEntry
 }
 
+// Bind implements Context.Bind method.
 func (c *routeContext) Bind(v interface{}) error {
 	if c.session.Codec() == nil {
 		return fmt.Errorf("message codec is nil")
@@ -102,10 +105,12 @@ func (c *routeContext) Bind(v interface{}) error {
 	return c.session.Codec().Decode(c.reqEntry.Data, v)
 }
 
+// Response implements Context.Response method.
 func (c *routeContext) Response() *message.Entry {
 	return c.respEntry
 }
 
+// SetResponse implements Context.SetResponse method.
 func (c *routeContext) SetResponse(id, data interface{}) error {
 	if c.Session().Codec() == nil {
 		return fmt.Errorf("codec is nil")
@@ -121,6 +126,7 @@ func (c *routeContext) SetResponse(id, data interface{}) error {
 	return nil
 }
 
+// MustSetResponse implements Context.MustSetResponse method.
 func (c *routeContext) MustSetResponse(id, data interface{}) Context {
 	if err := c.SetResponse(id, data); err != nil {
 		panic(err)
@@ -128,11 +134,13 @@ func (c *routeContext) MustSetResponse(id, data interface{}) Context {
 	return c
 }
 
+// SetResponseMessage implements Context.SetResponseMessage method.
 func (c *routeContext) SetResponseMessage(msg *message.Entry) Context {
 	c.respEntry = msg
 	return c
 }
 
+// Send implements Context.Send method.
 func (c *routeContext) Send() {
 	if c.respEntry == nil {
 		return
@@ -140,6 +148,7 @@ func (c *routeContext) Send() {
 	c.session.Send(c)
 }
 
+// SendTo implements Context.SendTo method.
 func (c *routeContext) SendTo(sess Session) {
 	if c.respEntry == nil {
 		return
@@ -147,7 +156,7 @@ func (c *routeContext) SendTo(sess Session) {
 	sess.Send(c)
 }
 
-// Get returns the value from c.storage by key.
+// Get implements Context.Get method.
 func (c *routeContext) Get(key string) (value interface{}, exists bool) {
 	c.mu.RLock()
 	value, exists = c.storage[key]
@@ -155,7 +164,7 @@ func (c *routeContext) Get(key string) (value interface{}, exists bool) {
 	return
 }
 
-// Set sets the value in c.storage.
+// Set implements Context.Set method.
 func (c *routeContext) Set(key string, value interface{}) {
 	c.mu.Lock()
 	if c.storage == nil {
@@ -165,20 +174,21 @@ func (c *routeContext) Set(key string, value interface{}) {
 	c.mu.Unlock()
 }
 
+// Remove implements Context.Remove method.
 func (c *routeContext) Remove(key string) {
 	c.mu.Lock()
 	delete(c.storage, key)
 	c.mu.Unlock()
 }
 
+// Copy implements Context.Copy method.
 func (c *routeContext) Copy() Context {
-	cp := routeContext{
+	return &routeContext{
 		storage:   c.storage,
 		session:   c.session,
 		reqEntry:  c.reqEntry,
 		respEntry: c.respEntry,
 	}
-	return &cp
 }
 
 func (c *routeContext) reset(sess *session, reqEntry *message.Entry) {
