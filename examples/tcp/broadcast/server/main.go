@@ -25,7 +25,7 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(common.MsgIdBroadCastReq, func(ctx *easytcp.Context) error {
+	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) error {
 		reqData := ctx.Message().Data
 
 		// broadcasting
@@ -59,7 +59,7 @@ func main() {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx *easytcp.Context) (err error) {
+	return func(ctx easytcp.Context) (err error) {
 		log.Infof("recv request | %s", ctx.Message().Data)
 		defer func() {
 			var resp = ctx.GetResponse()

@@ -14,7 +14,7 @@ type Session interface {
 	ID() string
 
 	// Send sends the ctx to the respQueue.
-	Send(ctx *Context) error
+	Send(ctx *routeContext) error
 
 	// Codec returns the codec, can be nil.
 	Codec() Codec
@@ -24,13 +24,13 @@ type Session interface {
 }
 
 type session struct {
-	id        string        // session's ID. it's a UUID
-	conn      net.Conn      // tcp connection
-	closed    chan struct{} // to close()
-	respQueue chan *Context // response queue channel, pushed in SendResp() and popped in writeOutbound()
-	packer    Packer        // to pack and unpack message
-	codec     Codec         // encode/decode message data
-	ctxPool   sync.Pool     // router context pool
+	id        string             // session's ID. it's a UUID
+	conn      net.Conn           // tcp connection
+	closed    chan struct{}      // to close()
+	respQueue chan *routeContext // response queue channel, pushed in SendResp() and popped in writeOutbound()
+	packer    Packer             // to pack and unpack message
+	codec     Codec              // encode/decode message data
+	ctxPool   sync.Pool          // router context pool
 }
 
 // sessionOption is the extra options for session.
@@ -49,10 +49,10 @@ func newSession(conn net.Conn, opt *sessionOption) *session {
 		id:        uuid.NewString(),
 		conn:      conn,
 		closed:    make(chan struct{}),
-		respQueue: make(chan *Context, opt.respQueueSize),
+		respQueue: make(chan *routeContext, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
-		ctxPool:   sync.Pool{New: func() interface{} { return new(Context) }},
+		ctxPool:   sync.Pool{New: func() interface{} { return new(routeContext) }},
 	}
 }
 
@@ -63,7 +63,7 @@ func (s *session) ID() string {
 
 // Send pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *session) Send(ctx *Context) (err error) {
+func (s *session) Send(ctx *routeContext) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("sessions is closed")
@@ -113,7 +113,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 
 		// don't block the loop.
 		go func() {
-			ctx := s.ctxPool.Get().(*Context)
+			ctx := s.ctxPool.Get().(*routeContext)
 			ctx.reset(s, reqEntry)
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
@@ -190,7 +190,7 @@ func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 	return
 }
 
-func (s *session) pack(ctx *Context) ([]byte, error) {
+func (s *session) pack(ctx *routeContext) ([]byte, error) {
 	defer s.ctxPool.Put(ctx)
 	if ctx.respEntry == nil {
 		return nil, nil

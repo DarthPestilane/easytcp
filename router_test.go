@@ -22,12 +22,12 @@ func TestRouter_register(t *testing.T) {
 
 	h := nilHandler
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) error {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) error {
 			return next(ctx)
 		}
 	}
@@ -57,17 +57,17 @@ func TestRouter_registerMiddleware(t *testing.T) {
 	assert.Len(t, rt.globalMiddlewares, 0)
 
 	m1 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) error {
 			return next(ctx)
 		}
 	}
 	m2 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) error {
 			return next(ctx)
 		}
 	}
 	m3 := func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) error {
 			return next(ctx)
 		}
 	}
@@ -88,7 +88,7 @@ func TestRouter_registerMiddleware(t *testing.T) {
 func TestRouter_handleReq(t *testing.T) {
 	t.Run("when request entry is nil", func(t *testing.T) {
 		rt := newRouter()
-		ctx := &Context{}
+		ctx := &routeContext{}
 		assert.NoError(t, rt.handleRequest(ctx))
 	})
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   1,
 			Data: []byte("test"),
 		}
-		ctx := &Context{reqEntry: entry}
+		ctx := &routeContext{reqEntry: entry}
 		err := rt.handleRequest(ctx)
 		assert.Nil(t, err)
 		assert.Nil(t, ctx.respEntry)
@@ -107,14 +107,14 @@ func TestRouter_handleReq(t *testing.T) {
 		rt := newRouter()
 		var id = 1
 		rt.register(id, nilHandler, func(next HandlerFunc) HandlerFunc {
-			return func(ctx *Context) error { return next(ctx) }
+			return func(ctx Context) error { return next(ctx) }
 		})
 
 		entry := &message.Entry{
 			ID:   id,
 			Data: []byte("test"),
 		}
-		ctx := &Context{reqEntry: entry}
+		ctx := &routeContext{reqEntry: entry}
 		err := rt.handleRequest(ctx)
 		assert.Nil(t, err)
 		assert.Nil(t, ctx.respEntry)
@@ -122,7 +122,7 @@ func TestRouter_handleReq(t *testing.T) {
 	t.Run("when handler returns error", func(t *testing.T) {
 		rt := newRouter()
 		var id = 1
-		rt.register(id, func(ctx *Context) error {
+		rt.register(id, func(ctx Context) error {
 			return fmt.Errorf("some err")
 		})
 
@@ -130,7 +130,7 @@ func TestRouter_handleReq(t *testing.T) {
 			ID:   id,
 			Data: []byte("test"),
 		}
-		ctx := &Context{reqEntry: entry}
+		ctx := &routeContext{reqEntry: entry}
 		err := rt.handleRequest(ctx)
 		assert.Error(t, err)
 		assert.Nil(t, ctx.respEntry)
@@ -141,7 +141,7 @@ func TestRouter_wrapHandlers(t *testing.T) {
 	rt := newRouter()
 	t.Run("it works when there's no handler nor middleware", func(t *testing.T) {
 		wrap := rt.wrapHandlers(nil, nil)
-		ctx := &Context{}
+		ctx := &routeContext{}
 		err := wrap(ctx)
 		assert.NoError(t, err)
 		assert.Nil(t, ctx.respEntry)
@@ -151,13 +151,13 @@ func TestRouter_wrapHandlers(t *testing.T) {
 
 		middles := []MiddlewareFunc{
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) error {
+				return func(ctx Context) error {
 					result = append(result, "m1-before")
 					return next(ctx)
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) error {
+				return func(ctx Context) error {
 					result = append(result, "m2-before")
 					err := next(ctx)
 					result = append(result, "m2-after")
@@ -165,16 +165,16 @@ func TestRouter_wrapHandlers(t *testing.T) {
 				}
 			},
 			func(next HandlerFunc) HandlerFunc {
-				return func(ctx *Context) error {
+				return func(ctx Context) error {
 					err := next(ctx)
 					result = append(result, "m3-after")
 					return err
 				}
 			},
 		}
-		var handler HandlerFunc = func(ctx *Context) error {
+		var handler HandlerFunc = func(ctx Context) error {
 			result = append(result, "done")
-			ctx.respEntry = &message.Entry{
+			ctx.(*routeContext).respEntry = &message.Entry{
 				ID:   2,
 				Data: []byte("done"),
 			}
@@ -182,7 +182,7 @@ func TestRouter_wrapHandlers(t *testing.T) {
 		}
 
 		wrap := rt.wrapHandlers(handler, middles)
-		ctx := &Context{}
+		ctx := &routeContext{}
 		err := wrap(ctx)
 		assert.NoError(t, err)
 		assert.EqualValues(t, ctx.respEntry.Data, "done")
@@ -208,7 +208,7 @@ func TestRouter_printHandlers(t *testing.T) {
 func TestRouter_setNotFoundHandler(t *testing.T) {
 	rt := newRouter()
 	assert.Nil(t, rt.notFoundHandler)
-	rt.setNotFoundHandler(func(ctx *Context) error {
+	rt.setNotFoundHandler(func(ctx Context) error {
 		return nil
 	})
 	assert.NotNil(t, rt.notFoundHandler)

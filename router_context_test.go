@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func newContext(sess *session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqEntry: msg}
+func newContext(sess *session, msg *message.Entry) *routeContext {
+	return &routeContext{session: sess, reqEntry: msg}
 }
 
 func TestContext_Deadline(t *testing.T) {
@@ -342,7 +342,7 @@ func TestContext_Copy(t *testing.T) {
 	ctx := newContext(nil, nil)
 	ctx.SetResponse(1, []byte("resp origin"))
 
-	ctx2 := ctx.Copy()
+	ctx2 := ctx.Copy().(*routeContext)
 	ctx2.SetResponse(2, []byte("resp copy"))
 
 	assert.EqualValues(t, ctx.respEntry.ID, 1)

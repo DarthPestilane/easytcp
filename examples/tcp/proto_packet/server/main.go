@@ -28,7 +28,7 @@ func main() {
 	}
 }
 
-func handle(c *easytcp.Context) error {
+func handle(c easytcp.Context) error {
 	var reqData common.FooReq
 	c.MustBind(&reqData)
 	return c.Response(common.ID_FooRespID, &common.FooResp{
@@ -39,7 +39,7 @@ func handle(c *easytcp.Context) error {
 
 func logTransmission(req, resp proto.Message) easytcp.MiddlewareFunc {
 	return func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-		return func(c *easytcp.Context) (err error) {
+		return func(c easytcp.Context) (err error) {
 			if err := c.Bind(req); err == nil {
 				log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), req)
 			}

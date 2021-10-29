@@ -43,7 +43,7 @@ func main() {
 	}
 }
 
-func handler(ctx *easytcp.Context) error {
+func handler(ctx easytcp.Context) error {
 	var data common.Json01Req
 	ctx.MustBind(&data)
 
@@ -54,7 +54,7 @@ func handler(ctx *easytcp.Context) error {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx *easytcp.Context) (err error) {
+	return func(ctx easytcp.Context) (err error) {
 		fullSize := ctx.Message().MustGet("fullSize")
 		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
 
