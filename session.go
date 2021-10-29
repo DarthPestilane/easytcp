@@ -13,8 +13,11 @@ type Session interface {
 	// ID returns current session's id.
 	ID() string
 
-	// Send sends the ctx to the respQueue
+	// Send sends the ctx to the respQueue.
 	Send(ctx *Context) error
+
+	// Codec returns the codec, can be nil.
+	Codec() Codec
 
 	// Close closes session.
 	Close()
@@ -70,6 +73,11 @@ func (s *session) Send(ctx *Context) (err error) {
 	return
 }
 
+// Codec implements Session Codec.
+func (s *session) Codec() Codec {
+	return s.codec
+}
+
 // Close closes the session, but doesn't close the connection.
 // The connection will be closed in the server once the session's closed.
 func (s *session) Close() {
@@ -106,7 +114,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 		// don't block the loop.
 		go func() {
 			ctx := s.ctxPool.Get().(*Context)
-			ctx.reset(s, s.codec, reqEntry)
+			ctx.reset(s, reqEntry)
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
 			}
