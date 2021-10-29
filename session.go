@@ -1,7 +1,6 @@
 package easytcp
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"net"
 	"sync"
@@ -14,7 +13,7 @@ type Session interface {
 	ID() string
 
 	// Send sends the ctx to the respQueue.
-	Send(ctx *routeContext) error
+	Send(ctx Context) bool
 
 	// Codec returns the codec, can be nil.
 	Codec() Codec
@@ -24,13 +23,13 @@ type Session interface {
 }
 
 type session struct {
-	id        string             // session's ID. it's a UUID
-	conn      net.Conn           // tcp connection
-	closed    chan struct{}      // to close()
-	respQueue chan *routeContext // response queue channel, pushed in SendResp() and popped in writeOutbound()
-	packer    Packer             // to pack and unpack message
-	codec     Codec              // encode/decode message data
-	ctxPool   sync.Pool          // router context pool
+	id        string        // session's ID. it's a UUID
+	conn      net.Conn      // tcp connection
+	closed    chan struct{} // to close()
+	respQueue chan Context  // response queue channel, pushed in SendResp() and popped in writeOutbound()
+	packer    Packer        // to pack and unpack message
+	codec     Codec         // encode/decode message data
+	ctxPool   sync.Pool     // router context pool
 }
 
 // sessionOption is the extra options for session.
@@ -49,7 +48,7 @@ func newSession(conn net.Conn, opt *sessionOption) *session {
 		id:        uuid.NewString(),
 		conn:      conn,
 		closed:    make(chan struct{}),
-		respQueue: make(chan *routeContext, opt.respQueueSize),
+		respQueue: make(chan Context, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
 		ctxPool:   sync.Pool{New: func() interface{} { return new(routeContext) }},
@@ -63,10 +62,12 @@ func (s *session) ID() string {
 
 // Send pushes response message entry to respQueue.
 // Returns error if session is closed.
-func (s *session) Send(ctx *routeContext) (err error) {
+func (s *session) Send(ctx Context) (ok bool) {
+	ok = true
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("sessions is closed")
+			Log.Errorf("push ctx to respQueue failed")
+			ok = false
 		}
 	}()
 	s.respQueue <- ctx
@@ -118,9 +119,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 			if err := router.handleRequest(ctx); err != nil {
 				Log.Errorf("handle request err: %s", err)
 			}
-			if err := s.Send(ctx); err != nil {
-				Log.Errorf("send resp context err: %s", err)
-			}
+			s.Send(ctx)
 		}()
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
@@ -190,10 +189,10 @@ func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 	return
 }
 
-func (s *session) pack(ctx *routeContext) ([]byte, error) {
+func (s *session) pack(ctx Context) ([]byte, error) {
 	defer s.ctxPool.Put(ctx)
-	if ctx.respEntry == nil {
+	if ctx.Response() == nil {
 		return nil, nil
 	}
-	return s.packer.Pack(ctx.respEntry)
+	return s.packer.Pack(ctx.Response())
 }

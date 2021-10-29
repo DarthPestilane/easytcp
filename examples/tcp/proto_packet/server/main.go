@@ -30,8 +30,8 @@ func main() {
 
 func handle(c easytcp.Context) error {
 	var reqData common.FooReq
-	c.MustBind(&reqData)
-	return c.Response(common.ID_FooRespID, &common.FooResp{
+	_ = c.Bind(&reqData)
+	return c.SetResponse(common.ID_FooRespID, &common.FooResp{
 		Code:    2,
 		Message: "success",
 	})
@@ -41,14 +41,14 @@ func logTransmission(req, resp proto.Message) easytcp.MiddlewareFunc {
 	return func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 		return func(c easytcp.Context) (err error) {
 			if err := c.Bind(req); err == nil {
-				log.Debugf("recv | id: %d; size: %d; data: %s", c.Message().ID, len(c.Message().Data), req)
+				log.Debugf("recv | id: %d; size: %d; data: %s", c.Request().ID, len(c.Request().Data), req)
 			}
 
 			defer func() {
-				respEntry := c.GetResponse()
+				respEntry := c.Response()
 
 				if err == nil && respEntry != nil {
-					c.MustDecodeTo(respEntry.Data, resp)
+					_ = c.Session().Codec().Decode(respEntry.Data, resp)
 					log.Infof("send | id: %d; size: %d; data: %s", respEntry.ID, len(respEntry.Data), resp)
 				}
 			}()

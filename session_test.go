@@ -140,7 +140,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 
 		r := newRouter()
 		r.register(1, func(ctx Context) error {
-			return ctx.Response(2, []byte("ok"))
+			return ctx.SetResponse(2, []byte("ok"))
 		})
 
 		sess := newSession(nil, &sessionOption{Packer: packer, Codec: nil, respQueueSize: 10})
@@ -153,7 +153,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 	})
 }
 
-func TestTCPSession_SendResp(t *testing.T) {
+func TestTCPSession_Send(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
 		entry := &message.Entry{
 			ID:   1,
@@ -161,12 +161,12 @@ func TestTCPSession_SendResp(t *testing.T) {
 		}
 		sess := newSession(nil, &sessionOption{})
 		sess.Close() // close session
-		assert.Error(t, sess.Send(&routeContext{respEntry: entry}))
+		assert.False(t, sess.Send(&routeContext{respEntry: entry}))
 	})
 	t.Run("when session respQueue is closed", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
 		close(sess.respQueue)
-		assert.Error(t, sess.Send(nil))
+		assert.False(t, sess.Send(nil))
 	})
 	t.Run("when send succeed", func(t *testing.T) {
 		entry := &message.Entry{
@@ -175,9 +175,9 @@ func TestTCPSession_SendResp(t *testing.T) {
 		}
 
 		sess := newSession(nil, &sessionOption{})
-		sess.respQueue = make(chan *routeContext) // no buffer
+		sess.respQueue = make(chan Context) // no buffer
 		go func() { <-sess.respQueue }()
-		assert.NoError(t, sess.Send(&routeContext{respEntry: entry}))
+		assert.True(t, sess.Send(&routeContext{respEntry: entry}))
 		sess.Close()
 	})
 }

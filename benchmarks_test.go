@@ -63,34 +63,6 @@ func Benchmark_OneHandler(b *testing.B) {
 	}
 }
 
-func Benchmark_OneHandlerMessageGetSet(b *testing.B) {
-	s := NewServer(&ServerOption{
-		DoNotPrintRoutes: true,
-	})
-	s.AddRoute(1, func(ctx Context) error {
-		ctx.Message().Set("key", []byte("val"))
-		_ = ctx.Message().MustGet("key").([]byte)
-		return nil
-	})
-	go s.Serve("127.0.0.1:0") // nolint
-	defer s.Stop()            // nolint
-
-	<-s.accepting
-
-	// client
-	client, err := net.Dial("tcp", s.Listener.Addr().String())
-	if err != nil {
-		panic(err)
-	}
-	defer client.Close() // nolint
-
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
-	beforeBench(b)
-	for i := 0; i < b.N; i++ {
-		_, _ = client.Write(packedMsg)
-	}
-}
-
 func Benchmark_DefaultPacker_Pack(b *testing.B) {
 	packer := NewDefaultPacker()
 

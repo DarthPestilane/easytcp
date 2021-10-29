@@ -26,7 +26,7 @@ func main() {
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) error {
-		reqData := ctx.Message().Data
+		reqData := ctx.Request().Data
 
 		// broadcasting
 		go easytcp.Sessions().Range(func(id string, sess easytcp.Session) (next bool) {
@@ -34,13 +34,11 @@ func main() {
 				return true // next iteration
 			}
 			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
-			if err := ctx.Copy().SendTo(sess, common.MsgIdBroadCastAck, respData); err != nil {
-				log.Errorf("broadcast err: %s", err)
-			}
+			ctx.Copy().MustSetResponse(common.MsgIdBroadCastAck, respData).SendTo(sess)
 			return true
 		})
 
-		return ctx.Response(common.MsgIdBroadCastAck, "broadcast done")
+		return ctx.SetResponse(common.MsgIdBroadCastAck, "broadcast done")
 	})
 
 	go func() {
@@ -60,9 +58,9 @@ func main() {
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(ctx easytcp.Context) (err error) {
-		log.Infof("recv request | %s", ctx.Message().Data)
+		log.Infof("recv request | %s", ctx.Request().Data)
 		defer func() {
-			var resp = ctx.GetResponse()
+			var resp = ctx.Response()
 			if err != nil || resp == nil {
 				return
 			}
