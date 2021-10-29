@@ -10,7 +10,11 @@ import (
 )
 
 func newContext(sess *session, msg *message.Entry) *Context {
-	return &Context{session: sess, reqEntry: msg}
+	var codec Codec
+	if sess != nil {
+		codec = sess.codec
+	}
+	return &Context{session: sess, codec: codec, reqEntry: msg}
 }
 
 func TestContext_Deadline(t *testing.T) {
@@ -331,7 +335,7 @@ func TestContext_reset(t *testing.T) {
 		ID:   1,
 		Data: []byte("test"),
 	}
-	ctx.reset(sess, entry)
+	ctx.reset(sess, nil, entry)
 	assert.Equal(t, ctx.session, sess)
 	assert.Equal(t, ctx.reqEntry, entry)
 	assert.Nil(t, ctx.storage)

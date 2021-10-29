@@ -13,7 +13,8 @@ import (
 type Context struct {
 	mu        sync.RWMutex
 	storage   map[string]interface{}
-	session   *session
+	session   Session
+	codec     Codec
 	reqEntry  *message.Entry
 	respEntry *message.Entry
 }
@@ -76,11 +77,10 @@ func (c *Context) Message() *message.Entry {
 
 // Bind binds the request message's raw data to v.
 func (c *Context) Bind(v interface{}) error {
-	codec := c.session.codec
-	if codec == nil {
+	if c.codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(c.reqEntry.Data, v)
+	return c.codec.Decode(c.reqEntry.Data, v)
 }
 
 // MustBind binds the request message's raw data to v.
@@ -93,11 +93,10 @@ func (c *Context) MustBind(v interface{}) {
 
 // DecodeTo decodes data to v via codec.
 func (c *Context) DecodeTo(data []byte, v interface{}) error {
-	codec := c.session.codec
-	if codec == nil {
+	if c.codec == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return codec.Decode(data, v)
+	return c.codec.Decode(data, v)
 }
 
 // MustDecodeTo decodes data to v via codec.
@@ -110,10 +109,10 @@ func (c *Context) MustDecodeTo(data []byte, v interface{}) {
 
 // Encode encodes v using session's codec.
 func (c *Context) Encode(v interface{}) ([]byte, error) {
-	if c.session.codec == nil {
+	if c.codec == nil {
 		return nil, fmt.Errorf("codec is not nil")
 	}
-	return c.session.codec.Encode(v)
+	return c.codec.Encode(v)
 }
 
 // MustEncode encodes v using session's codec.
@@ -134,7 +133,7 @@ func (c *Context) Remove(key string) {
 }
 
 // session returns current session.
-func (c *Context) Session() *session {
+func (c *Context) Session() Session {
 	return c.session
 }
 
@@ -154,7 +153,7 @@ func (c *Context) GetResponse() *message.Entry {
 // Response creates and sets the response message to the context.
 func (c *Context) Response(id, data interface{}) error {
 	var dataRaw []byte
-	if codec := c.session.codec; codec == nil {
+	if codec := c.codec; codec == nil {
 		switch v := data.(type) {
 		case []byte:
 			dataRaw = v
@@ -212,8 +211,9 @@ func (c *Context) Copy() *Context {
 	return &cp
 }
 
-func (c *Context) reset(sess *session, reqEntry *message.Entry) {
+func (c *Context) reset(sess Session, codec Codec, reqEntry *message.Entry) {
 	c.session = sess
+	c.codec = codec
 	c.reqEntry = reqEntry
 	c.respEntry = nil
 	c.storage = nil
