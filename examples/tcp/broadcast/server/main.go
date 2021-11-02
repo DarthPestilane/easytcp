@@ -5,6 +5,7 @@ import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
 	"github.com/DarthPestilane/easytcp/examples/tcp/broadcast/common"
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -25,8 +26,8 @@ func main() {
 
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
-	s.AddRoute(common.MsgIdBroadCastReq, func(ctx *easytcp.Context) error {
-		reqData := ctx.Message().Data
+	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) {
+		reqData := ctx.Request().Data
 
 		// broadcasting
 		go easytcp.Sessions().Range(func(id string, sess easytcp.Session) (next bool) {
@@ -34,13 +35,17 @@ func main() {
 				return true // next iteration
 			}
 			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
-			if err := ctx.Copy().SendTo(sess, common.MsgIdBroadCastAck, respData); err != nil {
-				log.Errorf("broadcast err: %s", err)
-			}
+			ctx.Copy().SetResponseMessage(&message.Entry{
+				ID:   common.MsgIdBroadCastAck,
+				Data: []byte(respData),
+			}).SendTo(sess)
 			return true
 		})
 
-		return ctx.Response(common.MsgIdBroadCastAck, "broadcast done")
+		ctx.SetResponseMessage(&message.Entry{
+			ID:   common.MsgIdBroadCastAck,
+			Data: []byte("broadcast done"),
+		})
 	})
 
 	go func() {
@@ -59,15 +64,12 @@ func main() {
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx *easytcp.Context) (err error) {
-		log.Infof("recv request | %s", ctx.Message().Data)
+	return func(ctx easytcp.Context) {
+		log.Infof("recv request | %s", ctx.Request().Data)
 		defer func() {
-			var resp = ctx.GetResponse()
-			if err != nil || resp == nil {
-				return
-			}
+			var resp = ctx.Response()
 			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
-		return next(ctx)
+		next(ctx)
 	}
 }

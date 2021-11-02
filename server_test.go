@@ -163,22 +163,22 @@ func TestServer_handleConn(t *testing.T) {
 	}
 
 	// register route
-	server.AddRoute(1, func(ctx *Context) error {
+	server.AddRoute(1, func(ctx Context) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
-		assert.EqualValues(t, 1, ctx.Message().ID)
+		assert.EqualValues(t, 1, ctx.Request().ID)
 		assert.Equal(t, reqData.Param, "hello test")
-		return ctx.Response(2, &TestResp{Success: true})
+		ctx.MustSetResponse(2, &TestResp{Success: true})
 	})
 	// use middleware
 	server.Use(func(next HandlerFunc) HandlerFunc {
-		return func(ctx *Context) error {
+		return func(ctx Context) {
 			defer func() {
 				if r := recover(); r != nil {
 					assert.Fail(t, "caught panic")
 				}
 			}()
-			return next(ctx)
+			next(ctx)
 		}
 	})
 
@@ -223,12 +223,11 @@ func TestServer_NotFoundHandler(t *testing.T) {
 	server := NewServer(&ServerOption{
 		Packer: NewDefaultPacker(),
 	})
-	server.NotFoundHandler(func(ctx *Context) error {
-		return ctx.Response(101, []byte("handler not found"))
+	server.NotFoundHandler(func(ctx Context) {
+		ctx.SetResponseMessage(&message.Entry{ID: 101, Data: []byte("handler not found")})
 	})
 	go func() {
 		err := server.Serve(":0")
-		assert.Error(t, err)
 		assert.Equal(t, err, ErrServerStopped)
 	}()
 

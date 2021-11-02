@@ -43,32 +43,32 @@ func main() {
 	}
 }
 
-func handler(ctx *easytcp.Context) error {
+func handler(ctx easytcp.Context) {
 	var data common.Json01Req
-	ctx.MustBind(&data)
+	_ = ctx.Bind(&data)
 
-	return ctx.Response("json01-resp", &common.Json01Resp{
+	err := ctx.SetResponse("json01-resp", &common.Json01Resp{
 		Success: true,
 		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
 	})
+	if err != nil {
+		log.Errorf("set response failed: %s", err)
+	}
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-	return func(ctx *easytcp.Context) (err error) {
-		fullSize := ctx.Message().MustGet("fullSize")
-		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Message().ID, len(ctx.Message().Data), ctx.Message().Data)
+	return func(ctx easytcp.Context) {
+		fullSize := ctx.Request().MustGet("fullSize")
+		log.Infof("recv request  | fullSize:(%d) id:(%v) dataSize(%d) data: %s", fullSize, ctx.Request().ID, len(ctx.Request().Data), ctx.Request().Data)
 
 		defer func() {
-			if err != nil {
-				return
-			}
-			resp := ctx.GetResponse()
+			resp := ctx.Response()
 			if resp != nil {
 				log.Infof("send response | dataSize:(%d) id:(%v) data: %s", len(resp.Data), resp.ID, resp.Data)
 			} else {
 				log.Infof("don't send response since nil")
 			}
 		}()
-		return next(ctx)
+		next(ctx)
 	}
 }

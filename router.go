@@ -34,27 +34,25 @@ type Router struct {
 }
 
 // HandlerFunc is the function type for handlers.
-type HandlerFunc func(ctx *Context) error
+type HandlerFunc func(ctx Context)
 
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
 //
 // 	var mf MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-// 		return func(ctx *Context) error {
-// 			return next(ctx)
+// 		return func(ctx Context) {
+// 			next(ctx)
 // 		}
 // 	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
-var nilHandler HandlerFunc = func(ctx *Context) error {
-	return nil
-}
+var nilHandler HandlerFunc = func(ctx Context) {}
 
 // handleRequest walks ctx through middlewares and handler,
 // and returns response message entry.
-func (r *Router) handleRequest(ctx *Context) error {
+func (r *Router) handleRequest(ctx *routeContext) {
 	if ctx.reqEntry == nil {
-		return nil
+		return
 	}
 	var handler HandlerFunc
 	if v, has := r.handlerMapper[ctx.reqEntry.ID]; has {
@@ -70,7 +68,7 @@ func (r *Router) handleRequest(ctx *Context) error {
 	wrapped := r.wrapHandlers(handler, mws)
 
 	// and call the handlers stack
-	return wrapped(ctx)
+	wrapped(ctx)
 }
 
 // wrapHandlers wraps handler and middlewares into a right order call stack.

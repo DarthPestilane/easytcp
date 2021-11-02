@@ -67,9 +67,18 @@ func main() {
     // Register a route with message's ID.
     // The `DefaultPacker` treats id as int,
     // so when we add routes or return response, we should use int.
-    s.AddRoute(1001, func(c *easytcp.Context) error {
-        fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
-        return c.Response(1002, []byte("copy that"))
+    s.AddRoute(1001, func(c easytcp.Context) {
+        // acquire request
+        req := c.Request()
+
+        // do things...
+        fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID, len(req.Data), req.Data)
+
+        // set response
+        c.SetResponseMessage(&message.Entry{
+            ID:   1002,
+            Data: []byte("copy that"),
+        })
     })
 
     // Set custom logger (optional).
@@ -79,8 +88,8 @@ func main() {
     s.Use(recoverMiddleware)
 
     // Set hooks (optional).
-    s.OnSessionCreate = func(sess *easytcp.Session) {}
-    s.OnSessionClose = func(sess *easytcp.Session) {}
+    s.OnSessionCreate = func(session easytcp.Session) {...}
+    s.OnSessionClose = func(session easytcp.Session) {...}
 
     // Set not-found route handler (optional).
     s.NotFoundHandler(handler)
@@ -90,6 +99,39 @@ func main() {
         fmt.Println("serve error: ", err.Error())
     }
 }
+```
+
+### If we setup with the codec
+
+```go
+// Create a new server with options.
+s := easytcp.NewServer(&easytcp.ServerOption{
+    Packer: easytcp.NewDefaultPacker(), // use default packer
+    Codec:  &easytcp.JsonCodec{},       // use JsonCodec
+})
+
+// Register a route with message's ID.
+// The `DefaultPacker` treats id as int,
+// so when we add routes or return response, we should use int.
+s.AddRoute(1001, func(c easytcp.Context) {
+    // decode request data and bind to `reqData`
+    var reqData map[string]interface{}
+    if err := c.Bind(&reqData); err != nil {
+        // handle err
+    }
+
+    // do things...
+    respId := 1002
+    respData := map[string]interface{}{
+        "success": true,
+        "feeling": "Great!",
+    }
+
+    // encode response data and set to `c`
+    if err := c.SetResponse(respId, respData); err != nil {
+        // handle err
+    }
+})
 ```
 
 Above is the server side example. There are client and more detailed examples including:
@@ -107,12 +149,10 @@ go test -bench=. -run=none -benchmem -benchtime=250000x
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-Benchmark_NoHandler-8                 	  250000	      5704 ns/op	      96 B/op	       2 allocs/op
-Benchmark_OneHandler-8                	  250000	      5748 ns/op	      96 B/op	       2 allocs/op
-Benchmark_OneHandlerCtxGetSet-8       	  250000	      5701 ns/op	     431 B/op	       4 allocs/op
-Benchmark_OneHandlerMessageGetSet-8   	  250000	      5640 ns/op	     467 B/op	       6 allocs/op
-Benchmark_DefaultPacker_Pack-8        	  250000	        35.7 ns/op	      16 B/op	       1 allocs/op
-Benchmark_DefaultPacker_Unpack-8      	  250000	      2201 ns/op	      95 B/op	       3 allocs/op
+Benchmark_NoHandler-8              	  250000	      5891 ns/op	      96 B/op	       2 allocs/op
+Benchmark_OneHandler-8             	  250000	      5772 ns/op	      95 B/op	       2 allocs/op
+Benchmark_DefaultPacker_Pack-8     	  250000	        36.7 ns/op	      16 B/op	       1 allocs/op
+Benchmark_DefaultPacker_Unpack-8   	  250000	      2239 ns/op	      95 B/op	       3 allocs/op
 ```
 
 *since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*
@@ -173,14 +213,18 @@ request flow:
 #### Register a route
 
 ```go
-s.AddRoute(reqID, func(c *easytcp.Context) error {
-    // handle the request via ctx
-    fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", c.Message().ID, len(c.Message().Data), c.Message().Data)
+s.AddRoute(reqID, func(c easytcp.Context) {
+    // acquire request
+    req := c.Request()
 
     // do things...
+    fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID, len(req.Data), req.Data)
 
-    // return response
-    return c.Response(respID, []byte("copy that"))
+    // set response
+    c.SetResponseMessage(&message.Entry{
+        ID:   respID,
+        Data: []byte("copy that"),
+    })
 })
 ```
 
@@ -196,11 +240,10 @@ s.AddRoute(reqID, handler, middleware1, middleware2)
 
 // a middleware looks like:
 var exampleMiddleware easytcp.MiddlewareFunc = func(next easytcp.HandlerFunc) easytcp.HandlerFunc {
-    return func(c *easytcp.Context) error {
+    return func(c easytcp.Context) {
         // do things before...
-        err := next(c)
+        next(c)
         // do things after...
-        return err
     }
 }
 ```
@@ -259,7 +302,7 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
         Data: data,
     }
     entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
-    // c.Message().Get("theWholeLength")  // and get them in route handler.
+    // c.Request().Get("theWholeLength")  // and get them in route handler.
     return entry, nil
 }
 ```
@@ -283,25 +326,22 @@ s := easytcp.NewServer(&easytcp.ServerOption{
 Since we set the codec, we may want to decode the request data in route handler.
 
 ```go
-s.AddRoute(reqID, func(c *easytcp.Context) error {
+s.AddRoute(reqID, func(c easytcp.Context) {
     var reqData map[string]interface{}
     if err := c.Bind(&reqData); err != nil { // here we decode message data and bind to reqData
         // handle error...
     }
-    // or c.MustBind(&reqData)
-    fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", c.Message().ID, len(c.Message().Data), reqData)
+    req := c.Request()
+    fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", req.ID, len(req.Data), reqData)
     respData := map[string]string{"key": "value"}
-    return c.Response(respID, respData)
+    if err := c.SetResponse(respID, respData); err != nil {
+        // handle error...
+    }
 })
 ```
 
 Codec's encoding will be invoked before message packed,
 and decoding should be invoked in the route handler which is after message unpacked.
-
-> NOTE:
->
-> If the Codec is not set (or is `nil`), EasyTCP will try to convert the `respData` (the second parameter of `c.Response`) into a `[]byte`.
-> So the type of `respData` should be one of `string`, `[]byte` or `fmt.Stringer`.
 
 #### JSON Codec
 
