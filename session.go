@@ -51,7 +51,7 @@ func newSession(conn net.Conn, opt *sessionOption) *session {
 		respQueue: make(chan Context, opt.respQueueSize),
 		packer:    opt.Packer,
 		codec:     opt.Codec,
-		ctxPool:   sync.Pool{New: func() interface{} { return new(routeContext) }},
+		ctxPool:   sync.Pool{New: func() interface{} { return NewContext(nil, nil) }},
 	}
 }
 

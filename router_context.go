@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+// NewContext creates a routeContext pointer.
+func NewContext(session Session, request *message.Entry) *routeContext {
+	return &routeContext{
+		session:  session,
+		reqEntry: request,
+	}
+}
+
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
 type Context interface {
