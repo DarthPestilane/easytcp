@@ -150,17 +150,11 @@ func (c *routeContext) SetResponseMessage(msg *message.Entry) Context {
 
 // Send implements Context.Send method.
 func (c *routeContext) Send() {
-	if c.respEntry == nil {
-		return
-	}
 	c.session.Send(c)
 }
 
 // SendTo implements Context.SendTo method.
 func (c *routeContext) SendTo(sess Session) {
-	if c.respEntry == nil {
-		return
-	}
 	sess.Send(c)
 }
 

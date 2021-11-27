@@ -135,7 +135,7 @@ func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 			return
 		}
 
-		outboundMsg, err := s.pack(ctx)
+		outboundMsg, err := s.packResponse(ctx)
 		if err != nil {
 			Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 			continue
@@ -187,7 +187,7 @@ func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 	return
 }
 
-func (s *session) pack(ctx Context) ([]byte, error) {
+func (s *session) packResponse(ctx Context) ([]byte, error) {
 	defer s.ctxPool.Put(ctx)
 	if ctx.Response() == nil {
 		return nil, nil

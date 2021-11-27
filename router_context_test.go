@@ -161,11 +161,6 @@ func TestRouteContext_Send(t *testing.T) {
 		ctx2 := <-sess.respQueue
 		assert.Equal(t, ctx, ctx2)
 	})
-	t.Run("when response message is nil", func(t *testing.T) {
-		sess := newSession(nil, &sessionOption{})
-		ctx := newContext(sess, nil)
-		ctx.Send()
-	})
 }
 
 func TestRouteContext_SendTo(t *testing.T) {
@@ -177,12 +172,6 @@ func TestRouteContext_SendTo(t *testing.T) {
 		go ctx.SendTo(sess2)
 		ctx2 := <-sess2.respQueue
 		assert.Equal(t, ctx, ctx2)
-	})
-	t.Run("when response message is nil", func(t *testing.T) {
-		sess1 := newSession(nil, &sessionOption{})
-		sess2 := newSession(nil, &sessionOption{})
-		ctx := newContext(sess1, nil)
-		ctx.SendTo(sess2)
 	})
 }
 
