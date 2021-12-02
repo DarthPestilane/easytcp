@@ -33,6 +33,9 @@ type Context interface {
 	// Response returns the response message entry.
 	Response() *message.Entry
 
+	// RawResponseData returns the not yet encoded response data.
+	RawResponseData() interface{}
+
 	// SetResponse encodes data with session's codec and sets response message entry.
 	SetResponse(id, data interface{}) error
 
@@ -64,11 +67,12 @@ type Context interface {
 
 // routeContext implements the Context interface.
 type routeContext struct {
-	mu        sync.RWMutex
-	storage   map[string]interface{}
-	session   Session
-	reqEntry  *message.Entry
-	respEntry *message.Entry
+	mu          sync.RWMutex
+	storage     map[string]interface{}
+	session     Session
+	reqEntry    *message.Entry
+	respEntry   *message.Entry
+	rawRespData interface{}
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -118,6 +122,17 @@ func (c *routeContext) Response() *message.Entry {
 	return c.respEntry
 }
 
+// RawResponseData returns the not yet encoded response data.
+func (c *routeContext) RawResponseData() interface{} {
+	if c.rawRespData != nil {
+		return c.rawRespData
+	}
+	if c.respEntry != nil {
+		return c.respEntry.Data
+	}
+	return nil
+}
+
 // SetResponse implements Context.SetResponse method.
 func (c *routeContext) SetResponse(id, data interface{}) error {
 	if c.Session().Codec() == nil {
@@ -127,6 +142,7 @@ func (c *routeContext) SetResponse(id, data interface{}) error {
 	if err != nil {
 		return err
 	}
+	c.rawRespData = data
 	c.respEntry = &message.Entry{
 		ID:   id,
 		Data: dataRaw,

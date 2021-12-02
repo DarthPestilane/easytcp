@@ -149,6 +149,7 @@ func TestRouteContext_SetResponse(t *testing.T) {
 		err := c.SetResponse(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, c.respEntry, entry)
+		assert.Equal(t, c.rawRespData, "test")
 	})
 }
 
@@ -244,5 +245,25 @@ func Test_routeContext_MustSetResponse(t *testing.T) {
 		assert.NotPanics(t, func() {
 			c.MustSetResponse(1, "test")
 		})
+	})
+}
+
+func Test_routeContext_RawResponseData(t *testing.T) {
+	t.Run("when raw resp data is not nil", func(t *testing.T) {
+		c := newContext(nil, nil)
+		c.rawRespData = 123
+		assert.Equal(t, c.RawResponseData(), 123)
+	})
+	t.Run("when resp entry is not nil", func(t *testing.T) {
+		c := newContext(nil, nil)
+		c.rawRespData = nil
+		c.respEntry = &message.Entry{
+			Data: []byte("123"),
+		}
+		assert.Equal(t, c.RawResponseData(), []byte("123"))
+	})
+	t.Run("when resp entry is nil", func(t *testing.T) {
+		c := newContext(nil, nil)
+		assert.Nil(t, c.RawResponseData())
 	})
 }
