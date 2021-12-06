@@ -20,6 +20,9 @@ type Session interface {
 
 	// Close closes session.
 	Close()
+
+	// NewContext creates a Context.
+	NewContext() Context
 }
 
 type session struct {
@@ -87,6 +90,11 @@ func (s *session) Close() {
 	close(s.respQueue)
 }
 
+// NewContext creates a Context from pool.
+func (s *session) NewContext() Context {
+	return s.ctxPool.Get().(*routeContext)
+}
+
 // readInbound reads message packet from connection in a loop.
 // And send unpacked message to reqQueue, which will be consumed in router.
 // The loop breaks if errors occurred or the session is closed.
@@ -114,7 +122,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 
 		// don't block the loop.
 		go func() {
-			ctx := s.ctxPool.Get().(*routeContext)
+			ctx := s.NewContext().(*routeContext)
 			ctx.reset(s, reqEntry)
 			router.handleRequest(ctx)
 			s.Send(ctx)

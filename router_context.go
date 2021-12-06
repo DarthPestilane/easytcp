@@ -135,10 +135,11 @@ func (c *routeContext) RawResponseData() interface{} {
 
 // SetResponse implements Context.SetResponse method.
 func (c *routeContext) SetResponse(id, data interface{}) error {
-	if c.Session().Codec() == nil {
+	codec := c.session.Codec()
+	if codec == nil {
 		return fmt.Errorf("codec is nil")
 	}
-	dataRaw, err := c.Session().Codec().Encode(data)
+	dataRaw, err := codec.Encode(data)
 	if err != nil {
 		return err
 	}
