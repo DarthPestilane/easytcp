@@ -149,7 +149,6 @@ func Test_routeContext_SetResponse(t *testing.T) {
 		err := c.SetResponse(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, c.respEntry, entry)
-		assert.Equal(t, c.rawRespData, "test")
 	})
 }
 
@@ -248,30 +247,10 @@ func Test_routeContext_MustSetResponse(t *testing.T) {
 	})
 }
 
-func Test_routeContext_RawResponseData(t *testing.T) {
-	t.Run("when raw resp data is not nil", func(t *testing.T) {
-		c := newContext(nil, nil)
-		c.rawRespData = 123
-		assert.Equal(t, c.RawResponseData(), 123)
-	})
-	t.Run("when resp entry is not nil", func(t *testing.T) {
-		c := newContext(nil, nil)
-		c.rawRespData = nil
-		c.respEntry = &message.Entry{
-			Data: []byte("123"),
-		}
-		assert.Equal(t, c.RawResponseData(), []byte("123"))
-	})
-	t.Run("when resp entry is nil", func(t *testing.T) {
-		c := newContext(nil, nil)
-		assert.Nil(t, c.RawResponseData())
-	})
-}
-
 func Test_routeContext_SetSession(t *testing.T) {
 	sess := newSession(nil, &sessionOption{})
 	c := newContext(nil, nil)
-	c.SetSession(sess)
+	assert.Equal(t, c.SetSession(sess), c)
 	assert.Equal(t, c.Session(), sess)
 }
 

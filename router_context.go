@@ -22,7 +22,7 @@ type Context interface {
 	Session() Session
 
 	// SetSession sets session.
-	SetSession(sess Session)
+	SetSession(sess Session) Context
 
 	// Request returns request message entry.
 	Request() *message.Entry
@@ -42,9 +42,6 @@ type Context interface {
 
 	// Response returns the response message entry.
 	Response() *message.Entry
-
-	// RawResponseData returns the not yet encoded response data.
-	RawResponseData() interface{}
 
 	// SetResponse encodes data with session's codec and sets response message entry.
 	SetResponse(id, data interface{}) error
@@ -77,12 +74,11 @@ type Context interface {
 
 // routeContext implements the Context interface.
 type routeContext struct {
-	mu          sync.RWMutex
-	storage     map[string]interface{}
-	session     Session
-	reqEntry    *message.Entry
-	respEntry   *message.Entry
-	rawRespData interface{}
+	mu        sync.RWMutex
+	storage   map[string]interface{}
+	session   Session
+	reqEntry  *message.Entry
+	respEntry *message.Entry
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -115,8 +111,9 @@ func (c *routeContext) Session() Session {
 }
 
 // SetSession sets session.
-func (c *routeContext) SetSession(sess Session) {
+func (c *routeContext) SetSession(sess Session) Context {
 	c.session = sess
+	return c
 }
 
 // Request implements Context.Request method.
@@ -168,17 +165,6 @@ func (c *routeContext) Response() *message.Entry {
 	return c.respEntry
 }
 
-// RawResponseData returns the not yet encoded response data.
-func (c *routeContext) RawResponseData() interface{} {
-	if c.rawRespData != nil {
-		return c.rawRespData
-	}
-	if c.respEntry != nil {
-		return c.respEntry.Data
-	}
-	return nil
-}
-
 // SetResponse implements Context.SetResponse method.
 func (c *routeContext) SetResponse(id, data interface{}) error {
 	codec := c.session.Codec()
@@ -189,7 +175,6 @@ func (c *routeContext) SetResponse(id, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.rawRespData = data
 	c.respEntry = &message.Entry{
 		ID:   id,
 		Data: dataRaw,
