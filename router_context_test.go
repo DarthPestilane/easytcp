@@ -13,25 +13,25 @@ func newContext(sess *session, msg *message.Entry) *routeContext {
 	return &routeContext{session: sess, reqEntry: msg}
 }
 
-func TestRouteContext_Deadline(t *testing.T) {
+func Test_routeContext_Deadline(t *testing.T) {
 	c := newContext(nil, nil)
 	dl, ok := c.Deadline()
 	assert.False(t, ok)
 	assert.Zero(t, dl)
 }
 
-func TestRouteContext_Done(t *testing.T) {
+func Test_routeContext_Done(t *testing.T) {
 	c := newContext(nil, nil)
 	done := c.Done()
 	assert.Nil(t, done)
 }
 
-func TestRouteContext_Err(t *testing.T) {
+func Test_routeContext_Err(t *testing.T) {
 	c := newContext(nil, nil)
 	assert.Nil(t, c.Err())
 }
 
-func TestRouteContext_Value(t *testing.T) {
+func Test_routeContext_Value(t *testing.T) {
 	c := newContext(nil, nil)
 	assert.Nil(t, c.Value("not found"))
 	c.Set("found", true)
@@ -40,7 +40,7 @@ func TestRouteContext_Value(t *testing.T) {
 	assert.Nil(t, c.Value(123))
 }
 
-func TestRouteContext_Get(t *testing.T) {
+func Test_routeContext_Get(t *testing.T) {
 	c := newContext(nil, nil)
 	v, ok := c.Get("not found")
 	assert.False(t, ok)
@@ -52,7 +52,7 @@ func TestRouteContext_Get(t *testing.T) {
 	assert.True(t, v.(bool))
 }
 
-func TestRouteContext_Set(t *testing.T) {
+func Test_routeContext_Set(t *testing.T) {
 	c := newContext(nil, nil)
 	c.Set("found", true)
 	v, ok := c.storage["found"]
@@ -60,7 +60,7 @@ func TestRouteContext_Set(t *testing.T) {
 	assert.True(t, v.(bool))
 }
 
-func TestRouteContext_Remove(t *testing.T) {
+func Test_routeContext_Remove(t *testing.T) {
 	c := newContext(nil, nil)
 	c.Set("found", true)
 	c.Remove("found")
@@ -69,7 +69,7 @@ func TestRouteContext_Remove(t *testing.T) {
 	assert.Nil(t, v)
 }
 
-func TestRouteContext_Bind(t *testing.T) {
+func Test_routeContext_Bind(t *testing.T) {
 	t.Run("when session has codec", func(t *testing.T) {
 		entry := &message.Entry{
 			ID:   1,
@@ -100,14 +100,14 @@ func TestRouteContext_Bind(t *testing.T) {
 	})
 }
 
-func TestRouteContext_Session(t *testing.T) {
+func Test_routeContext_Session(t *testing.T) {
 	sess := newSession(nil, &sessionOption{})
 
 	c := newContext(sess, nil)
 	assert.Equal(t, c.Session(), sess)
 }
 
-func TestRouteContext_SetResponse(t *testing.T) {
+func Test_routeContext_SetResponse(t *testing.T) {
 	t.Run("when session hasn't codec", func(t *testing.T) {
 		entry := &message.Entry{
 			ID:   1,
@@ -153,7 +153,7 @@ func TestRouteContext_SetResponse(t *testing.T) {
 	})
 }
 
-func TestRouteContext_Send(t *testing.T) {
+func Test_routeContext_Send(t *testing.T) {
 	t.Run("when success", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
 		ctx := newContext(sess, nil)
@@ -164,7 +164,7 @@ func TestRouteContext_Send(t *testing.T) {
 	})
 }
 
-func TestRouteContext_SendTo(t *testing.T) {
+func Test_routeContext_SendTo(t *testing.T) {
 	t.Run("when success", func(t *testing.T) {
 		sess1 := newSession(nil, &sessionOption{})
 		sess2 := newSession(nil, &sessionOption{})
@@ -176,7 +176,7 @@ func TestRouteContext_SendTo(t *testing.T) {
 	})
 }
 
-func TestRouteContext_reset(t *testing.T) {
+func Test_routeContext_reset(t *testing.T) {
 	ctx := newContext(nil, nil)
 	sess := newSession(nil, &sessionOption{})
 	entry := &message.Entry{
@@ -190,7 +190,7 @@ func TestRouteContext_reset(t *testing.T) {
 	assert.Nil(t, ctx.respEntry)
 }
 
-func TestRouteContext_Copy(t *testing.T) {
+func Test_routeContext_Copy(t *testing.T) {
 	ctx := newContext(nil, nil)
 	ctx.SetResponseMessage(&message.Entry{ID: 1, Data: []byte("resp origin")})
 
@@ -265,5 +265,51 @@ func Test_routeContext_RawResponseData(t *testing.T) {
 	t.Run("when resp entry is nil", func(t *testing.T) {
 		c := newContext(nil, nil)
 		assert.Nil(t, c.RawResponseData())
+	})
+}
+
+func Test_routeContext_SetSession(t *testing.T) {
+	sess := newSession(nil, &sessionOption{})
+	c := newContext(nil, nil)
+	c.SetSession(sess)
+	assert.Equal(t, c.Session(), sess)
+}
+
+func Test_routeContext_SetRequest(t *testing.T) {
+	t.Run("when session hasn't codec", func(t *testing.T) {
+		sess := newSession(nil, &sessionOption{})
+		c := newContext(sess, nil)
+		err := c.SetRequest(1, []string{"invalid", "data"})
+		assert.Error(t, err)
+		assert.Nil(t, c.reqEntry)
+	})
+	t.Run("when encode failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
+		sess := newSession(nil, &sessionOption{Codec: codec})
+
+		c := newContext(sess, nil)
+		err := c.SetRequest(1, "test")
+		assert.Error(t, err)
+		assert.Nil(t, c.reqEntry)
+	})
+	t.Run("when succeed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		entry := &message.Entry{
+			ID:   1,
+			Data: []byte("test"),
+		}
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
+		sess := newSession(nil, &sessionOption{Codec: codec})
+
+		c := newContext(sess, nil)
+		err := c.SetRequest(1, "test")
+		assert.NoError(t, err)
+		assert.Equal(t, c.reqEntry, entry)
 	})
 }

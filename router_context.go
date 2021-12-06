@@ -9,11 +9,8 @@ import (
 )
 
 // NewContext creates a routeContext pointer.
-func NewContext(session Session, request *message.Entry) *routeContext {
-	return &routeContext{
-		session:  session,
-		reqEntry: request,
-	}
+func NewContext() *routeContext {
+	return &routeContext{}
 }
 
 // Context is a generic context in a message routing.
@@ -24,8 +21,17 @@ type Context interface {
 	// Session returns the current session.
 	Session() Session
 
+	// SetSession sets session.
+	SetSession(sess Session)
+
 	// Request returns request message entry.
 	Request() *message.Entry
+
+	// SetRequest sets request by id and data.
+	SetRequest(id, data interface{}) error
+
+	// SetRequestMessage sets request message entry directly.
+	SetRequestMessage(entry *message.Entry) Context
 
 	// Bind decodes request message entry to v.
 	Bind(v interface{}) error
@@ -104,9 +110,37 @@ func (c *routeContext) Session() Session {
 	return c.session
 }
 
+// SetSession sets session.
+func (c *routeContext) SetSession(sess Session) {
+	c.session = sess
+}
+
 // Request implements Context.Request method.
 func (c *routeContext) Request() *message.Entry {
 	return c.reqEntry
+}
+
+// SetRequest sets request by id and data.
+func (c *routeContext) SetRequest(id, data interface{}) error {
+	codec := c.session.Codec()
+	if codec == nil {
+		return fmt.Errorf("codec is nil")
+	}
+	dataRaw, err := codec.Encode(data)
+	if err != nil {
+		return err
+	}
+	c.reqEntry = &message.Entry{
+		ID:   id,
+		Data: dataRaw,
+	}
+	return nil
+}
+
+// SetRequestMessage sets request message entry.
+func (c *routeContext) SetRequestMessage(entry *message.Entry) Context {
+	c.reqEntry = entry
+	return c
 }
 
 // Bind implements Context.Bind method.
