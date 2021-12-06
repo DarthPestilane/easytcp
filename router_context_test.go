@@ -243,7 +243,7 @@ func Test_routeContext_MustSetResponse(t *testing.T) {
 
 		c := newContext(sess, entry)
 		assert.NotPanics(t, func() {
-			c.MustSetResponse(1, "test")
+			assert.Equal(t, c.MustSetResponse(1, "test"), c)
 		})
 	})
 }
@@ -312,4 +312,51 @@ func Test_routeContext_SetRequest(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, c.reqEntry, entry)
 	})
+}
+
+func Test_routeContext_MustSetRequest(t *testing.T) {
+	t.Run("when session hasn't codec", func(t *testing.T) {
+		sess := newSession(nil, &sessionOption{})
+
+		c := newContext(sess, nil)
+		assert.Panics(t, func() {
+			c.MustSetRequest(1, []string{"invalid", "data"})
+		})
+	})
+	t.Run("when encode failed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return(nil, fmt.Errorf("some err"))
+		sess := newSession(nil, &sessionOption{Codec: codec})
+
+		c := newContext(sess, nil)
+		assert.Panics(t, func() {
+			c.MustSetRequest(1, "test")
+		})
+	})
+	t.Run("when succeed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		codec := mock.NewMockCodec(ctrl)
+		codec.EXPECT().Encode(gomock.Any()).Return([]byte("test"), nil)
+		sess := newSession(nil, &sessionOption{Codec: codec})
+
+		c := newContext(sess, nil)
+		assert.NotPanics(t, func() {
+			assert.Equal(t, c.MustSetRequest(1, "test"), c)
+		})
+	})
+}
+
+func Test_routeContext_SetRequestMessage(t *testing.T) {
+	entry := &message.Entry{
+		ID:   1,
+		Data: []byte("test"),
+	}
+	c := NewContext()
+	c.SetRequestMessage(entry)
+	assert.Equal(t, c.reqEntry, entry)
 }

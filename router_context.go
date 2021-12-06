@@ -27,8 +27,12 @@ type Context interface {
 	// Request returns request message entry.
 	Request() *message.Entry
 
-	// SetRequest sets request by id and data.
+	// SetRequest encodes data with session's codec and sets request message entry.
 	SetRequest(id, data interface{}) error
+
+	// MustSetRequest encodes data with session's codec and sets request message entry.
+	// panics on error.
+	MustSetRequest(id, data interface{}) Context
 
 	// SetRequestMessage sets request message entry directly.
 	SetRequestMessage(entry *message.Entry) Context
@@ -135,6 +139,14 @@ func (c *routeContext) SetRequest(id, data interface{}) error {
 		Data: dataRaw,
 	}
 	return nil
+}
+
+// MustSetRequest implements Context.MustSetRequest method.
+func (c *routeContext) MustSetRequest(id, data interface{}) Context {
+	if err := c.SetRequest(id, data); err != nil {
+		panic(err)
+	}
+	return c
 }
 
 // SetRequestMessage sets request message entry.
