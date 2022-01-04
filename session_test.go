@@ -162,11 +162,6 @@ func TestTCPSession_Send(t *testing.T) {
 		sess.Close() // close session
 		assert.False(t, sess.Send(&routeContext{respEntry: entry}))
 	})
-	t.Run("when session respQueue is closed", func(t *testing.T) {
-		sess := newSession(nil, &sessionOption{})
-		close(sess.respQueue)
-		assert.False(t, sess.Send(nil))
-	})
 	t.Run("when send succeed", func(t *testing.T) {
 		entry := &message.Entry{
 			ID:   1,
@@ -199,16 +194,6 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 		<-doneLoop
 	})
-	t.Run("when respQueue is closed", func(t *testing.T) {
-		sess := newSession(nil, &sessionOption{})
-		close(sess.respQueue)
-		doneLoop := make(chan struct{})
-		go func() {
-			sess.writeOutbound(0, 10) // should stop looping and return
-			close(doneLoop)
-		}()
-		<-doneLoop
-	})
 	t.Run("when response entry is nil", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -224,7 +209,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 			close(doneLoop)
 		}()
 		time.Sleep(time.Millisecond * 5)
-		close(sess.respQueue)
+		sess.Close()
 		<-doneLoop
 	})
 	t.Run("when pack response message failed", func(t *testing.T) {

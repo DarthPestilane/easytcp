@@ -149,10 +149,11 @@ go test -bench=. -run=none -benchmem -benchtime=250000x
 goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
-Benchmark_NoHandler-8              	  250000	      5891 ns/op	      96 B/op	       2 allocs/op
-Benchmark_OneHandler-8             	  250000	      5772 ns/op	      95 B/op	       2 allocs/op
-Benchmark_DefaultPacker_Pack-8     	  250000	        36.7 ns/op	      16 B/op	       1 allocs/op
-Benchmark_DefaultPacker_Unpack-8   	  250000	      2239 ns/op	      95 B/op	       3 allocs/op
+cpu: Intel(R) Core(TM) i5-8279U CPU @ 2.40GHz
+Benchmark_NoHandler-8              	  250000	      5375 ns/op	     125 B/op	       3 allocs/op
+Benchmark_OneHandler-8             	  250000	      5692 ns/op	     133 B/op	       4 allocs/op
+Benchmark_DefaultPacker_Pack-8     	  250000	      33.63 ns/op	      16 B/op	       1 allocs/op
+Benchmark_DefaultPacker_Unpack-8   	  250000	      109.3 ns/op	      96 B/op	       3 allocs/op
 ```
 
 *since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*

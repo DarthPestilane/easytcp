@@ -29,7 +29,8 @@ type session struct {
 	id        string        // session's ID. it's a UUID
 	conn      net.Conn      // tcp connection
 	closed    chan struct{} // to close()
-	respQueue chan Context  // response queue channel, pushed in SendResp() and popped in writeOutbound()
+	closeOne  sync.Once     // ensure one session only close once
+	respQueue chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
 	packer    Packer        // to pack and unpack message
 	codec     Codec         // encode/decode message data
 	ctxPool   sync.Pool     // router context pool
@@ -66,15 +67,12 @@ func (s *session) ID() string {
 // Send pushes response message entry to respQueue.
 // Returns error if session is closed.
 func (s *session) Send(ctx Context) (ok bool) {
-	ok = true
-	defer func() {
-		if r := recover(); r != nil {
-			Log.Errorf("push ctx to respQueue failed")
-			ok = false
-		}
-	}()
-	s.respQueue <- ctx
-	return
+	select {
+	case <-s.closed:
+		return false
+	case s.respQueue <- ctx:
+		return true
+	}
 }
 
 // Codec implements Session Codec.
@@ -85,9 +83,7 @@ func (s *session) Codec() Codec {
 // Close closes the session, but doesn't close the connection.
 // The connection will be closed in the server once the session's closed.
 func (s *session) Close() {
-	defer func() { _ = recover() }()
-	close(s.closed)
-	close(s.respQueue)
+	s.closeOne.Do(func() { close(s.closed) })
 }
 
 // NewContext creates a Context from pool.
@@ -133,14 +129,15 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 }
 
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
-// Parameter writeTimeout specified the connection writing timeout.g
+// Parameter writeTimeout specified the connection writing timeout.
 // The loop breaks if errors occurred, or the session is closed.
 func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 	for {
-		ctx, ok := <-s.respQueue
-		if !ok {
-			Log.Tracef("session %s writeOutbound exit because session is closed", s.id)
+		var ctx Context
+		select {
+		case <-s.closed:
 			return
+		case ctx = <-s.respQueue:
 		}
 
 		outboundMsg, err := s.packResponse(ctx)
