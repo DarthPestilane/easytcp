@@ -10,7 +10,10 @@ import (
 )
 
 func newContext(sess *session, msg *message.Entry) *routeContext {
-	return &routeContext{session: sess, reqEntry: msg}
+	ctx := NewContext()
+	ctx.session = sess
+	ctx.reqEntry = msg
+	return ctx
 }
 
 func Test_routeContext_Deadline(t *testing.T) {
