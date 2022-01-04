@@ -90,7 +90,7 @@ func (s *session) Close() {
 
 // NewContext creates a Context from pool.
 func (s *session) NewContext() Context {
-	return s.ctxPool.Get().(*routeContext)
+	return s.ctxPool.Get().(*routeContext).SetSession(s)
 }
 
 // readInbound reads message packet from connection in a loop.
