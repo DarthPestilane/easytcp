@@ -68,6 +68,8 @@ func (s *session) ID() string {
 // Returns error if session is closed.
 func (s *session) Send(ctx Context) (ok bool) {
 	select {
+	case <-ctx.Done():
+		return false
 	case <-s.closed:
 		return false
 	case s.respQueue <- ctx:

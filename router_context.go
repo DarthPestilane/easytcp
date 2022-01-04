@@ -10,13 +10,19 @@ import (
 
 // NewContext creates a routeContext pointer.
 func NewContext() *routeContext {
-	return &routeContext{}
+	return &routeContext{
+		rawCtx: context.Background(),
+	}
 }
 
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
 type Context interface {
 	context.Context
+
+	// WithContext sets the underline context.
+	// It's very useful to control the workflow when send to response channel.
+	WithContext(ctx context.Context) Context
 
 	// Session returns the current session.
 	Session() Session
@@ -74,6 +80,7 @@ type Context interface {
 
 // routeContext implements the Context interface.
 type routeContext struct {
+	rawCtx    context.Context
 	mu        sync.RWMutex
 	storage   map[string]interface{}
 	session   Session
@@ -82,18 +89,18 @@ type routeContext struct {
 }
 
 // Deadline implements the context.Context Deadline method.
-func (c *routeContext) Deadline() (deadline time.Time, ok bool) {
-	return
+func (c *routeContext) Deadline() (time.Time, bool) {
+	return c.rawCtx.Deadline()
 }
 
 // Done implements the context.Context Done method.
 func (c *routeContext) Done() <-chan struct{} {
-	return nil
+	return c.rawCtx.Done()
 }
 
 // Err implements the context.Context Err method.
 func (c *routeContext) Err() error {
-	return nil
+	return c.rawCtx.Err()
 }
 
 // Value implements the context.Context Value method.
@@ -103,6 +110,12 @@ func (c *routeContext) Value(key interface{}) interface{} {
 		return val
 	}
 	return nil
+}
+
+// WithContext sets the underline context.
+func (c *routeContext) WithContext(ctx context.Context) Context {
+	c.rawCtx = ctx
+	return c
 }
 
 // Session implements Context.Session method.
@@ -234,6 +247,7 @@ func (c *routeContext) Remove(key string) {
 // Copy implements Context.Copy method.
 func (c *routeContext) Copy() Context {
 	return &routeContext{
+		rawCtx:    c.rawCtx,
 		storage:   c.storage,
 		session:   c.session,
 		reqEntry:  c.reqEntry,
@@ -242,6 +256,7 @@ func (c *routeContext) Copy() Context {
 }
 
 func (c *routeContext) reset(sess *session, reqEntry *message.Entry) {
+	c.rawCtx = context.Background()
 	c.session = sess
 	c.reqEntry = reqEntry
 	c.respEntry = nil
