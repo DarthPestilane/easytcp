@@ -1,8 +1,10 @@
 package easytcp
 
 import (
+	"bytes"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net"
 	"testing"
 )
@@ -80,18 +82,14 @@ func Benchmark_DefaultPacker_Unpack(b *testing.B) {
 		ID:   1,
 		Data: []byte("test"),
 	}
-	bytes, err := packer.Pack(msg)
+	dataBytes, err := packer.Pack(msg)
 	assert.NoError(b, err)
 
-	p1, p2 := net.Pipe()
-	go func() {
-		for {
-			_, _ = p1.Write(bytes)
-		}
-	}()
+	r := bytes.NewReader(dataBytes)
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
-		_, _ = packer.Unpack(p2)
+		_, _ = packer.Unpack(r)
+		_, _ = r.Seek(0, io.SeekStart)
 	}
 }
 
