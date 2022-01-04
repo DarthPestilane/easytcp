@@ -60,10 +60,10 @@ type Context interface {
 	SetResponseMessage(entry *message.Entry) Context
 
 	// Send sends itself to current session.
-	Send()
+	Send() bool
 
 	// SendTo sends itself to session.
-	SendTo(session Session)
+	SendTo(session Session) bool
 
 	// Get returns key value from storage.
 	Get(key string) (value interface{}, exists bool)
@@ -210,13 +210,13 @@ func (c *routeContext) SetResponseMessage(msg *message.Entry) Context {
 }
 
 // Send implements Context.Send method.
-func (c *routeContext) Send() {
-	c.session.Send(c)
+func (c *routeContext) Send() bool {
+	return c.session.Send(c)
 }
 
 // SendTo implements Context.SendTo method.
-func (c *routeContext) SendTo(sess Session) {
-	sess.Send(c)
+func (c *routeContext) SendTo(sess Session) bool {
+	return sess.Send(c)
 }
 
 // Get implements Context.Get method.

@@ -88,7 +88,7 @@ func (s *session) Close() {
 	s.closeOne.Do(func() { close(s.closed) })
 }
 
-// NewContext creates a Context from pool.
+// NewContext creates a Context from pool, and sets context session with s.
 func (s *session) NewContext() Context {
 	return s.ctxPool.Get().(*routeContext).SetSession(s)
 }
