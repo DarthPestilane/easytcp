@@ -161,18 +161,16 @@ func TestTCPSession_Send(t *testing.T) {
 		}
 		sess := newSession(nil, &sessionOption{})
 		sess.Close() // close session
-		c := sess.NewContext().SetRequestMessage(entry)
-		assert.False(t, sess.Send(c))
+		assert.False(t, sess.NewContext().SetRequestMessage(entry).Send())
 	})
 	t.Run("when ctx is done", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
-		c := sess.NewContext()
 		ctx, cancel := context.WithCancel(context.Background())
-		c.WithContext(ctx)
 
+		c := sess.NewContext().WithContext(ctx)
 		done := make(chan struct{})
 		go func() {
-			assert.False(t, sess.Send(c))
+			assert.False(t, c.Send())
 			close(done)
 		}()
 
@@ -189,8 +187,7 @@ func TestTCPSession_Send(t *testing.T) {
 		sess.respQueue = make(chan Context) // no buffer
 		go func() { <-sess.respQueue }()
 
-		c := sess.NewContext().SetRequestMessage(entry)
-		assert.True(t, sess.Send(c))
+		assert.True(t, sess.NewContext().SetRequestMessage(entry).Send())
 		sess.Close()
 	})
 }
@@ -377,10 +374,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() {
-			c := sess.NewContext().SetResponseMessage(entry)
-			_ = sess.Send(c)
-		}()
+		go func() { sess.NewContext().SetResponseMessage(entry).Send() }()
 		done := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10)
