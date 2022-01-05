@@ -153,14 +153,13 @@ func (s *Server) acceptLoop() error {
 
 // handleConn creates a new session with conn,
 // handles the message through the session in different goroutines,
-// and waits until the session's closed.
+// and waits until the session's closed, then close the conn.
 func (s *Server) handleConn(conn net.Conn) {
 	sess := newSession(conn, &sessionOption{
 		Packer:        s.Packer,
 		Codec:         s.Codec,
 		respQueueSize: s.respQueueSize,
 	})
-	Sessions().Add(sess)
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)
 	}
@@ -168,8 +167,10 @@ func (s *Server) handleConn(conn net.Conn) {
 	go sess.readInbound(s.router, s.readTimeout)               // start reading message packet from connection.
 	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
 
-	<-sess.closed                // wait for session finished.
-	Sessions().Remove(sess.ID()) // session has been closed, remove it.
+	select {
+	case <-sess.closed: // wait for session finished.
+	case <-s.stopped: // or the server is stopped.
+	}
 
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
@@ -179,19 +180,9 @@ func (s *Server) handleConn(conn net.Conn) {
 	}
 }
 
-// Stop stops server by closing all the TCP sessions, listener and the router.
+// Stop stops server. Closing Listener and all connections.
 func (s *Server) Stop() error {
 	close(s.stopped)
-
-	// close all sessions
-	closedNum := 0
-	Sessions().Range(func(id string, sess Session) (next bool) {
-		sess.Close()
-		closedNum++
-		return true
-	})
-	Log.Tracef("%d session(s) closed", closedNum)
-
 	return s.Listener.Close()
 }
 
