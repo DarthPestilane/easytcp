@@ -50,17 +50,18 @@ var nilHandler HandlerFunc = func(ctx Context) {}
 
 // handleRequest walks ctx through middlewares and handler,
 // and returns response message entry.
-func (r *Router) handleRequest(ctx *routeContext) {
-	if ctx.reqEntry == nil {
+func (r *Router) handleRequest(ctx Context) {
+	reqEntry := ctx.Request()
+	if reqEntry == nil {
 		return
 	}
 	var handler HandlerFunc
-	if v, has := r.handlerMapper[ctx.reqEntry.ID]; has {
+	if v, has := r.handlerMapper[reqEntry.ID]; has {
 		handler = v
 	}
 
 	var mws = r.globalMiddlewares
-	if v, has := r.middlewaresMapper[ctx.reqEntry.ID]; has {
+	if v, has := r.middlewaresMapper[reqEntry.ID]; has {
 		mws = append(mws, v...) // append to global ones
 	}
 
