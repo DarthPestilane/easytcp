@@ -1,6 +1,7 @@
 package easytcp
 
 import (
+	"context"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/internal/mock"
 	"github.com/DarthPestilane/easytcp/message"
@@ -179,17 +180,18 @@ func Test_routeContext_SendTo(t *testing.T) {
 }
 
 func Test_routeContext_reset(t *testing.T) {
-	ctx := newContext(nil, nil)
 	sess := newSession(nil, &sessionOption{})
 	entry := &message.Entry{
 		ID:   1,
 		Data: []byte("test"),
 	}
-	ctx.reset(sess, entry)
-	assert.Equal(t, ctx.session, sess)
-	assert.Equal(t, ctx.reqEntry, entry)
-	assert.Nil(t, ctx.storage)
+	ctx := newContext(sess, entry)
+	ctx.reset()
+	assert.Equal(t, ctx.rawCtx, context.Background())
+	assert.Nil(t, ctx.session)
+	assert.Nil(t, ctx.reqEntry)
 	assert.Nil(t, ctx.respEntry)
+	assert.Empty(t, ctx.storage)
 }
 
 func Test_routeContext_Copy(t *testing.T) {

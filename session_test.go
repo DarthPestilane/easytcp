@@ -161,13 +161,13 @@ func TestTCPSession_Send(t *testing.T) {
 		}
 		sess := newSession(nil, &sessionOption{})
 		sess.Close() // close session
-		assert.False(t, sess.NewContext().SetRequestMessage(entry).Send())
+		assert.False(t, sess.AllocateContext().SetRequestMessage(entry).Send())
 	})
 	t.Run("when ctx is done", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
 		ctx, cancel := context.WithCancel(context.Background())
 
-		c := sess.NewContext().WithContext(ctx)
+		c := sess.AllocateContext().WithContext(ctx)
 		done := make(chan struct{})
 		go func() {
 			assert.False(t, c.Send())
@@ -187,7 +187,7 @@ func TestTCPSession_Send(t *testing.T) {
 		sess.respQueue = make(chan Context) // no buffer
 		go func() { <-sess.respQueue }()
 
-		assert.True(t, sess.NewContext().SetRequestMessage(entry).Send())
+		assert.True(t, sess.AllocateContext().SetRequestMessage(entry).Send())
 		sess.Close()
 	})
 }
@@ -218,7 +218,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 1024})
-		sess.respQueue <- sess.NewContext()
+		sess.respQueue <- sess.AllocateContext()
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10) // should stop looping and return
@@ -242,7 +242,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		sess := newSession(nil, &sessionOption{Packer: packer})
 		done := make(chan struct{})
 		go func() {
-			sess.respQueue <- sess.NewContext().SetResponseMessage(entry)
+			sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry)
 			close(done)
 		}()
 		time.Sleep(time.Microsecond * 15)
@@ -263,7 +263,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 100})
-		sess.respQueue <- sess.NewContext().SetResponseMessage(entry) // push to queue
+		sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10)
@@ -286,7 +286,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.NewContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
 		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -304,7 +304,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, _ := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.NewContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
 		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -324,7 +324,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.NewContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
 		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -356,7 +356,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		})
 
 		sess := newSession(conn, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.NewContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
 		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -374,7 +374,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.NewContext().SetResponseMessage(entry).Send() }()
+		go func() { sess.AllocateContext().SetResponseMessage(entry).Send() }()
 		done := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10)

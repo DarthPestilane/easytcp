@@ -18,11 +18,11 @@ type Session interface {
 	// Codec returns the codec, can be nil.
 	Codec() Codec
 
-	// Close closes session.
+	// Close closes current session.
 	Close()
 
-	// NewContext creates a Context.
-	NewContext() Context
+	// AllocateContext gets a Context ships with current session.
+	AllocateContext() Context
 }
 
 type session struct {
@@ -88,9 +88,12 @@ func (s *session) Close() {
 	s.closeOne.Do(func() { close(s.closed) })
 }
 
-// NewContext creates a Context from pool, and sets context session with s.
-func (s *session) NewContext() Context {
-	return s.ctxPool.Get().(*routeContext).SetSession(s)
+// AllocateContext gets a Context from pool and reset all but session.
+func (s *session) AllocateContext() Context {
+	c := s.ctxPool.Get().(*routeContext)
+	c.reset()
+	c.SetSession(s)
+	return c
 }
 
 // readInbound reads message packet from connection in a loop.
@@ -120,8 +123,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 
 		// don't block the loop.
 		go func() {
-			ctx := s.NewContext().(*routeContext)
-			ctx.reset(s, reqEntry)
+			ctx := s.AllocateContext().SetRequestMessage(reqEntry)
 			router.handleRequest(ctx)
 			s.Send(ctx)
 		}()

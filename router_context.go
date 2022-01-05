@@ -255,10 +255,10 @@ func (c *routeContext) Copy() Context {
 	}
 }
 
-func (c *routeContext) reset(sess *session, reqEntry *message.Entry) {
+func (c *routeContext) reset() {
 	c.rawCtx = context.Background()
-	c.session = sess
-	c.reqEntry = reqEntry
+	c.session = nil
+	c.reqEntry = nil
 	c.respEntry = nil
 	c.storage = nil
 }
