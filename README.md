@@ -150,10 +150,10 @@ goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
 cpu: Intel(R) Core(TM) i5-8279U CPU @ 2.40GHz
-Benchmark_NoHandler-8              	  250000	      5375 ns/op	     125 B/op	       3 allocs/op
-Benchmark_OneHandler-8             	  250000	      5692 ns/op	     133 B/op	       4 allocs/op
-Benchmark_DefaultPacker_Pack-8     	  250000	      33.63 ns/op	      16 B/op	       1 allocs/op
-Benchmark_DefaultPacker_Unpack-8   	  250000	      109.3 ns/op	      96 B/op	       3 allocs/op
+Benchmark_NoHandler-8              	  250000	      5170 ns/op	     129 B/op	       4 allocs/op
+Benchmark_OneHandler-8             	  250000	      5137 ns/op	     128 B/op	       4 allocs/op
+Benchmark_DefaultPacker_Pack-8     	  250000	        35.87 ns/op	      16 B/op	       1 allocs/op
+Benchmark_DefaultPacker_Unpack-8   	  250000	       102.5 ns/op	      96 B/op	       3 allocs/op
 ```
 
 *since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*
