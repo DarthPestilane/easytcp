@@ -155,6 +155,8 @@ func (s *Server) acceptLoop() error {
 // handles the message through the session in different goroutines,
 // and waits until the session's closed, then close the conn.
 func (s *Server) handleConn(conn net.Conn) {
+	defer conn.Close() // nolint
+
 	sess := newSession(conn, &sessionOption{
 		Packer:        s.Packer,
 		Codec:         s.Codec,
@@ -174,9 +176,6 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	if s.OnSessionClose != nil {
 		go s.OnSessionClose(sess)
-	}
-	if err := conn.Close(); err != nil {
-		Log.Errorf("connection close err: %s", err)
 	}
 }
 
