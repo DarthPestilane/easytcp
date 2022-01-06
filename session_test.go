@@ -411,3 +411,11 @@ func TestSession_attemptConnWrite_when_err_is_not_temp(t *testing.T) {
 	s := newSession(conn, &sessionOption{})
 	assert.ErrorIs(t, s.attemptConnWrite([]byte("whatever"), 10), netErr)
 }
+
+func Test_session_SetID(t *testing.T) {
+	sess := newSession(nil, &sessionOption{})
+	_, ok := sess.ID().(string)
+	assert.True(t, ok)
+	sess.SetID(123)
+	assert.Equal(t, sess.ID(), 123)
+}

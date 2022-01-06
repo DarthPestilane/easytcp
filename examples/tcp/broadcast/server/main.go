@@ -9,14 +9,23 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
 
 var log *logrus.Logger
+var sessions *SessionManager
 
 func init() {
 	log = logrus.New()
+	sessions = &SessionManager{nextId: 1, storage: map[int64]easytcp.Session{}}
+}
+
+type SessionManager struct {
+	nextId  int64
+	lock    sync.Mutex
+	storage map[int64]easytcp.Session
 }
 
 func main() {
@@ -24,23 +33,42 @@ func main() {
 		Packer: easytcp.NewDefaultPacker(),
 	})
 
+	s.OnSessionCreate = func(sess easytcp.Session) {
+		// store session
+		sessions.lock.Lock()
+		defer sessions.lock.Unlock()
+		sess.SetID(sessions.nextId)
+		sessions.nextId++
+		sessions.storage[sess.ID().(int64)] = sess
+	}
+
+	s.OnSessionClose = func(sess easytcp.Session) {
+		// remove session
+		delete(sessions.storage, sess.ID().(int64))
+	}
+
 	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) {
 		reqData := ctx.Request().Data
 
-		// broadcasting
-		go easytcp.Sessions().Range(func(id string, sess easytcp.Session) (next bool) {
-			if ctx.Session().ID() == id {
-				return true // next iteration
+		// broadcasting to other sessions
+		currentSession := ctx.Session()
+		for _, sess := range sessions.storage {
+			targetSession := sess
+			if currentSession.ID() == targetSession.ID() {
+				continue
 			}
-			respData := fmt.Sprintf("%s (broadcast from %s)", reqData, ctx.Session().ID())
-			ctx.Copy().SetResponseMessage(&message.Entry{
-				ID:   common.MsgIdBroadCastAck,
-				Data: []byte(respData),
-			}).SendTo(sess)
-			return true
-		})
+			respData := fmt.Sprintf("%s (broadcast from %d to %d)", reqData, currentSession.ID(), targetSession.ID())
+			respEntry := &message.Entry{ID: common.MsgIdBroadCastAck, Data: []byte(respData)}
+			go func() {
+				targetSession.AllocateContext().SetResponseMessage(respEntry).Send()
+				// can also write like this.
+				// ctx.Copy().SetResponseMessage(respEntry).SendTo(targetSession)
+				// or this.
+				// ctx.Copy().SetSession(targetSession).SetResponseMessage(respEntry).Send()
+			}()
+		}
 
 		ctx.SetResponseMessage(&message.Entry{
 			ID:   common.MsgIdBroadCastAck,
@@ -68,7 +96,7 @@ func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 		log.Infof("recv request | %s", ctx.Request().Data)
 		defer func() {
 			var resp = ctx.Response()
-			log.Infof("send response | id: %d; size: %d; data: %s", resp.ID, len(resp.Data), resp.Data)
+			log.Infof("send response |sessId: %d; id: %d; size: %d; data: %s", ctx.Session().ID(), resp.ID, len(resp.Data), resp.Data)
 		}()
 		next(ctx)
 	}

@@ -10,7 +10,10 @@ import (
 // Session represents a TCP session.
 type Session interface {
 	// ID returns current session's id.
-	ID() string
+	ID() interface{}
+
+	// SetID sets current session's id.
+	SetID(id interface{})
 
 	// Send sends the ctx to the respQueue.
 	Send(ctx Context) bool
@@ -26,10 +29,10 @@ type Session interface {
 }
 
 type session struct {
-	id        string        // session's ID. it's a UUID
+	id        interface{}   // session's ID.
 	conn      net.Conn      // tcp connection
 	closed    chan struct{} // to close()
-	closeOne  sync.Once     // ensure one session only close once
+	closeOnce sync.Once     // ensure one session only close once
 	respQueue chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
 	packer    Packer        // to pack and unpack message
 	codec     Codec         // encode/decode message data
@@ -49,7 +52,7 @@ type sessionOption struct {
 // Returns a session pointer.
 func newSession(conn net.Conn, opt *sessionOption) *session {
 	return &session{
-		id:        uuid.NewString(),
+		id:        uuid.NewString(), // use uuid as default
 		conn:      conn,
 		closed:    make(chan struct{}),
 		respQueue: make(chan Context, opt.respQueueSize),
@@ -59,9 +62,15 @@ func newSession(conn net.Conn, opt *sessionOption) *session {
 	}
 }
 
-// ID returns the session's ID.
-func (s *session) ID() string {
+// ID returns the session's id.
+func (s *session) ID() interface{} {
 	return s.id
+}
+
+// SetID sets session id.
+// Can be called in server.OnSessionCreate() callback.
+func (s *session) SetID(id interface{}) {
+	s.id = id
 }
 
 // Send pushes response message entry to respQueue.
@@ -85,7 +94,7 @@ func (s *session) Codec() Codec {
 // Close closes the session, but doesn't close the connection.
 // The connection will be closed in the server once the session's closed.
 func (s *session) Close() {
-	s.closeOne.Do(func() { close(s.closed) })
+	s.closeOnce.Do(func() { close(s.closed) })
 }
 
 // AllocateContext gets a Context from pool and reset all but session.

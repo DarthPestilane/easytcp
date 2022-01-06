@@ -18,11 +18,13 @@ var log *logrus.Logger
 
 func init() {
 	log = logrus.New()
+	log.SetLevel(logrus.TraceLevel)
 }
 
 func main() {
 	// go printGoroutineNum()
 
+	easytcp.SetLogger(log)
 	s := easytcp.NewServer(&easytcp.ServerOption{
 		SocketReadBufferSize:  1024 * 1024,
 		SocketWriteBufferSize: 1024 * 1024,
@@ -33,10 +35,10 @@ func main() {
 		Codec:                 nil,
 	})
 	s.OnSessionCreate = func(sess easytcp.Session) {
-		log.Infof("session created: %s", sess.ID())
+		log.Infof("session created: %v", sess.ID())
 	}
 	s.OnSessionClose = func(sess easytcp.Session) {
-		log.Warnf("session closed: %s", sess.ID())
+		log.Warnf("session closed: %v", sess.ID())
 	}
 
 	// register global middlewares
@@ -62,15 +64,16 @@ func main() {
 	if err := s.Stop(); err != nil {
 		log.Errorf("server stopped err: %s", err)
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 3)
 }
 
 func logMiddleware(next easytcp.HandlerFunc) easytcp.HandlerFunc {
 	return func(c easytcp.Context) {
-		log.Infof("rec <<< | id:(%d) size:(%d) data: %s", c.Request().ID, len(c.Request().Data), c.Request().Data)
+		req := c.Request()
+		log.Infof("rec <<< id:(%d) size:(%d) data: %s", req.ID, len(req.Data), req.Data)
 		defer func() {
 			resp := c.Response()
-			log.Infof("snd >>> | id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
+			log.Infof("snd >>> id:(%d) size:(%d) data: %s", resp.ID, len(resp.Data), resp.Data)
 		}()
 		next(c)
 	}
