@@ -45,7 +45,7 @@ type ServerOption struct {
 	SocketSendDelay       bool          // sets the socket delay or not.
 	ReadTimeout           time.Duration // sets the timeout for connection read.
 	WriteTimeout          time.Duration // sets the timeout for connection write.
-	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	Packer                Packer        // packs and unpacks packet payload, default packer is the DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
