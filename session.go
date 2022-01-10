@@ -1,6 +1,7 @@
 package easytcp
 
 import (
+	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
 	"sync"
@@ -29,14 +30,15 @@ type Session interface {
 }
 
 type session struct {
-	id        interface{}   // session's ID.
-	conn      net.Conn      // tcp connection
-	closed    chan struct{} // to close()
-	closeOnce sync.Once     // ensure one session only close once
-	respQueue chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
-	packer    Packer        // to pack and unpack message
-	codec     Codec         // encode/decode message data
-	ctxPool   sync.Pool     // router context pool
+	id          interface{}   // session's ID.
+	conn        net.Conn      // tcp connection
+	closed      chan struct{} // to close()
+	closeOnce   sync.Once     // ensure one session only close once
+	respQueue   chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
+	packer      Packer        // to pack and unpack message
+	codec       Codec         // encode/decode message data
+	ctxPool     sync.Pool     // router context pool
+	asyncRouter bool          // calls router HandlerFunc in a goroutine if false
 }
 
 // sessionOption is the extra options for session.
@@ -44,6 +46,7 @@ type sessionOption struct {
 	Packer        Packer
 	Codec         Codec
 	respQueueSize int
+	asyncRouter   bool
 }
 
 // newSession creates a new session.
@@ -52,13 +55,14 @@ type sessionOption struct {
 // Returns a session pointer.
 func newSession(conn net.Conn, opt *sessionOption) *session {
 	return &session{
-		id:        uuid.NewString(), // use uuid as default
-		conn:      conn,
-		closed:    make(chan struct{}),
-		respQueue: make(chan Context, opt.respQueueSize),
-		packer:    opt.Packer,
-		codec:     opt.Codec,
-		ctxPool:   sync.Pool{New: func() interface{} { return NewContext() }},
+		id:          uuid.NewString(), // use uuid as default
+		conn:        conn,
+		closed:      make(chan struct{}),
+		respQueue:   make(chan Context, opt.respQueueSize),
+		packer:      opt.Packer,
+		codec:       opt.Codec,
+		ctxPool:     sync.Pool{New: func() interface{} { return NewContext() }},
+		asyncRouter: opt.asyncRouter,
 	}
 }
 
@@ -130,15 +134,20 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 			continue
 		}
 
-		// don't block the loop.
-		go func() {
-			ctx := s.AllocateContext().SetRequestMessage(reqEntry)
-			router.handleRequest(ctx)
-			s.Send(ctx)
-		}()
+		if s.asyncRouter {
+			go s.handleReq(router, reqEntry)
+		} else {
+			s.handleReq(router, reqEntry)
+		}
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
 	s.Close()
+}
+
+func (s *session) handleReq(router *Router, reqEntry *message.Entry) {
+	ctx := s.AllocateContext().SetRequestMessage(reqEntry)
+	router.handleRequest(ctx)
+	s.Send(ctx)
 }
 
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.

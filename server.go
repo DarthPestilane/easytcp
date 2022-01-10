@@ -35,6 +35,7 @@ type Server struct {
 	accepting             chan struct{}
 	stopped               chan struct{}
 	writeAttemptTimes     int
+	asyncRouter           bool
 }
 
 // ServerOption is the option for Server.
@@ -44,7 +45,7 @@ type ServerOption struct {
 	SocketSendDelay       bool          // sets the socket delay or not.
 	ReadTimeout           time.Duration // sets the timeout for connection read.
 	WriteTimeout          time.Duration // sets the timeout for connection write.
-	Packer                Packer        // packs and unpacks packet payload, default packer is the packet.DefaultPacker.
+	Packer                Packer        // packs and unpacks packet payload, default packer is the DefaultPacker.
 	Codec                 Codec         // encodes and decodes the message data, can be nil.
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
@@ -52,6 +53,10 @@ type ServerOption struct {
 	// WriteAttemptTimes sets the max attempt times for packet writing in each session.
 	// The DefaultWriteAttemptTimes will be used if <= 0.
 	WriteAttemptTimes int
+
+	// AsyncRouter represents whether to execute a route HandlerFunc of each session in a goroutine.
+	// true means execute in a goroutine.
+	AsyncRouter bool
 }
 
 // ErrServerStopped is returned when server stopped.
@@ -88,6 +93,7 @@ func NewServer(opt *ServerOption) *Server {
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
 		writeAttemptTimes:     opt.WriteAttemptTimes,
+		asyncRouter:           opt.AsyncRouter,
 	}
 }
 
@@ -161,6 +167,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		Packer:        s.Packer,
 		Codec:         s.Codec,
 		respQueueSize: s.respQueueSize,
+		asyncRouter:   s.asyncRouter,
 	})
 	if s.OnSessionCreate != nil {
 		go s.OnSessionCreate(sess)

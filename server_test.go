@@ -152,6 +152,7 @@ func TestServer_handleConn(t *testing.T) {
 		Codec:                 codec,
 		Packer:                packer,
 		RespQueueSize:         -1,
+		AsyncRouter:           true,
 	})
 
 	// hooks
