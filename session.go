@@ -78,7 +78,7 @@ func (s *session) SetID(id interface{}) {
 }
 
 // Send pushes response message entry to respQueue.
-// Returns error if session is closed.
+// Returns false if session is closed or ctx is done.
 func (s *session) Send(ctx Context) (ok bool) {
 	select {
 	case <-ctx.Done():
