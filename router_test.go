@@ -174,9 +174,9 @@ func TestRouter_printHandlers(t *testing.T) {
 	t.Run("when there are routes registered", func(t *testing.T) {
 		rt := newRouter()
 		rt.register(1234, nilHandler)
+		rt.register(12345678, nilHandler)
 		rt.register(12345, nilHandler)
 		rt.register(123456, nilHandler)
-		rt.register(12345678, nilHandler)
 		rt.printHandlers("localhost")
 	})
 }

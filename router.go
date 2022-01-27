@@ -3,9 +3,12 @@ package easytcp
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cast"
+	"io"
 	"os"
 	"reflect"
 	"runtime"
+	"sort"
 )
 
 func newRouter() *Router {
@@ -117,16 +120,32 @@ func (r *Router) registerMiddleware(m ...MiddlewareFunc) {
 
 // printHandlers prints registered route handlers to console.
 func (r *Router) printHandlers(addr string) {
-	fmt.Printf("\n[EASYTCP ROUTE TABLE]:\n")
-	table := tablewriter.NewWriter(os.Stdout)
+	var w io.Writer = os.Stdout
+
+	_, _ = fmt.Fprintf(w, "\n[EASYTCP] Message-Route Table: \n")
+	table := tablewriter.NewWriter(w)
 	table.SetHeader([]string{"Message ID", "Route Handler"})
 	table.SetAutoFormatHeaders(false)
-	for id, h := range r.handlerMapper {
+
+	// sort ids
+	ids := make([]interface{}, 0, len(r.handlerMapper))
+	for id := range r.handlerMapper {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		a, b := cast.ToString(ids[i]), cast.ToString(ids[j])
+		return a < b
+	})
+
+	// add table row
+	for _, id := range ids {
+		h := r.handlerMapper[id]
 		handlerName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 		table.Append([]string{fmt.Sprintf("%v", id), handlerName})
 	}
+
 	table.Render()
-	fmt.Printf("[EASYTCP] Serving at: %s\n\n", addr)
+	_, _ = fmt.Fprintf(w, "[EASYTCP] Serving at: %s\n\n", addr)
 }
 
 func (r *Router) setNotFoundHandler(handler HandlerFunc) {
