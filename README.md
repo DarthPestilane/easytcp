@@ -9,7 +9,7 @@
 ```
 $ ./start
 
-[EASYTCP ROUTE TABLE]:
+[EASYTCP] Message-Route Table:
 +------------+-----------------------+
 | Message ID |     Route Handler     |
 +------------+-----------------------+
