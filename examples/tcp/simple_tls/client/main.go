@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/examples/fixture"
-	"github.com/DarthPestilane/easytcp/examples/tcp/simple/common"
+	"github.com/DarthPestilane/easytcp/examples/tcp/simple_tls/common"
 	"github.com/DarthPestilane/easytcp/message"
 	"github.com/sirupsen/logrus"
 	"time"
