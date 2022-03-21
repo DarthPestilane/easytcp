@@ -192,7 +192,7 @@ func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 		time.Sleep(tempErrDelay * time.Duration(i))
 		_, err = s.conn.Write(outboundMsg)
 
-		// breaks if err is not nil or it's the last attempt.
+		// breaks if err is not nil, or it's the last attempt.
 		if err == nil || i == attemptTimes-1 {
 			break
 		}
