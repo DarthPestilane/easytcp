@@ -24,7 +24,7 @@ cover-view:
 	go tool cover -func .testCoverage.txt
 	go tool cover -html .testCoverage.txt
 
-spec: test lint
+check: test lint
 	go tool cover -func .testCoverage.txt
 
 bench:

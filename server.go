@@ -1,6 +1,7 @@
 package easytcp
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"time"
@@ -97,18 +98,39 @@ func NewServer(opt *ServerOption) *Server {
 	}
 }
 
+func (s *Server) listen(addr string) (net.Listener, error) {
+	address, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	lis, err := net.ListenTCP("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+	return lis, nil
+}
+
 // Serve starts to listen TCP and keeps accepting TCP connection in a loop.
 // The loop breaks when error occurred, and the error will be returned.
 func (s *Server) Serve(addr string) error {
-	address, err := net.ResolveTCPAddr("tcp", addr)
-	if err != nil {
-		return err
-	}
-	lis, err := net.ListenTCP("tcp", address)
+	lis, err := s.listen(addr)
 	if err != nil {
 		return err
 	}
 	s.Listener = lis
+	if s.printRoutes {
+		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
+	}
+	return s.acceptLoop()
+}
+
+// ServeTLS starts serve TCP with TLS.
+func (s *Server) ServeTLS(addr string, config *tls.Config) error {
+	lis, err := s.listen(addr)
+	if err != nil {
+		return err
+	}
+	s.Listener = tls.NewListener(lis, config)
 	if s.printRoutes {
 		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
 	}
@@ -139,27 +161,33 @@ func (s *Server) acceptLoop() error {
 			return fmt.Errorf("accept err: %s", err)
 		}
 		if s.socketReadBufferSize > 0 {
-			if err := conn.(*net.TCPConn).SetReadBuffer(s.socketReadBufferSize); err != nil {
-				return fmt.Errorf("conn set read buffer err: %s", err)
+			if c, ok := conn.(*net.TCPConn); ok {
+				if err := c.SetReadBuffer(s.socketReadBufferSize); err != nil {
+					return fmt.Errorf("conn set read buffer err: %s", err)
+				}
 			}
 		}
 		if s.socketWriteBufferSize > 0 {
-			if err := conn.(*net.TCPConn).SetWriteBuffer(s.socketWriteBufferSize); err != nil {
-				return fmt.Errorf("conn set write buffer err: %s", err)
+			if c, ok := conn.(*net.TCPConn); ok {
+				if err := c.SetWriteBuffer(s.socketWriteBufferSize); err != nil {
+					return fmt.Errorf("conn set write buffer err: %s", err)
+				}
 			}
 		}
 		if s.socketSendDelay {
-			if err := conn.(*net.TCPConn).SetNoDelay(false); err != nil {
-				return fmt.Errorf("conn set no delay err: %s", err)
+			if c, ok := conn.(*net.TCPConn); ok {
+				if err := c.SetNoDelay(false); err != nil {
+					return fmt.Errorf("conn set no delay err: %s", err)
+				}
 			}
 		}
 		go s.handleConn(conn)
 	}
 }
 
-// handleConn creates a new session with conn,
+// handleConn creates a new session with `conn`,
 // handles the message through the session in different goroutines,
-// and waits until the session's closed, then close the conn.
+// and waits until the session's closed, then close the `conn`.
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close() // nolint
 

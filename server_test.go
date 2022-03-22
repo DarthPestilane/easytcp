@@ -1,6 +1,7 @@
 package easytcp
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/internal/mock"
 	"github.com/DarthPestilane/easytcp/message"
@@ -36,6 +37,28 @@ func TestServer_Serve(t *testing.T) {
 	<-server.accepting
 	time.Sleep(time.Millisecond * 5)
 	err := server.Stop()
+	assert.NoError(t, err)
+	<-done
+}
+
+func TestServer_ServeTLS(t *testing.T) {
+	server := NewServer(&ServerOption{
+		SocketReadBufferSize: 123, // won't work
+	})
+	cert, err := tls.LoadX509KeyPair("internal/test_data/certificates/cert.pem", "internal/test_data/certificates/cert.key")
+	assert.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		cfg := &tls.Config{
+			InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{cert},
+		}
+		assert.ErrorIs(t, server.ServeTLS("localhost:0", cfg), ErrServerStopped)
+		close(done)
+	}()
+	<-server.accepting
+	time.Sleep(time.Millisecond * 5)
+	err = server.Stop()
 	assert.NoError(t, err)
 	<-done
 }
