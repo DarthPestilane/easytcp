@@ -3,7 +3,6 @@ package easytcp
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -31,31 +30,25 @@ func TestDefaultPacker_PackAndUnpack(t *testing.T) {
 			testIdUint64, &testIdUint64,
 		}
 		for _, id := range ids {
-			entry := &message.Entry{
-				ID:   id,
-				Data: []byte("test"),
-			}
-			msg, err := packer.Pack(entry)
+			msg := NewMessage(id, []byte("test"))
+			packedBytes, err := packer.Pack(msg)
 			assert.NoError(t, err)
-			assert.NotNil(t, msg)
+			assert.NotNil(t, packedBytes)
 
-			r := bytes.NewBuffer(msg)
-			newEntry, err := packer.Unpack(r)
+			r := bytes.NewBuffer(packedBytes)
+			newMsg, err := packer.Unpack(r)
 			assert.NoError(t, err)
-			assert.NotNil(t, newEntry)
-			assert.EqualValues(t, reflect.Indirect(reflect.ValueOf(entry.ID)).Interface(), newEntry.ID)
-			assert.Equal(t, newEntry.Data, entry.Data)
+			assert.NotNil(t, newMsg)
+			assert.EqualValues(t, reflect.Indirect(reflect.ValueOf(msg.ID())).Interface(), newMsg.ID())
+			assert.Equal(t, newMsg.Data(), msg.Data())
 		}
 	})
 
 	t.Run("when handle invalid type of id", func(t *testing.T) {
-		entry := &message.Entry{
-			ID:   "cannot cast to uint32",
-			Data: []byte("test"),
-		}
-		msg, err := packer.Pack(entry)
+		msg := NewMessage("cannot cast to uint32", []byte("test"))
+		packedBytes, err := packer.Pack(msg)
 		assert.Error(t, err)
-		assert.Nil(t, msg)
+		assert.Nil(t, packedBytes)
 	})
 
 	t.Run("when size is too big", func(t *testing.T) {
@@ -63,8 +56,8 @@ func TestDefaultPacker_PackAndUnpack(t *testing.T) {
 		assert.NoError(t, binary.Write(r, binary.BigEndian, uint32(packer.MaxDataSize+1)))
 		assert.NoError(t, binary.Write(r, binary.BigEndian, uint32(1)))
 		assert.NoError(t, binary.Write(r, binary.BigEndian, []byte("test")))
-		entry, err := packer.Unpack(r)
+		msg, err := packer.Unpack(r)
 		assert.Error(t, err)
-		assert.Nil(t, entry)
+		assert.Nil(t, msg)
 	})
 }

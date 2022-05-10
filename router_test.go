@@ -1,7 +1,6 @@
 package easytcp
 
 import (
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"runtime"
@@ -85,21 +84,17 @@ func TestRouter_registerMiddleware(t *testing.T) {
 }
 
 func TestRouter_handleReq(t *testing.T) {
-	t.Run("when request entry is nil", func(t *testing.T) {
+	t.Run("when request message is nil", func(t *testing.T) {
 		rt := newRouter()
 		ctx := &routeContext{}
 		rt.handleRequest(ctx)
 	})
 	t.Run("when handler and middlewares not found", func(t *testing.T) {
 		rt := newRouter()
-
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		ctx := &routeContext{reqEntry: entry}
+		reqMsg := NewMessage(1, []byte("test"))
+		ctx := &routeContext{reqMsg: reqMsg}
 		rt.handleRequest(ctx)
-		assert.Nil(t, ctx.respEntry)
+		assert.Nil(t, ctx.respMsg)
 	})
 	t.Run("when handler and middlewares found", func(t *testing.T) {
 		rt := newRouter()
@@ -108,13 +103,10 @@ func TestRouter_handleReq(t *testing.T) {
 			return func(ctx Context) { next(ctx) }
 		})
 
-		entry := &message.Entry{
-			ID:   id,
-			Data: []byte("test"),
-		}
-		ctx := &routeContext{reqEntry: entry}
+		reqMsg := NewMessage(1, []byte("test"))
+		ctx := &routeContext{reqMsg: reqMsg}
 		rt.handleRequest(ctx)
-		assert.Nil(t, ctx.respEntry)
+		assert.Nil(t, ctx.respMsg)
 	})
 }
 
@@ -124,7 +116,7 @@ func TestRouter_wrapHandlers(t *testing.T) {
 		wrap := rt.wrapHandlers(nil, nil)
 		ctx := &routeContext{}
 		wrap(ctx)
-		assert.Nil(t, ctx.respEntry)
+		assert.Nil(t, ctx.respMsg)
 	})
 	t.Run("it should invoke handlers in the right order", func(t *testing.T) {
 		result := make([]string, 0)
@@ -152,16 +144,13 @@ func TestRouter_wrapHandlers(t *testing.T) {
 		}
 		var handler HandlerFunc = func(ctx Context) {
 			result = append(result, "done")
-			ctx.SetResponseMessage(&message.Entry{
-				ID:   2,
-				Data: []byte("done"),
-			})
+			ctx.SetResponseMessage(NewMessage(2, []byte("done")))
 		}
 
 		wrap := rt.wrapHandlers(handler, middles)
 		ctx := &routeContext{}
 		wrap(ctx)
-		assert.EqualValues(t, ctx.respEntry.Data, "done")
+		assert.EqualValues(t, ctx.respMsg.Data(), "done")
 		assert.Equal(t, result, []string{"m1-before", "m2-before", "done", "m3-after", "m2-after"})
 	})
 }

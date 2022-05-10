@@ -15,10 +15,10 @@ lint-fix:
 	golangci-lint run --concurrency=2 --fix
 
 test:
-	CGO_ENABLED=1 go test -count=1 -race -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m . ./message
+	CGO_ENABLED=1 go test -count=1 -race -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m .
 
 test-v:
-	CGO_ENABLED=1 go test -count=1 -race -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m -v . ./message
+	CGO_ENABLED=1 go test -count=1 -race -covermode=atomic -coverprofile=.testCoverage.txt -timeout=2m -v .
 
 cover-view:
 	go tool cover -func .testCoverage.txt

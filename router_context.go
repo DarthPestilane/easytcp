@@ -3,7 +3,6 @@ package easytcp
 import (
 	"context"
 	"fmt"
-	"github.com/DarthPestilane/easytcp/message"
 	"sync"
 	"time"
 )
@@ -30,34 +29,34 @@ type Context interface {
 	// SetSession sets session.
 	SetSession(sess Session) Context
 
-	// Request returns request message entry.
-	Request() *message.Entry
+	// Request returns request message.
+	Request() *Message
 
-	// SetRequest encodes data with session's codec and sets request message entry.
+	// SetRequest encodes data with session's codec and sets request message.
 	SetRequest(id, data interface{}) error
 
-	// MustSetRequest encodes data with session's codec and sets request message entry.
+	// MustSetRequest encodes data with session's codec and sets request message.
 	// panics on error.
 	MustSetRequest(id, data interface{}) Context
 
-	// SetRequestMessage sets request message entry directly.
-	SetRequestMessage(entry *message.Entry) Context
+	// SetRequestMessage sets request message directly.
+	SetRequestMessage(msg *Message) Context
 
-	// Bind decodes request message entry to v.
+	// Bind decodes request message to v.
 	Bind(v interface{}) error
 
-	// Response returns the response message entry.
-	Response() *message.Entry
+	// Response returns the response message.
+	Response() *Message
 
-	// SetResponse encodes data with session's codec and sets response message entry.
+	// SetResponse encodes data with session's codec and sets response message.
 	SetResponse(id, data interface{}) error
 
-	// MustSetResponse encodes data with session's codec and sets response message entry.
+	// MustSetResponse encodes data with session's codec and sets response message.
 	// panics on error.
 	MustSetResponse(id, data interface{}) Context
 
-	// SetResponseMessage sets response message entry directly.
-	SetResponseMessage(entry *message.Entry) Context
+	// SetResponseMessage sets response message directly.
+	SetResponseMessage(msg *Message) Context
 
 	// Send sends itself to current session.
 	Send() bool
@@ -80,12 +79,12 @@ type Context interface {
 
 // routeContext implements the Context interface.
 type routeContext struct {
-	rawCtx    context.Context
-	mu        sync.RWMutex
-	storage   map[string]interface{}
-	session   Session
-	reqEntry  *message.Entry
-	respEntry *message.Entry
+	rawCtx  context.Context
+	mu      sync.RWMutex
+	storage map[string]interface{}
+	session Session
+	reqMsg  *Message
+	respMsg *Message
 }
 
 // Deadline implements the context.Context Deadline method.
@@ -130,8 +129,8 @@ func (c *routeContext) SetSession(sess Session) Context {
 }
 
 // Request implements Context.Request method.
-func (c *routeContext) Request() *message.Entry {
-	return c.reqEntry
+func (c *routeContext) Request() *Message {
+	return c.reqMsg
 }
 
 // SetRequest sets request by id and data.
@@ -140,14 +139,11 @@ func (c *routeContext) SetRequest(id, data interface{}) error {
 	if codec == nil {
 		return fmt.Errorf("codec is nil")
 	}
-	dataRaw, err := codec.Encode(data)
+	dataBytes, err := codec.Encode(data)
 	if err != nil {
 		return err
 	}
-	c.reqEntry = &message.Entry{
-		ID:   id,
-		Data: dataRaw,
-	}
+	c.reqMsg = NewMessage(id, dataBytes)
 	return nil
 }
 
@@ -159,9 +155,9 @@ func (c *routeContext) MustSetRequest(id, data interface{}) Context {
 	return c
 }
 
-// SetRequestMessage sets request message entry.
-func (c *routeContext) SetRequestMessage(entry *message.Entry) Context {
-	c.reqEntry = entry
+// SetRequestMessage sets request message.
+func (c *routeContext) SetRequestMessage(msg *Message) Context {
+	c.reqMsg = msg
 	return c
 }
 
@@ -170,12 +166,12 @@ func (c *routeContext) Bind(v interface{}) error {
 	if c.session.Codec() == nil {
 		return fmt.Errorf("message codec is nil")
 	}
-	return c.session.Codec().Decode(c.reqEntry.Data, v)
+	return c.session.Codec().Decode(c.reqMsg.Data(), v)
 }
 
 // Response implements Context.Response method.
-func (c *routeContext) Response() *message.Entry {
-	return c.respEntry
+func (c *routeContext) Response() *Message {
+	return c.respMsg
 }
 
 // SetResponse implements Context.SetResponse method.
@@ -184,14 +180,11 @@ func (c *routeContext) SetResponse(id, data interface{}) error {
 	if codec == nil {
 		return fmt.Errorf("codec is nil")
 	}
-	dataRaw, err := codec.Encode(data)
+	dataBytes, err := codec.Encode(data)
 	if err != nil {
 		return err
 	}
-	c.respEntry = &message.Entry{
-		ID:   id,
-		Data: dataRaw,
-	}
+	c.respMsg = NewMessage(id, dataBytes)
 	return nil
 }
 
@@ -204,8 +197,8 @@ func (c *routeContext) MustSetResponse(id, data interface{}) Context {
 }
 
 // SetResponseMessage implements Context.SetResponseMessage method.
-func (c *routeContext) SetResponseMessage(msg *message.Entry) Context {
-	c.respEntry = msg
+func (c *routeContext) SetResponseMessage(msg *Message) Context {
+	c.respMsg = msg
 	return c
 }
 
@@ -247,18 +240,18 @@ func (c *routeContext) Remove(key string) {
 // Copy implements Context.Copy method.
 func (c *routeContext) Copy() Context {
 	return &routeContext{
-		rawCtx:    c.rawCtx,
-		storage:   c.storage,
-		session:   c.session,
-		reqEntry:  c.reqEntry,
-		respEntry: c.respEntry,
+		rawCtx:  c.rawCtx,
+		storage: c.storage,
+		session: c.session,
+		reqMsg:  c.reqMsg,
+		respMsg: c.respMsg,
 	}
 }
 
 func (c *routeContext) reset() {
 	c.rawCtx = context.Background()
 	c.session = nil
-	c.reqEntry = nil
-	c.respEntry = nil
+	c.reqMsg = nil
+	c.respMsg = nil
 	c.storage = nil
 }
