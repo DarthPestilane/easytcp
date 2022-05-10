@@ -1,7 +1,6 @@
 package easytcp
 
 import (
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/google/uuid"
 	"net"
 	"sync"
@@ -80,7 +79,7 @@ func (s *session) SetID(id interface{}) {
 	s.id = id
 }
 
-// Send pushes response message entry to respQueue.
+// Send pushes response message to respQueue.
 // Returns false if session is closed or ctx is done.
 func (s *session) Send(ctx Context) (ok bool) {
 	select {
@@ -133,27 +132,27 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 				break
 			}
 		}
-		reqEntry, err := s.packer.Unpack(s.conn)
+		reqMsg, err := s.packer.Unpack(s.conn)
 		if err != nil {
 			Log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
 			break
 		}
-		if reqEntry == nil {
+		if reqMsg == nil {
 			continue
 		}
 
 		if s.asyncRouter {
-			go s.handleReq(router, reqEntry)
+			go s.handleReq(router, reqMsg)
 		} else {
-			s.handleReq(router, reqEntry)
+			s.handleReq(router, reqMsg)
 		}
 	}
 	Log.Tracef("session %s readInbound exit because of error", s.id)
 	s.Close()
 }
 
-func (s *session) handleReq(router *Router, reqEntry *message.Entry) {
-	ctx := s.AllocateContext().SetRequestMessage(reqEntry)
+func (s *session) handleReq(router *Router, reqMsg *Message) {
+	ctx := s.AllocateContext().SetRequestMessage(reqMsg)
 	router.handleRequest(ctx)
 	s.Send(ctx)
 }
@@ -170,12 +169,12 @@ func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 		case ctx = <-s.respQueue:
 		}
 
-		outboundMsg, err := s.packResponse(ctx)
+		outboundBytes, err := s.packResponse(ctx)
 		if err != nil {
 			Log.Errorf("session %s pack outbound message err: %s", s.id, err)
 			continue
 		}
-		if outboundMsg == nil {
+		if outboundBytes == nil {
 			continue
 		}
 
@@ -186,7 +185,7 @@ func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 			}
 		}
 
-		if err := s.attemptConnWrite(outboundMsg, attemptTimes); err != nil {
+		if err := s.attemptConnWrite(outboundBytes, attemptTimes); err != nil {
 			Log.Errorf("session %s conn write err: %s", s.id, err)
 			break
 		}

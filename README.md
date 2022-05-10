@@ -72,13 +72,10 @@ func main() {
         req := c.Request()
 
         // do things...
-        fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID, len(req.Data), req.Data)
+        fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID(), len(req.Data()), req.Data())
 
         // set response
-        c.SetResponseMessage(&message.Entry{
-            ID:   1002,
-            Data: []byte("copy that"),
-        })
+        c.SetResponseMessage(easytcp.NewMessage(1002, []byte("copy that")))
     })
 
     // Set custom logger (optional).
@@ -136,11 +133,11 @@ s.AddRoute(1001, func(c easytcp.Context) {
 
 Above is the server side example. There are client and more detailed examples including:
 
-- [broadcasting](./examples/tcp/broadcast)
-- [custom packet](./examples/tcp/custom_packet)
-- [communicating with protobuf](./examples/tcp/proto_packet)
+- [broadcasting](./internal/examples/tcp/broadcast)
+- [custom packet](./internal/examples/tcp/custom_packet)
+- [communicating with protobuf](./internal/examples/tcp/proto_packet)
 
-in [examples/tcp](./examples/tcp).
+in [examples/tcp](./internal/examples/tcp).
 
 ## Benchmark
 
@@ -150,10 +147,10 @@ goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
 cpu: Intel(R) Core(TM) i5-8279U CPU @ 2.40GHz
-Benchmark_NoHandler-8              	  250000	      4151 ns/op	      81 B/op	       2 allocs/op
-Benchmark_OneHandler-8             	  250000	      4322 ns/op	      82 B/op	       2 allocs/op
-Benchmark_DefaultPacker_Pack-8     	  250000	        36.37 ns/op	      16 B/op	       1 allocs/op
-Benchmark_DefaultPacker_Unpack-8   	  250000	       110.1 ns/op	      96 B/op	       3 allocs/op
+Benchmark_NoHandler-8                     250000              4667 ns/op              84 B/op          2 allocs/op
+Benchmark_OneHandler-8                    250000              4351 ns/op              82 B/op          2 allocs/op
+Benchmark_DefaultPacker_Pack-8            250000                33.57 ns/op           16 B/op          1 allocs/op
+Benchmark_DefaultPacker_Unpack-8          250000               104.4 ns/op            96 B/op          3 allocs/op
 ```
 
 *since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*
@@ -219,13 +216,10 @@ s.AddRoute(reqID, func(c easytcp.Context) {
     req := c.Request()
 
     // do things...
-    fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID, len(req.Data), req.Data)
+    fmt.Printf("[server] request received | id: %d; size: %d; data: %s\n", req.ID(), len(req.Data()), req.Data())
 
     // set response
-    c.SetResponseMessage(&message.Entry{
-        ID:   respID,
-        Data: []byte("copy that"),
-    })
+    c.SetResponseMessage(easytcp.NewMessage(respID, []byte("copy that")))
 })
 ```
 
@@ -261,7 +255,7 @@ s := easytcp.NewServer(&easytcp.ServerOption{
 
 We can set our own Packer or EasyTCP uses [`DefaultPacker`](./packer.go).
 
-The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format. (`Size` only represents the length of `Data` instead of the whole payload length)
+The `DefaultPacker` considers packet's payload as a `Size(4)|ID(4)|Data(n)` format. **`Size` only represents the length of `Data` instead of the whole payload length**
 
 This may not covery some particular cases, but fortunately, we can create our own Packer.
 
@@ -274,16 +268,16 @@ func (p *CustomPacker) bytesOrder() binary.ByteOrder {
     return binary.BigEndian
 }
 
-func (p *CustomPacker) Pack(entry *message.Entry) ([]byte, error) {
-    size := len(entry.Data) // only the size of data.
+func (p *CustomPacker) Pack(msg *easytcp.Message) ([]byte, error) {
+    size := len(msg.Data()) // only the size of data.
     buffer := make([]byte, 2+2+size)
     p.bytesOrder().PutUint16(buffer[:2], uint16(size))
-    p.bytesOrder().PutUint16(buffer[2:4], entry.ID.(uint16))
-    copy(buffer[4:], entry.Data)
+    p.bytesOrder().PutUint16(buffer[2:4], msg.ID().(uint16))
+    copy(buffer[4:], msg.Data())
     return buffer, nil
 }
 
-func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
+func (p *CustomPacker) Unpack(reader io.Reader) (*easytcp.Message, error) {
     headerBuffer := make([]byte, 2+2)
     if _, err := io.ReadFull(reader, headerBuffer); err != nil {
         return nil, fmt.Errorf("read size and id err: %s", err)
@@ -296,15 +290,12 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*message.Entry, error) {
         return nil, fmt.Errorf("read data err: %s", err)
     }
 
-    entry := &message.Entry{
-        // since entry.ID is type of uint16, we need to use uint16 as well when adding routes.
-        // eg: server.AddRoute(uint16(123), ...)
-        ID:   id,
-        Data: data,
-    }
-    entry.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
+    // since msg.ID is type of uint16, we need to use uint16 as well when adding routes.
+    // eg: server.AddRoute(uint16(123), ...)
+    msg := easytcp.NewMessage(id, data)
+    msg.Set("theWholeLength", 2+2+size) // we can set our custom kv data here.
     // c.Request().Get("theWholeLength")  // and get them in route handler.
-    return entry, nil
+    return msg, nil
 }
 ```
 
@@ -333,7 +324,7 @@ s.AddRoute(reqID, func(c easytcp.Context) {
         // handle error...
     }
     req := c.Request()
-    fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", req.ID, len(req.Data), reqData)
+    fmt.Printf("[server] request received | id: %d; size: %d; data-decoded: %+v\n", req.ID(), len(req.Data()), reqData())
     respData := map[string]string{"key": "value"}
     if err := c.SetResponse(respID, respData); err != nil {
         // handle error...

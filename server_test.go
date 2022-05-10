@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/internal/mock"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -190,7 +189,7 @@ func TestServer_handleConn(t *testing.T) {
 	server.AddRoute(1, func(ctx Context) {
 		var reqData TestReq
 		assert.NoError(t, ctx.Bind(&reqData))
-		assert.EqualValues(t, 1, ctx.Request().ID)
+		assert.EqualValues(t, 1, ctx.Request().ID())
 		assert.Equal(t, reqData.Param, "hello test")
 		ctx.MustSetResponse(2, &TestResp{Success: true})
 	})
@@ -224,11 +223,7 @@ func TestServer_handleConn(t *testing.T) {
 	reqData := &TestReq{Param: "hello test"}
 	reqDataByte, err := codec.Encode(reqData)
 	assert.NoError(t, err)
-	msg := &message.Entry{
-		ID:   1,
-		Data: reqDataByte,
-	}
-	reqMsg, err := packer.Pack(msg)
+	reqMsg, err := packer.Pack(NewMessage(1, reqDataByte))
 	assert.NoError(t, err)
 	_, err = cli.Write(reqMsg)
 	assert.NoError(t, err)
@@ -237,8 +232,8 @@ func TestServer_handleConn(t *testing.T) {
 	respMsg, err := packer.Unpack(cli)
 	assert.NoError(t, err)
 	var respData TestResp
-	assert.NoError(t, codec.Decode(respMsg.Data, &respData))
-	assert.EqualValues(t, 2, respMsg.ID)
+	assert.NoError(t, codec.Decode(respMsg.Data(), &respData))
+	assert.EqualValues(t, 2, respMsg.ID())
 	assert.True(t, respData.Success)
 }
 
@@ -248,7 +243,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 		Packer: NewDefaultPacker(),
 	})
 	server.NotFoundHandler(func(ctx Context) {
-		ctx.SetResponseMessage(&message.Entry{ID: 101, Data: []byte("handler not found")})
+		ctx.SetResponseMessage(NewMessage(101, []byte("handler not found")))
 	})
 	go func() {
 		err := server.Serve(":0")
@@ -263,18 +258,14 @@ func TestServer_NotFoundHandler(t *testing.T) {
 	defer func() { assert.NoError(t, cli.Close()) }()
 
 	// send msg
-	msg := &message.Entry{
-		ID:   1,
-		Data: []byte("test"),
-	}
-	reqMsg, err := server.Packer.Pack(msg)
+	reqBytes, err := server.Packer.Pack(NewMessage(1, []byte("test")))
 	assert.NoError(t, err)
-	_, err = cli.Write(reqMsg)
+	_, err = cli.Write(reqBytes)
 	assert.NoError(t, err)
 
 	// read msg
-	entry, err := server.Packer.Unpack(cli)
+	reqMsg, err := server.Packer.Unpack(cli)
 	assert.NoError(t, err)
-	assert.EqualValues(t, entry.ID, 101)
-	assert.Equal(t, entry.Data, []byte("handler not found"))
+	assert.EqualValues(t, reqMsg.ID(), 101)
+	assert.Equal(t, reqMsg.Data(), []byte("handler not found"))
 }

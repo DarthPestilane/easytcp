@@ -2,7 +2,6 @@ package easytcp
 
 import (
 	"bytes"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net"
@@ -32,10 +31,10 @@ func Benchmark_NoHandler(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedBytes, _ := s.Packer.Pack(NewMessage(1, []byte("ping")))
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
-		_, _ = client.Write(packedMsg)
+		_, _ = client.Write(packedBytes)
 	}
 }
 
@@ -56,7 +55,7 @@ func Benchmark_OneHandler(b *testing.B) {
 	}
 	defer client.Close() // nolint
 
-	packedMsg, _ := s.Packer.Pack(&message.Entry{ID: 1, Data: []byte("ping")})
+	packedMsg, _ := s.Packer.Pack(NewMessage(1, []byte("ping")))
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = client.Write(packedMsg)
@@ -65,11 +64,7 @@ func Benchmark_OneHandler(b *testing.B) {
 
 func Benchmark_DefaultPacker_Pack(b *testing.B) {
 	packer := NewDefaultPacker()
-
-	msg := &message.Entry{
-		ID:   1,
-		Data: []byte("test"),
-	}
+	msg := NewMessage(1, []byte("test"))
 	beforeBench(b)
 	for i := 0; i < b.N; i++ {
 		_, _ = packer.Pack(msg)
@@ -78,10 +73,7 @@ func Benchmark_DefaultPacker_Pack(b *testing.B) {
 
 func Benchmark_DefaultPacker_Unpack(b *testing.B) {
 	packer := NewDefaultPacker()
-	msg := &message.Entry{
-		ID:   1,
-		Data: []byte("test"),
-	}
+	msg := NewMessage(1, []byte("test"))
 	dataBytes, err := packer.Pack(msg)
 	assert.NoError(b, err)
 

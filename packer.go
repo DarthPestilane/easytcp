@@ -3,21 +3,20 @@ package easytcp
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/spf13/cast"
 	"io"
 )
 
-//go:generate mockgen -destination internal/mock/packer_mock.go -package mock . Packer
+//go:generate mockgen -destination ./packer_mock.go -package easytcp . Packer
 
 // Packer is a generic interface to pack and unpack message packet.
 type Packer interface {
 	// Pack packs Message into the packet to be written.
-	Pack(entry *message.Entry) ([]byte, error)
+	Pack(msg *Message) ([]byte, error)
 
 	// Unpack unpacks the message packet from reader,
-	// returns the message.Entry, and error if error occurred.
-	Unpack(reader io.Reader) (*message.Entry, error)
+	// returns the message, and error if error occurred.
+	Unpack(reader io.Reader) (*Message, error)
 }
 
 var _ Packer = &DefaultPacker{}
@@ -50,23 +49,23 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 }
 
 // Pack implements the Packer Pack method.
-func (d *DefaultPacker) Pack(entry *message.Entry) ([]byte, error) {
-	dataSize := len(entry.Data)
+func (d *DefaultPacker) Pack(msg *Message) ([]byte, error) {
+	dataSize := len(msg.Data())
 	buffer := make([]byte, 4+4+dataSize)
 	d.bytesOrder().PutUint32(buffer[:4], uint32(dataSize)) // write dataSize
-	id, err := cast.ToUint32E(entry.ID)
+	id, err := cast.ToUint32E(msg.ID())
 	if err != nil {
-		return nil, fmt.Errorf("invalid type of entry.ID: %s", err)
+		return nil, fmt.Errorf("invalid type of msg.ID: %s", err)
 	}
 	d.bytesOrder().PutUint32(buffer[4:8], id) // write id
-	copy(buffer[8:], entry.Data)              // write data
+	copy(buffer[8:], msg.Data())              // write data
 	return buffer, nil
 }
 
 // Unpack implements the Packer Unpack method.
-// Unpack returns the entry whose ID is type of int.
+// Unpack returns the message whose ID is type of int.
 // So we need use int id to register routes.
-func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
+func (d *DefaultPacker) Unpack(reader io.Reader) (*Message, error) {
 	headerBuffer := make([]byte, 4+4)
 	if _, err := io.ReadFull(reader, headerBuffer); err != nil {
 		return nil, fmt.Errorf("read size and id err: %s", err)
@@ -80,9 +79,5 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*message.Entry, error) {
 	if _, err := io.ReadFull(reader, data); err != nil {
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
-	entry := &message.Entry{
-		ID:   int(id),
-		Data: data,
-	}
-	return entry, nil
+	return NewMessage(int(id), data), nil
 }

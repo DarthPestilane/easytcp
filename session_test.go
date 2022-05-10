@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/DarthPestilane/easytcp/internal/mock"
-	"github.com/DarthPestilane/easytcp/message"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -68,7 +67,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Unpack(gomock.Any()).Return(nil, fmt.Errorf("some error"))
 
 		sess := newSession(nil, &sessionOption{Packer: packer, Codec: mock.NewMockCodec(ctrl)})
@@ -80,13 +79,13 @@ func TestTCPSession_readInbound(t *testing.T) {
 		<-done
 		<-sess.closed
 	})
-	t.Run("when unpack message returns nil entry", func(t *testing.T) {
+	t.Run("when unpack message returns nil message", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		first := true
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).Times(2).DoAndReturn(func(_ io.Reader) (*message.Entry, error) {
+		packer := NewMockPacker(ctrl)
+		packer.EXPECT().Unpack(gomock.Any()).Times(2).DoAndReturn(func(_ io.Reader) (*Message, error) {
 			if first {
 				first = false
 				return nil, nil
@@ -107,8 +106,8 @@ func TestTCPSession_readInbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(&message.Entry{ID: 1, Data: []byte("test")}, nil)
+		packer := NewMockPacker(ctrl)
+		packer.EXPECT().Unpack(gomock.Any()).AnyTimes().Return(NewMessage(1, []byte("test")), nil)
 
 		r := newRouter()
 		r.register(1, func(ctx Context) {
@@ -128,11 +127,11 @@ func TestTCPSession_readInbound(t *testing.T) {
 		defer ctrl.Finish()
 
 		first := true
-		packer := mock.NewMockPacker(ctrl)
-		packer.EXPECT().Unpack(gomock.Any()).Times(2).DoAndReturn(func(_ io.Reader) (*message.Entry, error) {
+		packer := NewMockPacker(ctrl)
+		packer.EXPECT().Unpack(gomock.Any()).Times(2).DoAndReturn(func(_ io.Reader) (*Message, error) {
 			if first {
 				first = false
-				return &message.Entry{ID: 1, Data: []byte("unpack ok")}, nil
+				return NewMessage(1, []byte("unpack ok")), nil
 			} else {
 				return nil, fmt.Errorf("unpack error")
 			}
@@ -140,7 +139,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 
 		r := newRouter()
 		r.register(1, func(ctx Context) {
-			ctx.SetResponseMessage(&message.Entry{ID: 2, Data: []byte("ok")})
+			ctx.SetResponseMessage(NewMessage(2, []byte("ok")))
 		})
 
 		sess := newSession(nil, &sessionOption{Packer: packer, Codec: nil, respQueueSize: 10})
@@ -155,13 +154,10 @@ func TestTCPSession_readInbound(t *testing.T) {
 
 func TestTCPSession_Send(t *testing.T) {
 	t.Run("when session is closed", func(t *testing.T) {
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
+		reqMsg := NewMessage(1, []byte("test"))
 		sess := newSession(nil, &sessionOption{})
 		sess.Close() // close session
-		assert.False(t, sess.AllocateContext().SetRequestMessage(entry).Send())
+		assert.False(t, sess.AllocateContext().SetRequestMessage(reqMsg).Send())
 	})
 	t.Run("when ctx is done", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
@@ -178,16 +174,10 @@ func TestTCPSession_Send(t *testing.T) {
 		<-done
 	})
 	t.Run("when send succeed", func(t *testing.T) {
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-
 		sess := newSession(nil, &sessionOption{})
 		sess.respQueue = make(chan Context) // no buffer
 		go func() { <-sess.respQueue }()
-
-		assert.True(t, sess.AllocateContext().SetRequestMessage(entry).Send())
+		assert.True(t, sess.AllocateContext().SetRequestMessage(NewMessage(1, []byte("test"))).Send())
 		sess.Close()
 	})
 }
@@ -197,7 +187,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 10})
@@ -210,11 +200,11 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 		<-doneLoop
 	})
-	t.Run("when response entry is nil", func(t *testing.T) {
+	t.Run("when response message is nil", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 1024})
@@ -232,17 +222,13 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, fmt.Errorf("some err"))
 
 		sess := newSession(nil, &sessionOption{Packer: packer})
 		done := make(chan struct{})
 		go func() {
-			sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry)
+			sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test")))
 			close(done)
 		}()
 		time.Sleep(time.Microsecond * 15)
@@ -255,15 +241,11 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 100})
-		sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) // push to queue
+		sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10)
@@ -276,17 +258,13 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		p1, _ := net.Pipe()
 		_ = p1.Close()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -295,16 +273,12 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		p1, _ := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		go sess.writeOutbound(time.Millisecond*10, 10)
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -314,17 +288,13 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -333,11 +303,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		tmpErr := mock.NewMockError(ctrl)
@@ -356,7 +322,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		})
 
 		sess := newSession(conn, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(entry) }()
+		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		sess.writeOutbound(0, 10) // should stop looping and return
 		_, ok := <-sess.closed
 		assert.False(t, ok)
@@ -365,16 +331,12 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		entry := &message.Entry{
-			ID:   1,
-			Data: []byte("test"),
-		}
-		packer := mock.NewMockPacker(ctrl)
+		packer := NewMockPacker(ctrl)
 		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
 
 		p1, p2 := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.AllocateContext().SetResponseMessage(entry).Send() }()
+		go func() { sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))).Send() }()
 		done := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0, 10)
