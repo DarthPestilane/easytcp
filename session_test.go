@@ -419,3 +419,12 @@ func Test_session_SetID(t *testing.T) {
 	sess.SetID(123)
 	assert.Equal(t, sess.ID(), 123)
 }
+
+func Test_session_Conn(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	conn := mock.NewMockConn(ctrl)
+	s := newSession(conn, &sessionOption{})
+	assert.Equal(t, s.Conn(), conn)
+}

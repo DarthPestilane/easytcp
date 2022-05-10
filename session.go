@@ -27,6 +27,9 @@ type Session interface {
 
 	// AllocateContext gets a Context ships with current session.
 	AllocateContext() Context
+
+	// Conn returns the underlined connection.
+	Conn() net.Conn
 }
 
 type session struct {
@@ -107,6 +110,11 @@ func (s *session) AllocateContext() Context {
 	c.reset()
 	c.SetSession(s)
 	return c
+}
+
+// Conn returns the underlined connection instance.
+func (s *session) Conn() net.Conn {
+	return s.conn
 }
 
 // readInbound reads message packet from connection in a loop.
