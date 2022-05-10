@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
-	fixture2 "github.com/DarthPestilane/easytcp/internal/examples/fixture"
-	common2 "github.com/DarthPestilane/easytcp/internal/examples/tcp/custom_packet/common"
+	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
+	"github.com/DarthPestilane/easytcp/internal/examples/tcp/custom_packet/common"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -24,13 +24,13 @@ func main() {
 	s := easytcp.NewServer(&easytcp.ServerOption{
 		// specify codec and packer
 		Codec:  &easytcp.JsonCodec{},
-		Packer: &common2.CustomPacker{},
+		Packer: &common.CustomPacker{},
 	})
 
-	s.AddRoute("json01-req", handler, fixture2.RecoverMiddleware(log), logMiddleware)
+	s.AddRoute("json01-req", handler, fixture.RecoverMiddleware(log), logMiddleware)
 
 	go func() {
-		if err := s.Serve(fixture2.ServerAddr); err != nil {
+		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
 	}()
@@ -44,10 +44,10 @@ func main() {
 }
 
 func handler(ctx easytcp.Context) {
-	var data common2.Json01Req
+	var data common.Json01Req
 	_ = ctx.Bind(&data)
 
-	err := ctx.SetResponse("json01-resp", &common2.Json01Resp{
+	err := ctx.SetResponse("json01-resp", &common.Json01Resp{
 		Success: true,
 		Data:    fmt.Sprintf("%s:%d:%t", data.Key1, data.Key2, data.Key3),
 	})

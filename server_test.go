@@ -49,8 +49,7 @@ func TestServer_ServeTLS(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		cfg := &tls.Config{
-			InsecureSkipVerify: true,
-			Certificates:       []tls.Certificate{cert},
+			Certificates: []tls.Certificate{cert},
 		}
 		assert.ErrorIs(t, server.ServeTLS("localhost:0", cfg), ErrServerStopped)
 		close(done)

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
-	fixture2 "github.com/DarthPestilane/easytcp/internal/examples/fixture"
+	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
 	"github.com/DarthPestilane/easytcp/internal/examples/tcp/broadcast/common"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -46,7 +46,7 @@ func main() {
 		delete(sessions.storage, sess.ID().(int64))
 	}
 
-	s.Use(fixture2.RecoverMiddleware(log), logMiddleware)
+	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	s.AddRoute(common.MsgIdBroadCastReq, func(ctx easytcp.Context) {
 		reqData := ctx.Request().Data
@@ -73,7 +73,7 @@ func main() {
 	})
 
 	go func() {
-		if err := s.Serve(fixture2.ServerAddr); err != nil {
+		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Error(err)
 		}
 	}()

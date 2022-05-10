@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
-	common2 "github.com/DarthPestilane/easytcp/internal/examples/tcp/proto_packet/common"
+	"github.com/DarthPestilane/easytcp/internal/examples/tcp/proto_packet/common"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
@@ -22,13 +22,13 @@ func main() {
 		panic(err)
 	}
 
-	packer := &common2.CustomPacker{}
+	packer := &common.CustomPacker{}
 	codec := &easytcp.ProtobufCodec{}
 
 	go func() {
 		for {
-			var id = common2.ID_FooReqID
-			req := &common2.FooReq{
+			var id = common.ID_FooReqID
+			req := &common.FooReq{
 				Bar: "bar",
 				Buz: 22,
 			}
@@ -53,7 +53,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		var respData common2.FooResp
+		var respData common.FooResp
 		if err := codec.Decode(msg.Data(), &respData); err != nil {
 			panic(err)
 		}

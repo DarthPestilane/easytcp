@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
-	fixture2 "github.com/DarthPestilane/easytcp/internal/examples/fixture"
+	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
 	"github.com/DarthPestilane/easytcp/internal/examples/tcp/simple_tls/common"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	// register global middlewares
-	s.Use(fixture2.RecoverMiddleware(log), logMiddleware)
+	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
 	s.AddRoute(common.MsgIdPingReq, func(c easytcp.Context) {
@@ -52,7 +52,7 @@ func main() {
 		panic(err)
 	}
 	go func() {
-		if err := s.ServeTLS(fixture2.ServerAddr, &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}); err != nil {
+		if err := s.ServeTLS(fixture.ServerAddr, &tls.Config{Certificates: []tls.Certificate{cert}}); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
 	}()

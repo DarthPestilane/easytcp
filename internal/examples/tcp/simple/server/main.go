@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/DarthPestilane/easytcp"
-	fixture2 "github.com/DarthPestilane/easytcp/internal/examples/fixture"
+	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
 	"github.com/DarthPestilane/easytcp/internal/examples/tcp/simple/common"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	// register global middlewares
-	s.Use(fixture2.RecoverMiddleware(log), logMiddleware)
+	s.Use(fixture.RecoverMiddleware(log), logMiddleware)
 
 	// register a route
 	s.AddRoute(common.MsgIdPingReq, func(c easytcp.Context) {
@@ -49,7 +49,7 @@ func main() {
 	})
 
 	go func() {
-		if err := s.Serve(fixture2.ServerAddr); err != nil {
+		if err := s.Serve(fixture.ServerAddr); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
 	}()

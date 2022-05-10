@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
-	common2 "github.com/DarthPestilane/easytcp/internal/examples/tcp/proto_packet/common"
+	"github.com/DarthPestilane/easytcp/internal/examples/tcp/proto_packet/common"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -17,11 +17,11 @@ func init() {
 
 func main() {
 	srv := easytcp.NewServer(&easytcp.ServerOption{
-		Packer: &common2.CustomPacker{},
+		Packer: &common.CustomPacker{},
 		Codec:  &easytcp.ProtobufCodec{},
 	})
 
-	srv.AddRoute(common2.ID_FooReqID, handle, logTransmission(&common2.FooReq{}, &common2.FooResp{}))
+	srv.AddRoute(common.ID_FooReqID, handle, logTransmission(&common.FooReq{}, &common.FooResp{}))
 
 	if err := srv.Serve(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
@@ -29,9 +29,9 @@ func main() {
 }
 
 func handle(c easytcp.Context) {
-	var reqData common2.FooReq
+	var reqData common.FooReq
 	_ = c.Bind(&reqData)
-	err := c.SetResponse(common2.ID_FooRespID, &common2.FooResp{
+	err := c.SetResponse(common.ID_FooRespID, &common.FooResp{
 		Code:    2,
 		Message: "success",
 	})

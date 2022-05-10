@@ -2,22 +2,31 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"github.com/DarthPestilane/easytcp"
 	"github.com/DarthPestilane/easytcp/internal/examples/fixture"
 	"github.com/DarthPestilane/easytcp/internal/examples/tcp/simple_tls/common"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"time"
 )
 
 func main() {
-	cert, err := tls.LoadX509KeyPair("internal/test_data/certificates/cert.pem", "internal/test_data/certificates/cert.key")
+	pem, err := ioutil.ReadFile("internal/test_data/certificates/cert.pem")
 	if err != nil {
 		panic(err)
 	}
-	conn, err := tls.Dial("tcp", fixture.ServerAddr, &tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true})
+	rootCerts := x509.NewCertPool()
+	rootCerts.AppendCertsFromPEM(pem)
+	tlsCfg := &tls.Config{
+		RootCAs:            rootCerts,
+		InsecureSkipVerify: true,
+	}
+	conn, err := tls.Dial("tcp", fixture.ServerAddr, tlsCfg)
 	if err != nil {
 		panic(err)
 	}
+
 	log := logrus.New()
 	packer := easytcp.NewDefaultPacker()
 	go func() {
