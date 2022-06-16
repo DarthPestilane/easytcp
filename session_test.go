@@ -54,7 +54,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 	})
 	t.Run("when connection read timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
-		packer := &DefaultPacker{}
+		packer := NewDefaultPacker()
 		sess := newSession(p1, &sessionOption{Packer: packer})
 		done := make(chan struct{})
 		go func() {
