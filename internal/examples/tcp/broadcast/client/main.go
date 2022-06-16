@@ -59,7 +59,7 @@ func senderClient() {
 				log.Error(err)
 				return
 			}
-			log.Infof("sender | recv ack | %s", msg.Data)
+			log.Infof("sender | recv ack | %s", msg.Data())
 		}
 	}()
 }
@@ -78,7 +78,7 @@ func readerClient(id int) {
 				log.Error(err)
 				return
 			}
-			log.Debugf("reader %03d | recv broadcast | %s", id, msg.Data)
+			log.Debugf("reader %03d | recv broadcast here | %s", id, msg.Data())
 		}
 	}()
 }
