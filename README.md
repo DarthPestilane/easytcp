@@ -153,8 +153,6 @@ Benchmark_DefaultPacker_Pack-8            250000                23.11 ns/op     
 Benchmark_DefaultPacker_Unpack-8          250000                79.44 ns/op            0 B/op          0 allocs/op
 ```
 
-*since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*
-
 ## Architecture
 
 ```
