@@ -141,7 +141,6 @@ func (s *Server) acceptLoop() error {
 				Log.Tracef("server accept loop stopped")
 				return ErrServerStopped
 			}
-			// nolint:staticcheck
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				Log.Errorf("accept err: %s; retrying in %s", err, tempErrDelay)
 				time.Sleep(tempErrDelay)
