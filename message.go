@@ -64,13 +64,3 @@ func (m *Message) Remove(key string) {
 	defer m.mu.Unlock()
 	delete(m.storage, key)
 }
-
-// Reset resets m.
-func (m *Message) Reset(id interface{}, data []byte) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.id = id
-	m.data = data
-	m.storage = nil
-}
