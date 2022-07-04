@@ -212,11 +212,7 @@ func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err er
 		if ne.Timeout() {
 			break
 		}
-		if ne.Temporary() {
-			Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
-			continue
-		}
-		break // if err is not temporary, break the loop.
+		Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
 	}
 	return
 }
