@@ -299,34 +299,6 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		_, ok := <-sess.closed
 		assert.False(t, ok)
 	})
-	t.Run("when conn write returns temporary error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		packer := NewMockPacker(ctrl)
-		packer.EXPECT().Pack(gomock.Any()).Return([]byte("pack succeed"), nil)
-
-		tmpErr := mock.NewMockError(ctrl)
-		tmpErr.EXPECT().Timeout().Return(false)
-		tmpErr.EXPECT().Temporary().Return(true)
-		tmpErr.EXPECT().Error().AnyTimes().Return("some error")
-
-		conn := mock.NewMockConn(ctrl)
-		connWriteCount := 0
-		conn.EXPECT().Write(gomock.Any()).Times(2).DoAndReturn(func(_ []byte) (int, error) {
-			if connWriteCount == 0 {
-				connWriteCount++
-				return 0, tmpErr
-			}
-			return 0, fmt.Errorf("some fatal error")
-		})
-
-		sess := newSession(conn, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
-		sess.writeOutbound(0, 10) // should stop looping and return
-		_, ok := <-sess.closed
-		assert.False(t, ok)
-	})
 	t.Run("when write succeed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -357,21 +329,6 @@ func TestSession_attemptConnWrite_when_reach_last_try(t *testing.T) {
 
 	s := newSession(conn, &sessionOption{})
 	assert.Error(t, s.attemptConnWrite([]byte("whatever"), 1))
-}
-
-func TestSession_attemptConnWrite_when_err_is_not_temp(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	netErr := mock.NewMockError(ctrl)
-	netErr.EXPECT().Timeout().Return(false)
-	netErr.EXPECT().Temporary().Return(false)
-
-	conn := mock.NewMockConn(ctrl)
-	conn.EXPECT().Write(gomock.Any()).Return(0, netErr)
-
-	s := newSession(conn, &sessionOption{})
-	assert.ErrorIs(t, s.attemptConnWrite([]byte("whatever"), 10), netErr)
 }
 
 func Test_session_SetID(t *testing.T) {
