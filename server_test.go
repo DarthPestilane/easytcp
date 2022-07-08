@@ -3,8 +3,6 @@ package easytcp
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/DarthPestilane/easytcp/internal/mock"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
@@ -88,36 +86,7 @@ func TestServer_acceptLoop(t *testing.T) {
 		assert.NoError(t, cli.Close())
 		assert.NoError(t, server.Stop())
 	})
-	t.Run("when accept returns a non-temporary error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		server := NewServer(&ServerOption{})
-
-		listen := mock.NewMockListener(ctrl)
-		listen.EXPECT().Accept().Return(nil, fmt.Errorf("some err"))
-		server.Listener = listen
-		assert.Error(t, server.acceptLoop())
-	})
-	t.Run("when accept returns a temporary error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		server := NewServer(&ServerOption{})
-
-		tempErr := mock.NewMockError(ctrl)
-		tempErr.EXPECT().Error().MinTimes(1).Return("some err")
-		i := 0
-		tempErr.EXPECT().Temporary().MinTimes(1).DoAndReturn(func() bool {
-			defer func() { i++ }()
-			return i == 0 // returns true for the first time
-		})
-
-		listen := mock.NewMockListener(ctrl)
-		listen.EXPECT().Accept().MinTimes(1).Return(nil, tempErr)
-		server.Listener = listen
-		assert.Error(t, server.acceptLoop())
-	})
 	t.Run("when server is stopped", func(t *testing.T) {
 		server := NewServer(&ServerOption{
 			SocketReadBufferSize:  1024,

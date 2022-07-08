@@ -141,7 +141,7 @@ func (s *Server) acceptLoop() error {
 				Log.Tracef("server accept loop stopped")
 				return ErrServerStopped
 			}
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+			if ne, ok := err.(net.Error); ok && !ne.Timeout() {
 				Log.Errorf("accept err: %s; retrying in %s", err, tempErrDelay)
 				time.Sleep(tempErrDelay)
 				continue
