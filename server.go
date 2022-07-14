@@ -186,8 +186,9 @@ func (s *Server) handleConn(conn net.Conn) {
 		asyncRouter:   s.asyncRouter,
 	})
 	if s.OnSessionCreate != nil {
-		go s.OnSessionCreate(sess)
+		s.OnSessionCreate(sess)
 	}
+	close(sess.afterCreateHook)
 
 	go sess.readInbound(s.router, s.readTimeout)               // start reading message packet from connection.
 	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
@@ -198,8 +199,9 @@ func (s *Server) handleConn(conn net.Conn) {
 	}
 
 	if s.OnSessionClose != nil {
-		go s.OnSessionClose(sess)
+		s.OnSessionClose(sess)
 	}
+	close(sess.afterCloseHook)
 }
 
 // Stop stops server. Closing Listener and all connections.
