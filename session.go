@@ -29,18 +29,26 @@ type Session interface {
 
 	// Conn returns the underlined connection.
 	Conn() net.Conn
+
+	// AfterCreateHook blocks until session's on-create hook triggered.
+	AfterCreateHook() <-chan struct{}
+
+	// AfterCloseHook blocks until session's on-close hook triggered.
+	AfterCloseHook() <-chan struct{}
 }
 
 type session struct {
-	id          interface{}   // session's ID.
-	conn        net.Conn      // tcp connection
-	closed      chan struct{} // to close()
-	closeOnce   sync.Once     // ensure one session only close once
-	respQueue   chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
-	packer      Packer        // to pack and unpack message
-	codec       Codec         // encode/decode message data
-	ctxPool     sync.Pool     // router context pool
-	asyncRouter bool          // calls router HandlerFunc in a goroutine if false
+	id              interface{}   // session's ID.
+	conn            net.Conn      // tcp connection
+	closed          chan struct{} // to close()
+	afterCreateHook chan struct{} // to close after session's on-create hook triggered
+	afterCloseHook  chan struct{} // to close after session's on-close hook triggered
+	closeOnce       sync.Once     // ensure one session only close once
+	respQueue       chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
+	packer          Packer        // to pack and unpack message
+	codec           Codec         // encode/decode message data
+	ctxPool         sync.Pool     // router context pool
+	asyncRouter     bool          // calls router HandlerFunc in a goroutine if false
 }
 
 // sessionOption is the extra options for session.
@@ -57,14 +65,16 @@ type sessionOption struct {
 // Returns a session pointer.
 func newSession(conn net.Conn, opt *sessionOption) *session {
 	return &session{
-		id:          uuid.NewString(), // use uuid as default
-		conn:        conn,
-		closed:      make(chan struct{}),
-		respQueue:   make(chan Context, opt.respQueueSize),
-		packer:      opt.Packer,
-		codec:       opt.Codec,
-		ctxPool:     sync.Pool{New: func() interface{} { return NewContext() }},
-		asyncRouter: opt.asyncRouter,
+		id:              uuid.NewString(), // use uuid as default
+		conn:            conn,
+		closed:          make(chan struct{}),
+		afterCreateHook: make(chan struct{}),
+		afterCloseHook:  make(chan struct{}),
+		respQueue:       make(chan Context, opt.respQueueSize),
+		packer:          opt.Packer,
+		codec:           opt.Codec,
+		ctxPool:         sync.Pool{New: func() interface{} { return NewContext() }},
+		asyncRouter:     opt.asyncRouter,
 	}
 }
 
@@ -101,6 +111,16 @@ func (s *session) Codec() Codec {
 // The connection will be closed in the server once the session's closed.
 func (s *session) Close() {
 	s.closeOnce.Do(func() { close(s.closed) })
+}
+
+// AfterCreateHook blocks until session's on-create hook triggered.
+func (s *session) AfterCreateHook() <-chan struct{} {
+	return s.afterCreateHook
+}
+
+// AfterCloseHook blocks until session's on-close hook triggered.
+func (s *session) AfterCloseHook() <-chan struct{} {
+	return s.afterCloseHook
 }
 
 // AllocateContext gets a Context from pool and reset all but session.

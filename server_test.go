@@ -237,3 +237,38 @@ func TestServer_NotFoundHandler(t *testing.T) {
 	assert.EqualValues(t, reqMsg.ID(), 101)
 	assert.Equal(t, reqMsg.Data(), []byte("handler not found"))
 }
+
+func TestServer_SessionHooks(t *testing.T) {
+	// server
+	server := NewServer(&ServerOption{})
+
+	sessCh := make(chan Session, 1)
+	server.OnSessionCreate = func(sess Session) {
+		fmt.Printf("session created | id: %s\n", sess.ID())
+		sessCh <- sess
+		close(sessCh)
+	}
+	server.OnSessionClose = func(sess Session) {
+		fmt.Printf("session closed | id: %s\n", sess.ID())
+	}
+
+	go func() {
+		err := server.Serve("localhost:0")
+		assert.Error(t, err)
+		assert.Equal(t, err, ErrServerStopped)
+	}()
+	defer func() { assert.NoError(t, server.Stop()) }()
+
+	<-server.accepting
+
+	// client
+	cli, err := net.Dial("tcp", server.Listener.Addr().String())
+	assert.NoError(t, err)
+
+	theSess := <-sessCh
+
+	<-theSess.AfterCreateHook()
+
+	assert.NoError(t, cli.Close())
+	<-theSess.AfterCloseHook()
+}
