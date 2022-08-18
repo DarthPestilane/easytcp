@@ -24,11 +24,11 @@ func TestNewServer(t *testing.T) {
 	assert.NotNil(t, s.stopped)
 }
 
-func TestServer_Serve(t *testing.T) {
+func TestServer_Run(t *testing.T) {
 	server := NewServer(&ServerOption{})
 	done := make(chan struct{})
 	go func() {
-		assert.ErrorIs(t, server.Serve("localhost:0"), ErrServerStopped)
+		assert.ErrorIs(t, server.Run("localhost:0"), ErrServerStopped)
 		close(done)
 	}()
 	<-server.accepting
@@ -38,7 +38,7 @@ func TestServer_Serve(t *testing.T) {
 	<-done
 }
 
-func TestServer_ServeTLS(t *testing.T) {
+func TestServer_RunTLS(t *testing.T) {
 	server := NewServer(&ServerOption{
 		SocketReadBufferSize: 123, // won't work
 	})
@@ -49,7 +49,7 @@ func TestServer_ServeTLS(t *testing.T) {
 		cfg := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
-		assert.ErrorIs(t, server.ServeTLS("localhost:0", cfg), ErrServerStopped)
+		assert.ErrorIs(t, server.RunTLS("localhost:0", cfg), ErrServerStopped)
 		close(done)
 	}()
 	<-server.accepting
@@ -105,7 +105,7 @@ func TestServer_acceptLoop(t *testing.T) {
 func TestServer_Stop(t *testing.T) {
 	server := NewServer(&ServerOption{})
 	go func() {
-		err := server.Serve("localhost:0")
+		err := server.Run("localhost:0")
 		assert.Error(t, err)
 		assert.Equal(t, err, ErrServerStopped)
 	}()
@@ -174,7 +174,7 @@ func TestServer_handleConn(t *testing.T) {
 	})
 
 	go func() {
-		err := server.Serve("localhost:0")
+		err := server.Run("localhost:0")
 		assert.Error(t, err)
 		assert.Equal(t, err, ErrServerStopped)
 	}()
@@ -214,7 +214,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 		ctx.SetResponseMessage(NewMessage(101, []byte("handler not found")))
 	})
 	go func() {
-		err := server.Serve(":0")
+		err := server.Run(":0")
 		assert.Equal(t, err, ErrServerStopped)
 	}()
 
@@ -253,7 +253,7 @@ func TestServer_SessionHooks(t *testing.T) {
 	}
 
 	go func() {
-		err := server.Serve("localhost:0")
+		err := server.Run("localhost:0")
 		assert.Error(t, err)
 		assert.Equal(t, err, ErrServerStopped)
 	}()

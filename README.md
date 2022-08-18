@@ -91,7 +91,7 @@ func main() {
     s.NotFoundHandler(handler)
 
     // Listen and serve.
-    if err := s.Serve(":5896"); err != nil && err != server.ErrServerStopped {
+    if err := s.Run(":5896"); err != nil && err != server.ErrServerStopped {
         fmt.Println("serve error: ", err.Error())
     }
 }
@@ -146,10 +146,10 @@ goos: darwin
 goarch: amd64
 pkg: github.com/DarthPestilane/easytcp
 cpu: Intel(R) Core(TM) i5-8279U CPU @ 2.40GHz
-Benchmark_NoHandler-8                     250000              4667 ns/op              84 B/op          2 allocs/op
-Benchmark_OneHandler-8                    250000              4351 ns/op              82 B/op          2 allocs/op
-Benchmark_DefaultPacker_Pack-8            250000                33.57 ns/op           16 B/op          1 allocs/op
-Benchmark_DefaultPacker_Unpack-8          250000               104.4 ns/op            96 B/op          3 allocs/op
+Benchmark_NoHandler-8                     250000              4277 ns/op              83 B/op          2 allocs/op
+Benchmark_OneHandler-8                    250000              4033 ns/op              81 B/op          2 allocs/op
+Benchmark_DefaultPacker_Pack-8            250000                38.00 ns/op           16 B/op          1 allocs/op
+Benchmark_DefaultPacker_Unpack-8          250000               105.8 ns/op            96 B/op          3 allocs/op
 ```
 
 *since easytcp is built on the top of golang `net` library, the benchmark of networks does not make much sense.*

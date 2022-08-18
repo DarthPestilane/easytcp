@@ -52,7 +52,7 @@ func main() {
 		panic(err)
 	}
 	go func() {
-		if err := s.ServeTLS(fixture.ServerAddr, &tls.Config{Certificates: []tls.Certificate{cert}}); err != nil {
+		if err := s.RunTLS(fixture.ServerAddr, &tls.Config{Certificates: []tls.Certificate{cert}}); err != nil {
 			log.Errorf("serve err: %s", err)
 		}
 	}()
