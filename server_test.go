@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net"
 	"testing"
 	"time"
@@ -22,6 +23,22 @@ func TestNewServer(t *testing.T) {
 	assert.Equal(t, s.respQueueSize, DefaultRespQueueSize)
 	assert.NotNil(t, s.accepting)
 	assert.NotNil(t, s.stopped)
+}
+
+func TestServer_Serve(t *testing.T) {
+	server := NewServer(&ServerOption{})
+	lis, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		assert.ErrorIs(t, server.Serve(lis), ErrServerStopped)
+		close(done)
+	}()
+	<-server.accepting
+	time.Sleep(time.Millisecond * 5)
+	err = server.Stop()
+	assert.NoError(t, err)
+	<-done
 }
 
 func TestServer_Run(t *testing.T) {
