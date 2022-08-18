@@ -54,7 +54,6 @@ package main
 import (
     "fmt"
     "github.com/DarthPestilane/easytcp"
-    "github.com/DarthPestilane/easytcp/message"
 )
 
 func main() {
