@@ -98,13 +98,8 @@ func NewServer(opt *ServerOption) *Server {
 	}
 }
 
-// Serve starts to listen TCP and keeps accepting TCP connection in a loop.
-// The loop breaks when error occurred, and the error will be returned.
-func (s *Server) Serve(addr string) error {
-	lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
+// Serve starts to serve the lis.
+func (s *Server) Serve(lis net.Listener) error {
 	s.Listener = lis
 	if s.printRoutes {
 		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
@@ -112,17 +107,23 @@ func (s *Server) Serve(addr string) error {
 	return s.acceptLoop()
 }
 
-// ServeTLS starts serve TCP with TLS.
-func (s *Server) ServeTLS(addr string, config *tls.Config) error {
+// Run starts to listen TCP and keeps accepting TCP connection in a loop.
+// The loop breaks when error occurred, and the error will be returned.
+func (s *Server) Run(addr string) error {
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return s.Serve(lis)
+}
+
+// RunTLS starts serve TCP with TLS.
+func (s *Server) RunTLS(addr string, config *tls.Config) error {
 	lis, err := tls.Listen("tcp", addr, config)
 	if err != nil {
 		return err
 	}
-	s.Listener = lis
-	if s.printRoutes {
-		s.router.printHandlers(fmt.Sprintf("tcp://%s", s.Listener.Addr()))
-	}
-	return s.acceptLoop()
+	return s.Serve(lis)
 }
 
 // acceptLoop accepts TCP connections in a loop, and handle connections in goroutines.

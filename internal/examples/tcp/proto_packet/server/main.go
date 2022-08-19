@@ -23,7 +23,7 @@ func main() {
 
 	srv.AddRoute(common.ID_FooReqID, handle, logTransmission(&common.FooReq{}, &common.FooResp{}))
 
-	if err := srv.Serve(fixture.ServerAddr); err != nil {
+	if err := srv.Run(fixture.ServerAddr); err != nil {
 		log.Errorf("serve err: %s", err)
 	}
 }

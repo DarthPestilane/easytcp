@@ -19,8 +19,8 @@ func Benchmark_NoHandler(b *testing.B) {
 	s := NewServer(&ServerOption{
 		DoNotPrintRoutes: true,
 	})
-	go s.Serve("127.0.0.1:0") // nolint
-	defer s.Stop()            // nolint
+	go s.Run("127.0.0.1:0") // nolint
+	defer s.Stop()          // nolint
 
 	<-s.accepting
 
@@ -43,8 +43,8 @@ func Benchmark_OneHandler(b *testing.B) {
 		DoNotPrintRoutes: true,
 	})
 	s.AddRoute(1, func(ctx Context) {})
-	go s.Serve("127.0.0.1:0") // nolint
-	defer s.Stop()            // nolint
+	go s.Run("127.0.0.1:0") // nolint
+	defer s.Stop()          // nolint
 
 	<-s.accepting
 

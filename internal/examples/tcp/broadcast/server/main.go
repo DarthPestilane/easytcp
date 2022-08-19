@@ -73,7 +73,7 @@ func main() {
 	})
 
 	go func() {
-		if err := s.Serve(fixture.ServerAddr); err != nil {
+		if err := s.Run(fixture.ServerAddr); err != nil {
 			log.Error(err)
 		}
 	}()
