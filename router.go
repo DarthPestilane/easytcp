@@ -42,11 +42,11 @@ type HandlerFunc func(ctx Context)
 // MiddlewareFunc is the function type for middlewares.
 // A common pattern is like:
 //
-// 	var mf MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
-// 		return func(ctx Context) {
-// 			next(ctx)
-// 		}
-// 	}
+//	var mf MiddlewareFunc = func(next HandlerFunc) HandlerFunc {
+//		return func(ctx Context) {
+//			next(ctx)
+//		}
+//	}
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 var nilHandler HandlerFunc = func(ctx Context) {}
@@ -77,7 +77,8 @@ func (r *Router) handleRequest(ctx Context) {
 
 // wrapHandlers wraps handler and middlewares into a right order call stack.
 // Makes something like:
-// 	var wrapped HandlerFunc = m1(m2(m3(handle)))
+//
+//	var wrapped HandlerFunc = m1(m2(m3(handle)))
 func (r *Router) wrapHandlers(handler HandlerFunc, middles []MiddlewareFunc) (wrapped HandlerFunc) {
 	if handler == nil {
 		handler = r.notFoundHandler

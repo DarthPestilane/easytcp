@@ -1,11 +1,11 @@
-//go:build go1.16
-// +build go1.16
+//go:build !go1.16
+// +build !go1.16
 
 package easytcp
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -29,7 +29,7 @@ func newLogger() *DefaultLogger {
 
 func newMuteLogger() *DefaultLogger {
 	return &DefaultLogger{
-		rawLogger: log.New(io.Discard, "easytcp", log.LstdFlags),
+		rawLogger: log.New(ioutil.Discard, "easytcp", log.LstdFlags),
 	}
 }
 
