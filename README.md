@@ -34,7 +34,7 @@ $ ./start
 
 `EasyTCP` helps you build a TCP server easily and fast.
 
-This package has been tested in go1.16 ~ go1.18 on the latest Linux, Macos and Windows.
+This package has been tested in go1.17 ~ go1.19 on the latest Linux, Macos and Windows.
 
 ## Install
 
