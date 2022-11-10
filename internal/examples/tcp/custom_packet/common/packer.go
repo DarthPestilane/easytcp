@@ -45,6 +45,9 @@ func (p *CustomPacker) Unpack(reader io.Reader) (*easytcp.Message, error) {
 
 	headerBuff := make([]byte, 4+2)
 	if _, err := io.ReadFull(reader, headerBuff); err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
 		return nil, fmt.Errorf("read header err: %s", err)
 	}
 	totalSize := int(p.bytesOrder().Uint32(headerBuff[:4])) // read totalSize
