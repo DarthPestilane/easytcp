@@ -1,7 +1,9 @@
 package easytcp
 
 import (
+	"fmt"
 	"github.com/google/uuid"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -154,7 +156,12 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 		}
 		reqMsg, err := s.packer.Unpack(s.conn)
 		if err != nil {
-			Log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
+			logMsg := fmt.Sprintf("session %s unpack inbound packet err: %s", s.id, err)
+			if err == io.EOF {
+				Log.Tracef(logMsg)
+			} else {
+				Log.Errorf(logMsg)
+			}
 			break
 		}
 		if reqMsg == nil {
