@@ -37,20 +37,24 @@ type Session interface {
 
 	// AfterCloseHook blocks until session's on-close hook triggered.
 	AfterCloseHook() <-chan struct{}
+
+	// Notify sends a notification to others.
+	Notify(v interface{})
 }
 
 type session struct {
-	id              interface{}   // session's ID.
-	conn            net.Conn      // tcp connection
-	closed          chan struct{} // to close()
-	afterCreateHook chan struct{} // to close after session's on-create hook triggered
-	afterCloseHook  chan struct{} // to close after session's on-close hook triggered
-	closeOnce       sync.Once     // ensure one session only close once
-	respQueue       chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
-	packer          Packer        // to pack and unpack message
-	codec           Codec         // encode/decode message data
-	ctxPool         sync.Pool     // router context pool
-	asyncRouter     bool          // calls router HandlerFunc in a goroutine if false
+	id              interface{}      // session's ID.
+	conn            net.Conn         // tcp connection
+	closed          chan struct{}    // to close()
+	afterCreateHook chan struct{}    // to close after session's on-create hook triggered
+	afterCloseHook  chan struct{}    // to close after session's on-close hook triggered
+	closeOnce       sync.Once        // ensure one session only close once
+	respQueue       chan Context     // response queue channel, pushed in Send() and popped in writeOutbound()
+	packer          Packer           // to pack and unpack message
+	codec           Codec            // encode/decode message data
+	ctxPool         sync.Pool        // router context pool
+	asyncRouter     bool             // calls router HandlerFunc in a goroutine if false
+	notifyChan      chan interface{} // to others
 }
 
 // sessionOption is the extra options for session.
@@ -59,6 +63,7 @@ type sessionOption struct {
 	Codec         Codec
 	respQueueSize int
 	asyncRouter   bool
+	notifyChan    chan interface{}
 }
 
 // newSession creates a new session.
@@ -77,6 +82,7 @@ func newSession(conn net.Conn, opt *sessionOption) *session {
 		codec:           opt.Codec,
 		ctxPool:         sync.Pool{New: func() interface{} { return NewContext() }},
 		asyncRouter:     opt.asyncRouter,
+		notifyChan:      opt.notifyChan,
 	}
 }
 
@@ -181,6 +187,9 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 func (s *session) handleReq(router *Router, reqMsg *Message) {
 	ctx := s.AllocateContext().SetRequestMessage(reqMsg)
 	router.handleRequest(ctx)
+	if ctx.Response() == nil {
+		return
+	}
 	s.Send(ctx)
 }
 
@@ -250,4 +259,11 @@ func (s *session) packResponse(ctx Context) ([]byte, error) {
 		return nil, nil
 	}
 	return s.packer.Pack(ctx.Response())
+}
+
+func (s *session) Notify(v interface{}) {
+	if s.notifyChan == nil {
+		return
+	}
+	s.notifyChan <- v
 }
