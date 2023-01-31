@@ -126,7 +126,7 @@ func (r *Router) printHandlers(addr string) {
 
 	_, _ = fmt.Fprintf(w, "\n[EASYTCP] Message-Route Table: \n")
 	table := tablewriter.NewWriter(w)
-	table.SetHeader([]string{"Message ID", "Route Handler", "middlewares"})
+	table.SetHeader([]string{"Message ID", "Route Handler", "Middlewares"})
 	table.SetAutoFormatHeaders(false)
 
 	// sort ids
