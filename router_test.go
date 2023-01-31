@@ -162,7 +162,32 @@ func TestRouter_printHandlers(t *testing.T) {
 	})
 	t.Run("when there are routes registered", func(t *testing.T) {
 		rt := newRouter()
-		rt.register(1234, nilHandler)
+
+		m1 := func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) {
+				next(ctx)
+			}
+		}
+
+		m2 := func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) {
+				next(ctx)
+			}
+		}
+		m3 := func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) {
+				next(ctx)
+			}
+		}
+		m4 := func(next HandlerFunc) HandlerFunc {
+			return func(ctx Context) {
+				next(ctx)
+			}
+		}
+		rt.registerMiddleware(m1)
+		rt.registerMiddleware(m2)
+
+		rt.register(1234, nilHandler, m3, m4)
 		rt.register(12345678, nilHandler)
 		rt.register(12345, nilHandler)
 		rt.register(123456, nilHandler)

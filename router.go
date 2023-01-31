@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"runtime"
 	"sort"
+	"strings"
 )
 
 func newRouter() *Router {
@@ -125,7 +126,7 @@ func (r *Router) printHandlers(addr string) {
 
 	_, _ = fmt.Fprintf(w, "\n[EASYTCP] Message-Route Table: \n")
 	table := tablewriter.NewWriter(w)
-	table.SetHeader([]string{"Message ID", "Route Handler"})
+	table.SetHeader([]string{"Message ID", "Route Handler", "middlewares"})
 	table.SetAutoFormatHeaders(false)
 
 	// sort ids
@@ -142,9 +143,24 @@ func (r *Router) printHandlers(addr string) {
 	for _, id := range ids {
 		h := r.handlerMapper[id]
 		handlerName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
-		table.Append([]string{fmt.Sprintf("%v", id), handlerName})
-	}
 
+		// global middleware
+		mNames := []string{}
+		for _, m := range r.globalMiddlewares {
+			middlewareName := fmt.Sprintf("%s(g)", runtime.FuncForPC(reflect.ValueOf(m).Pointer()).Name())
+			mNames = append(mNames, middlewareName)
+		}
+
+		ms, ok := r.middlewaresMapper[id]
+		if ok {
+			for _, m := range ms {
+				middlewareName := runtime.FuncForPC(reflect.ValueOf(m).Pointer()).Name()
+				mNames = append(mNames, middlewareName)
+			}
+		}
+		table.Append([]string{fmt.Sprintf("%v", id), handlerName, strings.Join(mNames, "\n")})
+	}
+	table.SetRowLine(true)
 	table.Render()
 	_, _ = fmt.Fprintf(w, "[EASYTCP] Serving at: %s\n\n", addr)
 }
