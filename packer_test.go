@@ -34,6 +34,7 @@ func TestDefaultPacker_PackAndUnpack(t *testing.T) {
 			packedBytes, err := packer.Pack(msg)
 			assert.NoError(t, err)
 			assert.NotNil(t, packedBytes)
+			assert.Equal(t, packedBytes[8:], []byte("test"))
 
 			r := bytes.NewBuffer(packedBytes)
 			newMsg, err := packer.Unpack(r)
