@@ -51,6 +51,9 @@ func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
 // Pack implements the Packer Pack method.
 func (d *DefaultPacker) Pack(msg *Message) ([]byte, error) {
 	dataSize := len(msg.Data())
+	if d.MaxDataSize > 0 && dataSize > d.MaxDataSize {
+		return nil, fmt.Errorf("the dataSize %d is beyond the max: %d", dataSize, d.MaxDataSize)
+	}
 	buffer := make([]byte, 4+4+dataSize)
 	d.bytesOrder().PutUint32(buffer[:4], uint32(dataSize)) // write dataSize
 	id, err := cast.ToUint32E(msg.ID())
