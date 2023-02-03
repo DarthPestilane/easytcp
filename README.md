@@ -11,7 +11,7 @@ $ ./start
 
 [EASYTCP] Message-Route Table:
 +------------+-----------------------+---------------------------------
-| Message ID |     Route Handler     |                                |
+| Message ID |     Route Handler     |           Middlewares          |
 +------------+-----------------------+---------------------------------
 |       1000 | path/to/handler.Func1 |  /path/to/middleware.Func1(g)  |
 |            |                       |  /path/to/middleware.Func2     |
