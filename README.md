@@ -10,13 +10,15 @@
 $ ./start
 
 [EASYTCP] Message-Route Table:
-+------------+-----------------------+
-| Message ID |     Route Handler     |
-+------------+-----------------------+
-|       1000 | path/to/handler.Func1 |
-+------------+-----------------------+
-|       1002 | path/to/handler.Func2 |
-+------------+-----------------------+
++------------+-----------------------+---------------------------------
+| Message ID |     Route Handler     |           Middlewares          |
++------------+-----------------------+---------------------------------
+|       1000 | path/to/handler.Func1 |  /path/to/middleware.Func1(g)  |
+|            |                       |  /path/to/middleware.Func2     |
++------------+-----------------------+---------------------------------
+|       1002 | path/to/handler.Func2 |  /path/to/middleware.Func1(g)  |
+|            |                       |  /path/to/middleware.Func2     |
++------------+-----------------------+---------------------------------
 [EASYTCP] Serving at: tcp://[::]:10001
 ```
 
