@@ -53,16 +53,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-12, windows-latest]
-        go-version: [1.17.x, 1.18.x, 1.19.x]
+        go-version: [1.18.x, 1.19.x, 1.20.x]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Go ${{ matrix.go-version}}
+      - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version}}
+          go-version: ${{ matrix.go-version }}
 
       - name: Cache
         uses: actions/cache@v3
