@@ -124,10 +124,13 @@ func (r *Router) registerMiddleware(m ...MiddlewareFunc) {
 func (r *Router) printHandlers(addr string) {
 	var w io.Writer = os.Stdout
 
-	_, _ = fmt.Fprintf(w, "\n[EASYTCP] Message-Route Table: \n")
+	_, _ = fmt.Fprintf(w, "\n[EASYTCP] Message-Route Table:\n")
 	table := tablewriter.NewWriter(w)
-	table.SetHeader([]string{"Message ID", "Route Handler", "Middlewares"})
-	table.SetAutoFormatHeaders(false)
+	table.SetHeader([]string{"Message ID", "Route Handler", "Middleware"})
+	table.SetAutoFormatHeaders(false) // don't uppercase the header
+	table.SetAutoWrapText(false)      // respect the "\n" of cell content
+	table.SetRowLine(true)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT})
 
 	// sort ids
 	ids := make([]interface{}, 0, len(r.handlerMapper))
@@ -141,26 +144,26 @@ func (r *Router) printHandlers(addr string) {
 
 	// add table row
 	for _, id := range ids {
+		// route handler
 		h := r.handlerMapper[id]
 		handlerName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 
+		middlewareNames := make([]string, 0, len(r.globalMiddlewares)+len(r.middlewaresMapper[id]))
 		// global middleware
-		mNames := []string{}
 		for _, m := range r.globalMiddlewares {
 			middlewareName := fmt.Sprintf("%s(g)", runtime.FuncForPC(reflect.ValueOf(m).Pointer()).Name())
-			mNames = append(mNames, middlewareName)
+			middlewareNames = append(middlewareNames, middlewareName)
 		}
 
-		ms, ok := r.middlewaresMapper[id]
-		if ok {
-			for _, m := range ms {
-				middlewareName := runtime.FuncForPC(reflect.ValueOf(m).Pointer()).Name()
-				mNames = append(mNames, middlewareName)
-			}
+		// route middleware
+		for _, m := range r.middlewaresMapper[id] {
+			middlewareName := runtime.FuncForPC(reflect.ValueOf(m).Pointer()).Name()
+			middlewareNames = append(middlewareNames, middlewareName)
 		}
-		table.Append([]string{fmt.Sprintf("%v", id), handlerName, strings.Join(mNames, "\n")})
+
+		table.Append([]string{fmt.Sprintf("%v", id), handlerName, strings.Join(middlewareNames, "\n")})
 	}
-	table.SetRowLine(true)
+
 	table.Render()
 	_, _ = fmt.Fprintf(w, "[EASYTCP] Serving at: %s\n\n", addr)
 }
