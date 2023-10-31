@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-// NewContext creates a routeContext pointer.
-func NewContext() *routeContext {
-	return &routeContext{
-		rawCtx: context.Background(),
-	}
-}
-
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
 type Context interface {
@@ -75,6 +68,15 @@ type Context interface {
 
 	// Copy returns a copy of Context.
 	Copy() Context
+}
+
+var _ Context = &routeContext{} // implementation check
+
+// newContext creates a routeContext pointer.
+func newContext() *routeContext {
+	return &routeContext{
+		rawCtx: context.Background(),
+	}
 }
 
 // routeContext implements the Context interface.
