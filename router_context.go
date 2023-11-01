@@ -68,6 +68,9 @@ type Context interface {
 
 	// Copy returns a copy of Context.
 	Copy() Context
+
+	// Notify sends a notification to others.
+	Notify(v interface{})
 }
 
 var _ Context = &routeContext{} // implementation check
@@ -256,4 +259,11 @@ func (c *routeContext) reset() {
 	c.reqMsg = nil
 	c.respMsg = nil
 	c.storage = nil
+}
+
+func (c *routeContext) Notify(v interface{}) {
+	if c.session == nil {
+		return
+	}
+	c.session.Notify(v)
 }
