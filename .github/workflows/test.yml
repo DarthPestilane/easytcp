@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.21.x
+          go-version: 1.17.x
 
       - name: Cache
         uses: actions/cache@v4
@@ -29,9 +29,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: cache-go-${{ runner.os }}-1.15.x-${{ github.run_number }}
+          key: cache-go-${{ runner.os }}-1.17.x-${{ github.run_number }}
           restore-keys: |
-            cache-go-${{ runner.os}}-1.19.x-
+            cache-go-${{ runner.os}}-1.17.x-
 
       - name: Build
         run: make build-all
@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-12, windows-latest]
-        go-version: [1.21.x]
+        go-version: [1.17.x]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
