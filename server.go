@@ -119,14 +119,14 @@ func (s *Server) acceptLoop() error {
 	close(s.accepting)
 	for {
 		if s.isStopped() {
-			Log.Tracef("server accept loop stopped")
+			_log.Tracef("server accept loop stopped")
 			return ErrServerStopped
 		}
 
 		conn, err := s.Listener.Accept()
 		if err != nil {
 			if s.isStopped() {
-				Log.Tracef("server accept loop stopped")
+				_log.Tracef("server accept loop stopped")
 				return ErrServerStopped
 			}
 			return fmt.Errorf("accept err: %s", err)

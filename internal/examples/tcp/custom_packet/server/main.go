@@ -19,7 +19,7 @@ func init() {
 }
 
 func main() {
-	easytcp.Log = log
+	easytcp._log = log
 
 	s := easytcp.NewServer(&easytcp.ServerOption{
 		// specify codec and packer

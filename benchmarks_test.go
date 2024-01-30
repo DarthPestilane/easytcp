@@ -86,7 +86,7 @@ func Benchmark_DefaultPacker_Unpack(b *testing.B) {
 }
 
 func beforeBench(b *testing.B) {
-	Log = &mutedLogger{}
+	_log = &mutedLogger{}
 	b.ReportAllocs()
 	b.ResetTimer()
 }

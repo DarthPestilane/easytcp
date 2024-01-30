@@ -150,7 +150,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 		}
 		if timeout > 0 {
 			if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-				Log.Errorf("session %s set read deadline err: %s", s.id, err)
+				_log.Errorf("session %s set read deadline err: %s", s.id, err)
 				break
 			}
 		}
@@ -158,9 +158,9 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 		if err != nil {
 			logMsg := fmt.Sprintf("session %s unpack inbound packet err: %s", s.id, err)
 			if err == io.EOF {
-				Log.Tracef(logMsg)
+				_log.Tracef(logMsg)
 			} else {
-				Log.Errorf(logMsg)
+				_log.Errorf(logMsg)
 			}
 			break
 		}
@@ -174,7 +174,7 @@ func (s *session) readInbound(router *Router, timeout time.Duration) {
 			s.handleReq(router, reqMsg)
 		}
 	}
-	Log.Tracef("session %s readInbound exit because of error", s.id)
+	_log.Tracef("session %s readInbound exit because of error", s.id)
 	s.Close()
 }
 
@@ -198,7 +198,7 @@ func (s *session) writeOutbound(writeTimeout time.Duration) {
 
 		outboundBytes, err := s.packResponse(ctx)
 		if err != nil {
-			Log.Errorf("session %s pack outbound message err: %s", s.id, err)
+			_log.Errorf("session %s pack outbound message err: %s", s.id, err)
 			continue
 		}
 		if outboundBytes == nil {
@@ -207,18 +207,18 @@ func (s *session) writeOutbound(writeTimeout time.Duration) {
 
 		if writeTimeout > 0 {
 			if err := s.conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-				Log.Errorf("session %s set write deadline err: %s", s.id, err)
+				_log.Errorf("session %s set write deadline err: %s", s.id, err)
 				break
 			}
 		}
 
 		if _, err := s.conn.Write(outboundBytes); err != nil {
-			Log.Errorf("session %s conn write err: %s", s.id, err)
+			_log.Errorf("session %s conn write err: %s", s.id, err)
 			break
 		}
 	}
 	s.Close()
-	Log.Tracef("session %s writeOutbound exit because of error", s.id)
+	_log.Tracef("session %s writeOutbound exit because of error", s.id)
 }
 
 func (s *session) packResponse(ctx Context) ([]byte, error) {
