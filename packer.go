@@ -83,6 +83,9 @@ func (d *DefaultPacker) Unpack(reader io.Reader) (*Message, error) {
 	id := d.bytesOrder().Uint32(headerBuffer[4:8])
 	data := make([]byte, dataSize)
 	if _, err := io.ReadFull(reader, data); err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
 		return nil, fmt.Errorf("read data err: %s", err)
 	}
 	return NewMessage(int(id), data), nil
