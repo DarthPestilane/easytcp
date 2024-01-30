@@ -187,7 +187,7 @@ func (s *session) handleReq(router *Router, reqMsg *Message) {
 // writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop breaks if errors occurred, or the session is closed.
-func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
+func (s *session) writeOutbound(writeTimeout time.Duration) {
 	for {
 		var ctx Context
 		select {
@@ -212,36 +212,13 @@ func (s *session) writeOutbound(writeTimeout time.Duration, attemptTimes int) {
 			}
 		}
 
-		if err := s.attemptConnWrite(outboundBytes, attemptTimes); err != nil {
+		if _, err := s.conn.Write(outboundBytes); err != nil {
 			Log.Errorf("session %s conn write err: %s", s.id, err)
 			break
 		}
 	}
 	s.Close()
 	Log.Tracef("session %s writeOutbound exit because of error", s.id)
-}
-
-func (s *session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err error) {
-	for i := 0; i < attemptTimes; i++ {
-		time.Sleep(tempErrDelay * time.Duration(i))
-		_, err = s.conn.Write(outboundMsg)
-
-		// breaks if err is not nil, or it's the last attempt.
-		if err == nil || i == attemptTimes-1 {
-			break
-		}
-
-		// check if err is `net.Error`
-		ne, ok := err.(net.Error)
-		if !ok {
-			break
-		}
-		if ne.Timeout() {
-			break
-		}
-		Log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
-	}
-	return
 }
 
 func (s *session) packResponse(ctx Context) ([]byte, error) {

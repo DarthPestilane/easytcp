@@ -35,7 +35,6 @@ type Server struct {
 	printRoutes           bool
 	accepting             chan struct{}
 	stopped               chan struct{}
-	writeAttemptTimes     int
 	asyncRouter           bool
 }
 
@@ -51,10 +50,6 @@ type ServerOption struct {
 	RespQueueSize         int           // sets the response channel size of session, DefaultRespQueueSize will be used if < 0.
 	DoNotPrintRoutes      bool          // whether to print registered route handlers to the console.
 
-	// WriteAttemptTimes sets the max attempt times for packet writing in each session.
-	// The DefaultWriteAttemptTimes will be used if <= 0.
-	WriteAttemptTimes int
-
 	// AsyncRouter represents whether to execute a route HandlerFunc of each session in a goroutine.
 	// true means execute in a goroutine.
 	AsyncRouter bool
@@ -63,11 +58,7 @@ type ServerOption struct {
 // ErrServerStopped is returned when server stopped.
 var ErrServerStopped = fmt.Errorf("server stopped")
 
-const (
-	DefaultRespQueueSize     = 1024
-	DefaultWriteAttemptTimes = 1
-	tempErrDelay             = time.Millisecond * 5
-)
+const DefaultRespQueueSize = 1024
 
 // NewServer creates a Server according to opt.
 func NewServer(opt *ServerOption) *Server {
@@ -76,9 +67,6 @@ func NewServer(opt *ServerOption) *Server {
 	}
 	if opt.RespQueueSize < 0 {
 		opt.RespQueueSize = DefaultRespQueueSize
-	}
-	if opt.WriteAttemptTimes <= 0 {
-		opt.WriteAttemptTimes = DefaultWriteAttemptTimes
 	}
 	return &Server{
 		socketReadBufferSize:  opt.SocketReadBufferSize,
@@ -93,7 +81,6 @@ func NewServer(opt *ServerOption) *Server {
 		router:                newRouter(),
 		accepting:             make(chan struct{}),
 		stopped:               make(chan struct{}),
-		writeAttemptTimes:     opt.WriteAttemptTimes,
 		asyncRouter:           opt.AsyncRouter,
 	}
 }
@@ -142,11 +129,6 @@ func (s *Server) acceptLoop() error {
 				Log.Tracef("server accept loop stopped")
 				return ErrServerStopped
 			}
-			if ne, ok := err.(net.Error); ok && !ne.Timeout() {
-				Log.Errorf("accept err: %s; retrying in %s", err, tempErrDelay)
-				time.Sleep(tempErrDelay)
-				continue
-			}
 			return fmt.Errorf("accept err: %s", err)
 		}
 		if s.socketReadBufferSize > 0 {
@@ -191,8 +173,8 @@ func (s *Server) handleConn(conn net.Conn) {
 	}
 	close(sess.afterCreateHook)
 
-	go sess.readInbound(s.router, s.readTimeout)               // start reading message packet from connection.
-	go sess.writeOutbound(s.writeTimeout, s.writeAttemptTimes) // start writing message packet to connection.
+	go sess.readInbound(s.router, s.readTimeout) // start reading message packet from connection.
+	go sess.writeOutbound(s.writeTimeout)        // start writing message packet to connection.
 
 	select {
 	case <-sess.closed: // wait for session finished.
