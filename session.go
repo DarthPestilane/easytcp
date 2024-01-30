@@ -17,7 +17,7 @@ type Session interface {
 	// SetID sets current session's id.
 	SetID(id interface{})
 
-	// Send sends the ctx to the respQueue.
+	// Send sends the ctx to the respStream.
 	Send(ctx Context) bool
 
 	// Codec returns the codec, can be nil.
@@ -40,17 +40,17 @@ type Session interface {
 }
 
 type session struct {
-	id              interface{}   // session's ID.
-	conn            net.Conn      // tcp connection
-	closed          chan struct{} // to close()
-	afterCreateHook chan struct{} // to close after session's on-create hook triggered
-	afterCloseHook  chan struct{} // to close after session's on-close hook triggered
-	closeOnce       sync.Once     // ensure one session only close once
-	respQueue       chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
-	packer          Packer        // to pack and unpack message
-	codec           Codec         // encode/decode message data
-	ctxPool         sync.Pool     // router context pool
-	asyncRouter     bool          // calls router HandlerFunc in a goroutine if false
+	id               interface{}   // session's ID.
+	conn             net.Conn      // tcp connection
+	closedC          chan struct{} // to close when read/write loop stopped
+	closeOnce        sync.Once     // ensure one session only close once
+	afterCreateHookC chan struct{} // to close after session's on-create hook triggered
+	afterCloseHookC  chan struct{} // to close after session's on-close hook triggered
+	respStream       chan Context  // response queue channel, pushed in Send() and popped in writeOutbound()
+	packer           Packer        // to pack and unpack message
+	codec            Codec         // encode/decode message data
+	ctxPool          sync.Pool     // router context pool
+	asyncRouter      bool          // calls router HandlerFunc in a goroutine if false
 }
 
 // sessionOption is the extra options for session.
@@ -67,16 +67,16 @@ type sessionOption struct {
 // Returns a session pointer.
 func newSession(conn net.Conn, opt *sessionOption) *session {
 	return &session{
-		id:              uuid.NewString(), // use uuid as default
-		conn:            conn,
-		closed:          make(chan struct{}),
-		afterCreateHook: make(chan struct{}),
-		afterCloseHook:  make(chan struct{}),
-		respQueue:       make(chan Context, opt.respQueueSize),
-		packer:          opt.Packer,
-		codec:           opt.Codec,
-		ctxPool:         sync.Pool{New: func() interface{} { return newContext() }},
-		asyncRouter:     opt.asyncRouter,
+		id:               uuid.NewString(), // use uuid as default
+		conn:             conn,
+		closedC:          make(chan struct{}),
+		afterCreateHookC: make(chan struct{}),
+		afterCloseHookC:  make(chan struct{}),
+		respStream:       make(chan Context, opt.respQueueSize),
+		packer:           opt.Packer,
+		codec:            opt.Codec,
+		ctxPool:          sync.Pool{New: func() interface{} { return newContext() }},
+		asyncRouter:      opt.asyncRouter,
 	}
 }
 
@@ -91,15 +91,15 @@ func (s *session) SetID(id interface{}) {
 	s.id = id
 }
 
-// Send pushes response message to respQueue.
+// Send pushes response message to respStream.
 // Returns false if session is closed or ctx is done.
 func (s *session) Send(ctx Context) (ok bool) {
 	select {
 	case <-ctx.Done():
 		return false
-	case <-s.closed:
+	case <-s.closedC:
 		return false
-	case s.respQueue <- ctx:
+	case s.respStream <- ctx:
 		return true
 	}
 }
@@ -112,17 +112,17 @@ func (s *session) Codec() Codec {
 // Close closes the session, but doesn't close the connection.
 // The connection will be closed in the server once the session's closed.
 func (s *session) Close() {
-	s.closeOnce.Do(func() { close(s.closed) })
+	s.closeOnce.Do(func() { close(s.closedC) })
 }
 
 // AfterCreateHook blocks until session's on-create hook triggered.
 func (s *session) AfterCreateHook() <-chan struct{} {
-	return s.afterCreateHook
+	return s.afterCreateHookC
 }
 
 // AfterCloseHook blocks until session's on-close hook triggered.
 func (s *session) AfterCloseHook() <-chan struct{} {
-	return s.afterCloseHook
+	return s.afterCloseHookC
 }
 
 // AllocateContext gets a Context from pool and reset all but session.
@@ -144,7 +144,7 @@ func (s *session) Conn() net.Conn {
 func (s *session) readInbound(router *Router, timeout time.Duration) {
 	for {
 		select {
-		case <-s.closed:
+		case <-s.closedC:
 			return
 		default:
 		}
@@ -184,16 +184,16 @@ func (s *session) handleReq(router *Router, reqMsg *Message) {
 	s.Send(ctx)
 }
 
-// writeOutbound fetches message from respQueue channel and writes to TCP connection in a loop.
+// writeOutbound fetches message from respStream channel and writes to TCP connection in a loop.
 // Parameter writeTimeout specified the connection writing timeout.
 // The loop breaks if errors occurred, or the session is closed.
 func (s *session) writeOutbound(writeTimeout time.Duration) {
 	for {
 		var ctx Context
 		select {
-		case <-s.closed:
+		case <-s.closedC:
 			return
-		case ctx = <-s.respQueue:
+		case ctx = <-s.respStream:
 		}
 
 		outboundBytes, err := s.packResponse(ctx)

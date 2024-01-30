@@ -149,7 +149,7 @@ func Test_routeContext_Send(t *testing.T) {
 		ctx := newTestContext(sess, nil)
 		ctx.SetResponseMessage(NewMessage(1, []byte("test")))
 		go ctx.Send()
-		ctx2 := <-sess.respQueue
+		ctx2 := <-sess.respStream
 		assert.Equal(t, ctx, ctx2)
 	})
 }
@@ -161,7 +161,7 @@ func Test_routeContext_SendTo(t *testing.T) {
 		ctx := newTestContext(sess1, nil)
 		ctx.SetResponseMessage(NewMessage(1, []byte("test")))
 		go ctx.SendTo(sess2)
-		ctx2 := <-sess2.respQueue
+		ctx2 := <-sess2.respStream
 		assert.Equal(t, ctx, ctx2)
 	})
 }

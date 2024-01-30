@@ -17,12 +17,12 @@ func TestNewServer(t *testing.T) {
 		Codec:         &JsonCodec{},
 		RespQueueSize: -1,
 	})
-	assert.NotNil(t, s.accepting)
+	assert.NotNil(t, s.acceptingC)
 	assert.IsType(t, s.Packer, NewDefaultPacker())
 	assert.Equal(t, s.Codec, &JsonCodec{})
 	assert.Equal(t, s.respQueueSize, DefaultRespQueueSize)
-	assert.NotNil(t, s.accepting)
-	assert.NotNil(t, s.stopped)
+	assert.NotNil(t, s.acceptingC)
+	assert.NotNil(t, s.stoppedC)
 }
 
 func TestServer_Serve(t *testing.T) {
@@ -34,7 +34,7 @@ func TestServer_Serve(t *testing.T) {
 		assert.ErrorIs(t, server.Serve(lis), ErrServerStopped)
 		close(done)
 	}()
-	<-server.accepting
+	<-server.acceptingC
 	time.Sleep(time.Millisecond * 5)
 	err = server.Stop()
 	assert.NoError(t, err)
@@ -48,7 +48,7 @@ func TestServer_Run(t *testing.T) {
 		assert.ErrorIs(t, server.Run("localhost:0"), ErrServerStopped)
 		close(done)
 	}()
-	<-server.accepting
+	<-server.acceptingC
 	time.Sleep(time.Millisecond * 5)
 	err := server.Stop()
 	assert.NoError(t, err)
@@ -69,7 +69,7 @@ func TestServer_RunTLS(t *testing.T) {
 		assert.ErrorIs(t, server.RunTLS("localhost:0", cfg), ErrServerStopped)
 		close(done)
 	}()
-	<-server.accepting
+	<-server.acceptingC
 	time.Sleep(time.Millisecond * 5)
 	err = server.Stop()
 	assert.NoError(t, err)
@@ -92,7 +92,7 @@ func TestServer_acceptLoop(t *testing.T) {
 			assert.Error(t, err)
 		}()
 
-		<-server.accepting
+		<-server.acceptingC
 
 		// client
 		cli, err := net.Dial("tcp", lis.Addr().String())
@@ -127,7 +127,7 @@ func TestServer_Stop(t *testing.T) {
 		assert.Equal(t, err, ErrServerStopped)
 	}()
 
-	<-server.accepting
+	<-server.acceptingC
 
 	// client
 	cli, err := net.Dial("tcp", server.Listener.Addr().String())
@@ -197,7 +197,7 @@ func TestServer_handleConn(t *testing.T) {
 	}()
 	defer func() { assert.NoError(t, server.Stop()) }()
 
-	<-server.accepting
+	<-server.acceptingC
 
 	// client
 	cli, err := net.Dial("tcp", server.Listener.Addr().String())
@@ -235,7 +235,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 		assert.Equal(t, err, ErrServerStopped)
 	}()
 
-	<-server.accepting
+	<-server.acceptingC
 
 	// client
 	cli, err := net.Dial("tcp", server.Listener.Addr().String())
@@ -276,7 +276,7 @@ func TestServer_SessionHooks(t *testing.T) {
 	}()
 	defer func() { assert.NoError(t, server.Stop()) }()
 
-	<-server.accepting
+	<-server.acceptingC
 
 	// client
 	cli, err := net.Dial("tcp", server.Listener.Addr().String())

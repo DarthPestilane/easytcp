@@ -22,7 +22,7 @@ func Benchmark_NoHandler(b *testing.B) {
 	go s.Run("127.0.0.1:0") // nolint
 	defer s.Stop()          // nolint
 
-	<-s.accepting
+	<-s.acceptingC
 
 	// client
 	client, err := net.Dial("tcp", s.Listener.Addr().String())
@@ -46,7 +46,7 @@ func Benchmark_OneHandler(b *testing.B) {
 	go s.Run("127.0.0.1:0") // nolint
 	defer s.Stop()          // nolint
 
-	<-s.accepting
+	<-s.acceptingC
 
 	// client
 	client, err := net.Dial("tcp", s.Listener.Addr().String())

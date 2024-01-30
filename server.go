@@ -33,8 +33,8 @@ type Server struct {
 	respQueueSize         int
 	router                *Router
 	printRoutes           bool
-	accepting             chan struct{}
-	stopped               chan struct{}
+	acceptingC            chan struct{}
+	stoppedC              chan struct{}
 	asyncRouter           bool
 }
 
@@ -79,8 +79,8 @@ func NewServer(opt *ServerOption) *Server {
 		Codec:                 opt.Codec,
 		printRoutes:           !opt.DoNotPrintRoutes,
 		router:                newRouter(),
-		accepting:             make(chan struct{}),
-		stopped:               make(chan struct{}),
+		acceptingC:            make(chan struct{}),
+		stoppedC:              make(chan struct{}),
 		asyncRouter:           opt.AsyncRouter,
 	}
 }
@@ -116,7 +116,7 @@ func (s *Server) RunTLS(addr string, config *tls.Config) error {
 // acceptLoop accepts TCP connections in a loop, and handle connections in goroutines.
 // Returns error when error occurred.
 func (s *Server) acceptLoop() error {
-	close(s.accepting)
+	close(s.acceptingC)
 	for {
 		if s.isStopped() {
 			_log.Tracef("server accept loop stopped")
@@ -171,25 +171,25 @@ func (s *Server) handleConn(conn net.Conn) {
 	if s.OnSessionCreate != nil {
 		s.OnSessionCreate(sess)
 	}
-	close(sess.afterCreateHook)
+	close(sess.afterCreateHookC)
 
 	go sess.readInbound(s.router, s.readTimeout) // start reading message packet from connection.
 	go sess.writeOutbound(s.writeTimeout)        // start writing message packet to connection.
 
 	select {
-	case <-sess.closed: // wait for session finished.
-	case <-s.stopped: // or the server is stopped.
+	case <-sess.closedC: // wait for session finished.
+	case <-s.stoppedC: // or the server is stopped.
 	}
 
 	if s.OnSessionClose != nil {
 		s.OnSessionClose(sess)
 	}
-	close(sess.afterCloseHook)
+	close(sess.afterCloseHookC)
 }
 
 // Stop stops server. Closing Listener and all connections.
 func (s *Server) Stop() error {
-	close(s.stopped)
+	close(s.stoppedC)
 	return s.Listener.Close()
 }
 
@@ -210,7 +210,7 @@ func (s *Server) NotFoundHandler(handler HandlerFunc) {
 
 func (s *Server) isStopped() bool {
 	select {
-	case <-s.stopped:
+	case <-s.stoppedC:
 		return true
 	default:
 		return false

@@ -19,8 +19,8 @@ func TestNewTCPSession(t *testing.T) {
 		s = newSession(nil, &sessionOption{})
 	})
 	assert.NotNil(t, s)
-	assert.NotNil(t, s.closed)
-	assert.NotNil(t, s.respQueue)
+	assert.NotNil(t, s.closedC)
+	assert.NotNil(t, s.respStream)
 }
 
 func TestTCPSession_close(t *testing.T) {
@@ -34,7 +34,7 @@ func TestTCPSession_close(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	_, ok := <-sess.closed
+	_, ok := <-sess.closedC
 	assert.False(t, ok)
 }
 
@@ -50,7 +50,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 		_ = p1.Close()
 		sess := newSession(p1, &sessionOption{})
 		go sess.readInbound(nil, time.Millisecond)
-		<-sess.closed
+		<-sess.closedC
 	})
 	t.Run("when connection read timeout", func(t *testing.T) {
 		p1, _ := net.Pipe()
@@ -77,7 +77,7 @@ func TestTCPSession_readInbound(t *testing.T) {
 			close(done)
 		}()
 		<-done
-		<-sess.closed
+		<-sess.closedC
 	})
 	t.Run("when unpack message returns nil message", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -175,8 +175,8 @@ func TestTCPSession_Send(t *testing.T) {
 	})
 	t.Run("when send succeed", func(t *testing.T) {
 		sess := newSession(nil, &sessionOption{})
-		sess.respQueue = make(chan Context) // no buffer
-		go func() { <-sess.respQueue }()
+		sess.respStream = make(chan Context) // no buffer
+		go func() { <-sess.respStream }()
 		assert.True(t, sess.AllocateContext().SetRequestMessage(NewMessage(1, []byte("test"))).Send())
 		sess.Close()
 	})
@@ -208,7 +208,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).AnyTimes().Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 1024})
-		sess.respQueue <- sess.AllocateContext()
+		sess.respStream <- sess.AllocateContext()
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0) // should stop looping and return
@@ -228,7 +228,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		sess := newSession(nil, &sessionOption{Packer: packer})
 		done := make(chan struct{})
 		go func() {
-			sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test")))
+			sess.respStream <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test")))
 			close(done)
 		}()
 		time.Sleep(time.Microsecond * 15)
@@ -245,7 +245,7 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		packer.EXPECT().Pack(gomock.Any()).Return(nil, nil)
 
 		sess := newSession(nil, &sessionOption{Packer: packer, respQueueSize: 100})
-		sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) // push to queue
+		sess.respStream <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) // push to queue
 		doneLoop := make(chan struct{})
 		go func() {
 			sess.writeOutbound(0)
@@ -264,9 +264,9 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		_ = p1.Close()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
+		go func() { sess.respStream <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		go sess.writeOutbound(time.Millisecond * 10)
-		_, ok := <-sess.closed
+		_, ok := <-sess.closedC
 		assert.False(t, ok)
 	})
 	t.Run("when conn write timeout", func(t *testing.T) {
@@ -278,9 +278,9 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 
 		p1, _ := net.Pipe()
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
+		go func() { sess.respStream <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		go sess.writeOutbound(time.Millisecond * 10)
-		_, ok := <-sess.closed
+		_, ok := <-sess.closedC
 		assert.False(t, ok)
 		_ = p1.Close()
 	})
@@ -294,9 +294,9 @@ func TestTCPSession_writeOutbound(t *testing.T) {
 		p1, _ := net.Pipe()
 		assert.NoError(t, p1.Close())
 		sess := newSession(p1, &sessionOption{Packer: packer})
-		go func() { sess.respQueue <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
+		go func() { sess.respStream <- sess.AllocateContext().SetResponseMessage(NewMessage(1, []byte("test"))) }()
 		sess.writeOutbound(0) // should stop looping and return
-		_, ok := <-sess.closed
+		_, ok := <-sess.closedC
 		assert.False(t, ok)
 	})
 	t.Run("when write succeed", func(t *testing.T) {
