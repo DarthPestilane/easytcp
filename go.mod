@@ -11,7 +11,7 @@ require (
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.3.4
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
