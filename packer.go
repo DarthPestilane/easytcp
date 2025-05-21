@@ -45,7 +45,7 @@ type DefaultPacker struct {
 }
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
-	return binary.LittleEndian
+	return binary.BigEndian
 }
 
 // Pack implements the Packer Pack method.
