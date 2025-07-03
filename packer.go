@@ -24,7 +24,8 @@ var _ Packer = &DefaultPacker{}
 // NewDefaultPacker create a *DefaultPacker with initial field value.
 func NewDefaultPacker() *DefaultPacker {
 	return &DefaultPacker{
-		MaxDataSize: 1 << 10 << 10, // 1MB
+		MaxDataSize: 1 << 10 << 10,    // 1MB
+		byteOrder:   binary.BigEndian, // big endian as default
 	}
 }
 
@@ -42,10 +43,16 @@ func NewDefaultPacker() *DefaultPacker {
 type DefaultPacker struct {
 	// MaxDataSize represents the max size of `data`
 	MaxDataSize int
+	byteOrder   binary.ByteOrder
 }
 
 func (d *DefaultPacker) bytesOrder() binary.ByteOrder {
-	return binary.LittleEndian
+	return binary.BigEndian
+}
+
+// SetByteOrder sets the byte order
+func (d *DefaultPacker) SetByteOrder(order binary.ByteOrder) {
+	d.byteOrder = order
 }
 
 // Pack implements the Packer Pack method.
