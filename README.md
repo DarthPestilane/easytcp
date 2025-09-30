@@ -372,6 +372,6 @@ Use issues for everything
   - Suggesting new features or enhancements
   - Improve/fix documentation
 
-## Stargazers over time
+<!-- ## Stargazers over time
 
-[![Stargazers over time](https://starchart.cc/DarthPestilane/easytcp.svg)](https://starchart.cc/DarthPestilane/easytcp)
+[![Stargazers over time](https://starchart.cc/DarthPestilane/easytcp.svg)](https://starchart.cc/DarthPestilane/easytcp) -->
